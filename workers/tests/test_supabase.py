@@ -1,0 +1,309 @@
+from __future__ import annotations
+
+import json
+
+import httpx
+import pytest
+
+from classic_hubble_pipeline.supabase import (
+    SupabaseConfigurationError,
+    SupabaseRepository,
+    SupabaseSettings,
+)
+
+
+def test_settings_prefer_a_modern_secret_key():
+    settings = SupabaseSettings.from_env(
+        {
+            "SUPABASE_URL": "https://project-ref.supabase.co",
+            "SUPABASE_SECRET_KEY": "sb_secret_modern",
+            "SUPABASE_SERVICE_ROLE_KEY": "legacy.jwt.value",
+        }
+    )
+
+    assert settings.api_key == "sb_secret_modern"
+
+
+def test_settings_reject_a_publishable_key_for_the_worker():
+    with pytest.raises(SupabaseConfigurationError, match="secret"):
+        SupabaseSettings(
+            url="https://project-ref.supabase.co",
+            api_key="sb_publishable_public",
+        )
+
+
+def test_modern_secret_key_is_sent_only_as_an_apikey_header():
+    requests: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        return httpx.Response(201, json=[{"id": "run-1"}])
+
+    http_client = httpx.Client(transport=httpx.MockTransport(handler))
+    repository = SupabaseRepository(
+        SupabaseSettings(
+            url="https://project-ref.supabase.co",
+            api_key="sb_secret_modern",
+        ),
+        http_client=http_client,
+    )
+
+    run_id = repository.start_ingestion_run("kopis")
+
+    assert run_id == "run-1"
+    assert requests[0].headers["apikey"] == "sb_secret_modern"
+    assert "authorization" not in requests[0].headers
+    assert requests[0].url.path == "/rest/v1/ingestion_runs"
+    assert requests[0].headers["prefer"] == "return=representation"
+    http_client.close()
+
+
+def test_legacy_service_role_key_is_also_sent_as_a_bearer_token():
+    requests: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        return httpx.Response(201, json=[{"id": "run-1"}])
+
+    http_client = httpx.Client(transport=httpx.MockTransport(handler))
+    repository = SupabaseRepository(
+        SupabaseSettings(
+            url="https://project-ref.supabase.co",
+            api_key="legacy.service.role.jwt",
+        ),
+        http_client=http_client,
+    )
+
+    repository.start_ingestion_run("kopis")
+
+    assert requests[0].headers["apikey"] == "legacy.service.role.jwt"
+    assert requests[0].headers["authorization"] == (
+        "Bearer legacy.service.role.jwt"
+    )
+    http_client.close()
+
+
+def test_provider_record_upsert_uses_its_natural_key():
+    requests: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        return httpx.Response(201, json=[{"id": "raw-1"}])
+
+    http_client = httpx.Client(transport=httpx.MockTransport(handler))
+    repository = SupabaseRepository(
+        SupabaseSettings(
+            url="https://project-ref.supabase.co",
+            api_key="sb_secret_modern",
+        ),
+        http_client=http_client,
+    )
+
+    repository.upsert_provider_record(
+        entity_type="performance_detail",
+        provider_id="PF300001",
+        payload={"mt20id": "PF300001"},
+        ingestion_run_id="run-1",
+    )
+
+    request = requests[0]
+    assert request.url.path == "/rest/v1/provider_records"
+    assert request.url.params["on_conflict"] == "provider,entity_type,provider_id"
+    assert request.headers["prefer"] == (
+        "resolution=merge-duplicates,return=representation"
+    )
+    assert request.read().decode("utf-8").count("sb_secret_modern") == 0
+    http_client.close()
+
+
+def test_provider_record_upsert_accepts_a_nol_provider():
+    requests: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        return httpx.Response(201, json=[{"id": "raw-1"}])
+
+    http_client = httpx.Client(transport=httpx.MockTransport(handler))
+    repository = SupabaseRepository(
+        SupabaseSettings(
+            url="https://project-ref.supabase.co",
+            api_key="sb_secret_modern",
+        ),
+        http_client=http_client,
+    )
+
+    repository.upsert_provider_record(
+        provider="nol",
+        entity_type="performance_detail",
+        provider_id="26007299",
+        payload={"data": {"goodsCode": "26007299"}},
+        ingestion_run_id="run-1",
+    )
+
+    assert json.loads(requests[0].content)["provider"] == "nol"
+    http_client.close()
+
+
+def test_program_source_update_sets_a_fresh_timestamp():
+    requests: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        return httpx.Response(204)
+
+    http_client = httpx.Client(transport=httpx.MockTransport(handler))
+    repository = SupabaseRepository(
+        SupabaseSettings(
+            url="https://project-ref.supabase.co",
+            api_key="sb_secret_modern",
+        ),
+        http_client=http_client,
+    )
+
+    repository.update_performance_program_source(
+        "performance-1",
+        {
+            "program_status": "image_only",
+            "program_source_url": "https://tickets.interpark.com/goods/26007299",
+            "program_image_urls": ["https://ticketimage.interpark.com/program.jpg"],
+        },
+    )
+
+    request = requests[0]
+    body = json.loads(request.content)
+    assert request.method == "PATCH"
+    assert request.url.path == "/rest/v1/performances"
+    assert request.url.params["id"] == "eq.performance-1"
+    assert request.headers["prefer"] == "return=minimal"
+    assert body["program_status"] == "image_only"
+    assert body["program_source_updated_at"].endswith("+00:00")
+    http_client.close()
+
+
+def test_program_item_replacement_upserts_before_deleting_stale_nol_rows():
+    requests: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        return httpx.Response(204)
+
+    http_client = httpx.Client(transport=httpx.MockTransport(handler))
+    repository = SupabaseRepository(
+        SupabaseSettings(
+            url="https://project-ref.supabase.co",
+            api_key="sb_secret_modern",
+        ),
+        http_client=http_client,
+    )
+
+    repository.replace_program_items(
+        "performance-1",
+        "nol",
+        [
+            {
+                "display_title": "La mer",
+                "composer_name": "Claude Debussy",
+                "source_type": "verified",
+                "confidence": 0.98,
+                "position": 0,
+                "source_url": "https://tickets.interpark.com/goods/26007299",
+            },
+            {
+                "display_title": "Bolero",
+                "composer_name": "Maurice Ravel",
+                "source_type": "verified",
+                "confidence": 0.98,
+                "position": 1,
+                "source_url": "https://tickets.interpark.com/goods/26007299",
+            },
+        ],
+    )
+
+    upsert, delete = requests
+    rows = json.loads(upsert.content)
+    assert upsert.method == "POST"
+    assert upsert.url.path == "/rest/v1/program_items"
+    assert upsert.url.params["on_conflict"] == (
+        "performance_id,source_provider,position"
+    )
+    assert upsert.headers["prefer"] == (
+        "resolution=merge-duplicates,return=minimal"
+    )
+    assert rows[0]["performance_id"] == "performance-1"
+    assert rows[0]["source_provider"] == "nol"
+    assert delete.method == "DELETE"
+    assert delete.url.params["performance_id"] == "eq.performance-1"
+    assert delete.url.params["source_provider"] == "eq.nol"
+    assert delete.url.params["position"] == "not.in.(0,1)"
+    http_client.close()
+
+
+def test_empty_program_replacement_deletes_only_the_requested_provider_rows():
+    requests: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(request)
+        return httpx.Response(204)
+
+    http_client = httpx.Client(transport=httpx.MockTransport(handler))
+    repository = SupabaseRepository(
+        SupabaseSettings(
+            url="https://project-ref.supabase.co",
+            api_key="sb_secret_modern",
+        ),
+        http_client=http_client,
+    )
+
+    repository.replace_program_items("performance-1", "nol", [])
+
+    assert len(requests) == 1
+    request = requests[0]
+    assert request.method == "DELETE"
+    assert request.url.params["performance_id"] == "eq.performance-1"
+    assert request.url.params["source_provider"] == "eq.nol"
+    assert "position" not in request.url.params
+    http_client.close()
+
+
+@pytest.mark.parametrize("position", [None, -1, True, "0"])
+def test_program_item_replacement_rejects_invalid_positions(position: object):
+    http_client = httpx.Client(transport=httpx.MockTransport(lambda request: None))
+    repository = SupabaseRepository(
+        SupabaseSettings(
+            url="https://project-ref.supabase.co",
+            api_key="sb_secret_modern",
+        ),
+        http_client=http_client,
+    )
+
+    with pytest.raises(ValueError, match="position"):
+        repository.replace_program_items(
+            "performance-1",
+            "nol",
+            [{"display_title": "La mer", "position": position}],
+        )
+
+    http_client.close()
+
+
+def test_program_item_replacement_rejects_duplicate_positions():
+    http_client = httpx.Client(transport=httpx.MockTransport(lambda request: None))
+    repository = SupabaseRepository(
+        SupabaseSettings(
+            url="https://project-ref.supabase.co",
+            api_key="sb_secret_modern",
+        ),
+        http_client=http_client,
+    )
+
+    with pytest.raises(ValueError, match="unique"):
+        repository.replace_program_items(
+            "performance-1",
+            "nol",
+            [
+                {"display_title": "La mer", "position": 0},
+                {"display_title": "Bolero", "position": 0},
+            ],
+        )
+
+    http_client.close()

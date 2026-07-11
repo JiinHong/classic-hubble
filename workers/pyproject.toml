@@ -1,0 +1,19 @@
+[project]
+name = "classic-hubble-pipeline"
+version = "0.1.0"
+description = "Data ingestion and enrichment pipeline for Classic Hubble."
+requires-python = ">=3.11"
+dependencies = [
+  "httpx>=0.28",
+  "python-dotenv>=1.2",
+]
+
+[project.scripts]
+classic-hubble-pipeline = "classic_hubble_pipeline.cli:main"
+
+[project.optional-dependencies]
+dev = ["pytest>=9.0"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]

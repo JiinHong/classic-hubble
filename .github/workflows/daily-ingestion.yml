@@ -1,0 +1,129 @@
+name: Daily catalog ingestion
+
+on:
+  schedule:
+    - cron: "27 16 * * *"
+      timezone: "Asia/Seoul"
+  workflow_dispatch:
+    inputs:
+      start_date:
+        description: Optional catalog start date (YYYY-MM-DD)
+        required: false
+        type: string
+      end_date:
+        description: Optional catalog end date (YYYY-MM-DD)
+        required: false
+        type: string
+      limit:
+        description: Optional performance limit for a smoke run
+        required: false
+        type: string
+      enrich_nol:
+        description: Refresh near-term NOL program data
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: daily-catalog-ingestion
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    name: Sync KOPIS and NOL
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      KOPIS_API_KEY: ${{ secrets.KOPIS_API_KEY }}
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+      KOPIS_MAX_RETRIES: "3"
+      KOPIS_RETRY_BACKOFF_SECONDS: "0.5"
+      NOL_MAX_RETRIES: "3"
+      NOL_RETRY_BACKOFF_SECONDS: "0.5"
+      PYTHONUNBUFFERED: "1"
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: workers/pyproject.toml
+
+      - name: Install worker
+        run: python -m pip install -e workers
+
+      - name: Validate required secrets
+        shell: bash
+        run: |
+          if [[ -z "$KOPIS_API_KEY" || -z "$SUPABASE_URL" || -z "$SUPABASE_SECRET_KEY" ]]; then
+            echo "::error::KOPIS_API_KEY, SUPABASE_URL, and SUPABASE_SECRET_KEY are required."
+            exit 1
+          fi
+
+      - name: Resolve sync windows
+        id: window
+        shell: bash
+        env:
+          INPUT_START_DATE: ${{ inputs.start_date }}
+          INPUT_END_DATE: ${{ inputs.end_date }}
+        run: |
+          today="$(TZ=Asia/Seoul date +%F)"
+          catalog_start="${INPUT_START_DATE:-$(date -u -d "$today - 7 days" +%F)}"
+          catalog_end="${INPUT_END_DATE:-$(date -u -d "$today + 180 days" +%F)}"
+          nol_end="$(date -u -d "$today + 31 days" +%F)"
+
+          echo "today=$today" >> "$GITHUB_OUTPUT"
+          echo "catalog_start=$catalog_start" >> "$GITHUB_OUTPUT"
+          echo "catalog_end=$catalog_end" >> "$GITHUB_OUTPUT"
+          echo "nol_end=$nol_end" >> "$GITHUB_OUTPUT"
+
+      - name: Sync KOPIS catalog
+        shell: bash
+        env:
+          SYNC_LIMIT: ${{ inputs.limit }}
+        run: |
+          args=(
+            kopis-sync
+            --start "${{ steps.window.outputs.catalog_start }}"
+            --end "${{ steps.window.outputs.catalog_end }}"
+            --rows 100
+          )
+          if [[ -n "$SYNC_LIMIT" ]]; then
+            args+=(--limit "$SYNC_LIMIT")
+          fi
+          classic-hubble-pipeline "${args[@]}"
+
+      - name: Refresh near-term NOL programs
+        if: ${{ github.event_name == 'schedule' || inputs.enrich_nol }}
+        shell: bash
+        env:
+          SYNC_LIMIT: ${{ inputs.limit }}
+        run: |
+          args=(
+            kopis-sync
+            --start "${{ steps.window.outputs.today }}"
+            --end "${{ steps.window.outputs.nol_end }}"
+            --rows 100
+            --enrich-nol
+          )
+          if [[ -n "$SYNC_LIMIT" ]]; then
+            args+=(--limit "$SYNC_LIMIT")
+          fi
+          classic-hubble-pipeline "${args[@]}"
+
+      - name: Summarize run
+        if: ${{ always() }}
+        run: |
+          {
+            echo "## Catalog ingestion"
+            echo "- Schedule: daily at 16:27 Asia/Seoul"
+            echo "- KOPIS: ${{ steps.window.outputs.catalog_start }} through ${{ steps.window.outputs.catalog_end }}"
+            echo "- NOL: ${{ steps.window.outputs.today }} through ${{ steps.window.outputs.nol_end }}"
+          } >> "$GITHUB_STEP_SUMMARY"

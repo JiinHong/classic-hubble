@@ -1,0 +1,16 @@
+{
+  "name": "classic-hubble",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Classic Hubble MVP monorepo for work-based classical concert discovery.",
+  "scripts": {
+    "dev": "pnpm --filter web dev",
+    "build": "pnpm --filter web build",
+    "lint": "pnpm --filter web lint",
+    "test": "pnpm --filter @classic-hubble/shared test && pnpm --filter web test",
+    "test:shared": "pnpm --filter @classic-hubble/shared test",
+    "test:web": "pnpm --filter web test",
+    "test:workers": ".venv/bin/python -m pytest workers/tests"
+  },
+  "packageManager": "pnpm@11.7.0"
+}

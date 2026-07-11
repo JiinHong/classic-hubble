@@ -1,0 +1,10 @@
+{
+  "name": "클래식허블",
+  "short_name": "클래식허블",
+  "description": "곡명 기반 클래식 공연 탐색과 알림",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#fafaf9",
+  "theme_color": "#1c1917",
+  "lang": "ko-KR"
+}
