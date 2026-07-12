@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 
@@ -41,6 +42,12 @@ def test_workflows_use_node_24_compatible_action_releases() -> None:
     assert "actions/setup-python@v6" in ingestion
     assert "actions/checkout@v4" not in ci + ingestion
     assert "actions/setup-python@v5" not in ci + ingestion
+
+
+def test_vercel_output_directory_is_relative_to_web_root() -> None:
+    config = json.loads((PROJECT_ROOT / "vercel.json").read_text(encoding="utf-8"))
+
+    assert config["outputDirectory"] == ".next"
 
 
 def test_daily_ingestion_runs_after_kopis_refresh_and_before_nol_peak() -> None:
