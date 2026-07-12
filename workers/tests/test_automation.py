@@ -29,6 +29,20 @@ def test_ci_build_uses_public_supabase_repository_variables() -> None:
     )
 
 
+def test_workflows_use_node_24_compatible_action_releases() -> None:
+    ci = _workflow("ci.yml")
+    ingestion = _workflow("daily-ingestion.yml")
+
+    assert "actions/checkout@v6" in ci
+    assert "pnpm/action-setup@v6" in ci
+    assert "actions/setup-node@v6" in ci
+    assert "actions/setup-python@v6" in ci
+    assert "actions/checkout@v6" in ingestion
+    assert "actions/setup-python@v6" in ingestion
+    assert "actions/checkout@v4" not in ci + ingestion
+    assert "actions/setup-python@v5" not in ci + ingestion
+
+
 def test_daily_ingestion_runs_after_kopis_refresh_and_before_nol_peak() -> None:
     workflow = _workflow("daily-ingestion.yml")
 
