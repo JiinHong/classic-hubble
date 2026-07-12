@@ -19,6 +19,16 @@ def test_ci_runs_every_project_verification_command() -> None:
     assert "python -m pytest workers/tests" in workflow
 
 
+def test_ci_build_uses_public_supabase_repository_variables() -> None:
+    workflow = _workflow("ci.yml")
+
+    assert "NEXT_PUBLIC_SUPABASE_URL: ${{ vars.NEXT_PUBLIC_SUPABASE_URL }}" in workflow
+    assert (
+        "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ vars.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}"
+        in workflow
+    )
+
+
 def test_daily_ingestion_runs_after_kopis_refresh_and_before_nol_peak() -> None:
     workflow = _workflow("daily-ingestion.yml")
 
