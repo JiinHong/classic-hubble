@@ -367,6 +367,36 @@ def test_client_retries_temporary_server_errors_before_parsing_response():
     http_client.close()
 
 
+def test_client_retries_a_transient_bad_request_before_parsing_response():
+    attempts = 0
+    delays: list[float] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal attempts
+        attempts += 1
+        if attempts == 1:
+            return httpx.Response(400, text="temporarily rejected")
+        return httpx.Response(200, text=LIST_XML)
+
+    http_client = httpx.Client(transport=httpx.MockTransport(handler))
+    client = kopis.KopisClient(
+        kopis.KopisSettings(api_key="test-key", max_retries=1),
+        http_client=http_client,
+        sleep=delays.append,
+    )
+
+    performances = client.list_performances(
+        kopis.KopisSyncWindow(date(2026, 7, 1), date(2026, 7, 31)),
+        rows=2,
+    )
+
+    assert len(performances) == 2
+    assert attempts == 2
+    assert delays == [0.25]
+
+    http_client.close()
+
+
 def test_client_iterates_until_the_last_partial_page():
     requested_pages: list[int] = []
 

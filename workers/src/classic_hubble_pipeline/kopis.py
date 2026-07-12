@@ -12,7 +12,7 @@ import httpx
 
 
 DEFAULT_BASE_URL = "https://kopis.or.kr/openApi/restful"
-RETRYABLE_STATUS_CODES = frozenset({429, 500, 502, 503, 504})
+RETRYABLE_STATUS_CODES = frozenset({400, 429, 500, 502, 503, 504})
 
 
 class KopisError(RuntimeError):
