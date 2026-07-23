@@ -52,7 +52,7 @@ Core composers use a heavier primary name and a small `핵심` label. Their row 
 
 ### Composer Selection
 
-Selecting a composer links to `/?composer=<slug>`. The existing discovery page reads that query parameter, opens with the composer selected, and shows matching works and upcoming performances. This avoids adding a second composer-specific page.
+Selecting a composer links to `/?composer=<encoded-name>`. The existing discovery page reads that query parameter, opens with the composer selected, and shows matching works and upcoming performances. This avoids adding a second composer-specific page or a database field that only exists for routing.
 
 ### Empty and Error States
 
@@ -69,14 +69,9 @@ The composer directory uses the existing `composers` table fields:
 - `name_ko`
 - `period`
 
-The first implementation adds:
-
-- `slug`: stable URL-safe identifier.
-- `is_core`: explicit editorial importance flag, default `false`.
-
 Period values are normalized to seven named periods during catalog ingestion. The UI includes an eighth `기타` group when it receives an unknown period so records are not lost.
 
-The page renders every composer returned by the catalog. Expanding and auditing the composer catalog is a separate data-quality task, but the directory must not impose an arbitrary display limit.
+The page renders every composer returned by the catalog. A small reviewed `CORE_COMPOSER_NAMES` set in the directory module derives the core marker without changing the database schema. Expanding and auditing the composer catalog is a separate data-quality task, but the directory must not impose an arbitrary display limit.
 
 ## Component Boundaries
 
