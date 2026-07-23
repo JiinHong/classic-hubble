@@ -52,7 +52,7 @@ Core composers use a heavier primary name and a small `핵심` label. Their row 
 
 ### Composer Selection
 
-Selecting a composer links to `/?composer=<encoded-name>`. The existing discovery page reads that query parameter, opens with the composer selected, and shows matching works and upcoming performances. This avoids adding a second composer-specific page or a database field that only exists for routing.
+Selecting a composer links to `/?composer=<encoded-primary-name>`, using the Korean name when available and the original name otherwise. The existing discovery page reads that query parameter, opens with the composer selected, and shows matching works and upcoming performances. This avoids adding a second composer-specific page or a database field that only exists for routing.
 
 ### Empty and Error States
 
@@ -71,7 +71,11 @@ The composer directory uses the existing `composers` table fields:
 
 Period values are normalized to seven named periods during catalog ingestion. The UI includes an eighth `기타` group when it receives an unknown period so records are not lost.
 
-The page renders every composer returned by the catalog. A small reviewed `CORE_COMPOSER_NAMES` set in the directory module derives the core marker without changing the database schema. Expanding and auditing the composer catalog is a separate data-quality task, but the directory must not impose an arbitrary display limit.
+The repository includes a composer-only snapshot from the public-domain Open Opus dataset as the baseline catalog. Birth/death dates, portraits, and works are not copied into this snapshot. The page does not call Open Opus at runtime.
+
+The catalog loader merges every Supabase composer row into the baseline by normalized original-language name. Supabase values take precedence, so curated Korean names and period corrections appear immediately. When no Korean name exists, the original name is used once as the primary label rather than duplicated.
+
+The page renders the complete merged catalog. A small reviewed `CORE_COMPOSER_NAMES` set in the directory module derives the core marker without changing the database schema. Open Opus is a practical baseline rather than a claim to include every composer who has ever existed, and the directory must not impose an arbitrary display limit.
 
 ## Component Boundaries
 
