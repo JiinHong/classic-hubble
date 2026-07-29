@@ -30,12 +30,6 @@ function composerHref(nameKo: string) {
   return `/?composer=${encodeURIComponent(nameKo)}`;
 }
 
-function composerLinkHrefs() {
-  return screen
-    .getAllByRole("link")
-    .map((link) => link.getAttribute("href"));
-}
-
 describe("ComposerDirectory", () => {
   it("shows all composers with Korean and original names", () => {
     render(<ComposerDirectory composers={composers} />);
@@ -73,21 +67,51 @@ describe("ComposerDirectory", () => {
     ).toBe(`/?composer=${encodeURIComponent("요한 제바스티안 바흐")}`);
   });
 
-  it("shows complete Korean and original-language composer link orders", () => {
-    render(<ComposerDirectory composers={composers} />);
-
-    expect(composerLinkHrefs()).toEqual([
-      composerHref("안토니오 비발디"),
-      composerHref("요한 제바스티안 바흐"),
-      composerHref("클로드 드뷔시"),
-    ]);
+  it("keeps period headings and sorts original names within a period in A–Z mode", () => {
+    render(
+      <ComposerDirectory
+        composers={[
+          toComposerDirectoryEntry({
+            id: "handel",
+            name: "George Frideric Handel",
+            nameKo: "게오르크 프리드리히 헨델",
+            period: "Baroque",
+          }),
+          toComposerDirectoryEntry({
+            id: "vivaldi",
+            name: "Antonio Vivaldi",
+            nameKo: "안토니오 비발디",
+            period: "Baroque",
+          }),
+          toComposerDirectoryEntry({
+            id: "adams",
+            name: "John Adams",
+            nameKo: "존 애덤스",
+            period: "Unclassified",
+          }),
+        ]}
+      />,
+    );
 
     fireEvent.click(screen.getByRole("button", { name: "A–Z" }));
-    expect(composerLinkHrefs()).toEqual([
+
+    const baroqueHeading = screen.getByRole("heading", { name: "바로크" });
+    const otherHeading = screen.getByRole("heading", { name: "기타" });
+    const baroqueSection = baroqueHeading.closest("section");
+
+    expect(baroqueSection).not.toBeNull();
+    expect(
+      within(baroqueSection!)
+        .getAllByRole("link")
+        .map((link) => link.getAttribute("href")),
+    ).toEqual([
       composerHref("안토니오 비발디"),
-      composerHref("클로드 드뷔시"),
-      composerHref("요한 제바스티안 바흐"),
+      composerHref("게오르크 프리드리히 헨델"),
     ]);
+    expect(otherHeading).toBeTruthy();
+    expect(
+      screen.getByRole("link", { name: /존 애덤스/ }).getAttribute("href"),
+    ).toBe(composerHref("존 애덤스"));
   });
 
   it("exposes period controls as a named group and updates pressed state", () => {

@@ -11,7 +11,10 @@ import {
   useState,
 } from "react";
 
-import { createSupabaseClient } from "@/lib/supabase/client";
+import {
+  createSupabaseClient,
+  isSupabaseConfigured,
+} from "@/lib/supabase/client";
 import {
   loadUserLibrary,
   type NotificationChannel,
@@ -59,7 +62,9 @@ export function UserLibraryProvider({
 }: UserLibraryProviderProps) {
   const { loading: authLoading, openAuth, user } = useAuth();
   const client = useMemo(
-    () => providedClient ?? createSupabaseClient(),
+    () =>
+      providedClient ??
+      (isSupabaseConfigured ? createSupabaseClient() : null),
     [providedClient],
   );
   const [library, setLibrary] = useState<LoadedLibrary | null>(null);
@@ -68,7 +73,7 @@ export function UserLibraryProvider({
   useEffect(() => {
     let active = true;
 
-    if (!user) {
+    if (!user || !client) {
       return () => {
         active = false;
       };
@@ -113,8 +118,8 @@ export function UserLibraryProvider({
 
   const toggleWork = useCallback(
     async (workSlug: string) => {
-      if (!user) {
-        openAuth("signin");
+      if (!user || !client) {
+        if (!user) openAuth("signin");
         return;
       }
       const pendingKey = `${user.id}:${workSlug}`;
@@ -161,8 +166,8 @@ export function UserLibraryProvider({
 
   const setPreference = useCallback(
     async (channel: NotificationChannel, enabled: boolean) => {
-      if (!user) {
-        openAuth("signin");
+      if (!user || !client) {
+        if (!user) openAuth("signin");
         return;
       }
 
@@ -202,7 +207,7 @@ export function UserLibraryProvider({
       isPending: (workSlug) =>
         Boolean(user && pendingItems.has(`${user.id}:${workSlug}`)),
       isWatched: (workSlug) => visibleWatchedSlugs.includes(workSlug),
-      loading: authLoading || Boolean(user && !hasLoadedLibrary),
+      loading: authLoading || Boolean(user && client && !hasLoadedLibrary),
       preferences: visiblePreferences,
       setPreference,
       toggleWork,
@@ -210,6 +215,7 @@ export function UserLibraryProvider({
     }),
     [
       authLoading,
+      client,
       hasLoadedLibrary,
       pendingItems,
       setPreference,

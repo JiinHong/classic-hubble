@@ -11,7 +11,10 @@ import {
 } from "react";
 
 import type { AuthMode } from "@/lib/auth";
-import { createSupabaseClient } from "@/lib/supabase/client";
+import {
+  createSupabaseClient,
+  isSupabaseConfigured,
+} from "@/lib/supabase/client";
 
 import { AuthDialog } from "./AuthDialog";
 
@@ -32,15 +35,19 @@ type AuthProviderProps = {
 
 export function AuthProvider({ children, client: providedClient }: AuthProviderProps) {
   const client = useMemo(
-    () => providedClient ?? createSupabaseClient(),
+    () =>
+      providedClient ??
+      (isSupabaseConfigured ? createSupabaseClient() : null),
     [providedClient],
   );
   const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => Boolean(client));
   const [dialogOpen, setDialogOpen] = useState(false);
   const [dialogMode, setDialogMode] = useState<AuthMode>("signin");
 
   useEffect(() => {
+    if (!client) return;
+
     let active = true;
 
     void client.auth.getSession().then(({ data }) => {
@@ -65,11 +72,13 @@ export function AuthProvider({ children, client: providedClient }: AuthProviderP
     () => ({
       loading,
       openAuth(mode = "signin") {
+        if (!client) return;
         setDialogMode(mode);
         setDialogOpen(true);
       },
       session,
       async signOut() {
+        if (!client) return;
         const { error } = await client.auth.signOut();
         if (!error) setSession(null);
       },
@@ -81,7 +90,7 @@ export function AuthProvider({ children, client: providedClient }: AuthProviderP
   return (
     <AuthContext.Provider value={value}>
       {children}
-      {dialogOpen ? (
+      {dialogOpen && client ? (
         <AuthDialog
           auth={client.auth}
           initialMode={dialogMode}

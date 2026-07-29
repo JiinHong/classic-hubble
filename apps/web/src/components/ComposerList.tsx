@@ -1,28 +1,15 @@
 import {
   groupComposers,
   type ComposerDirectoryEntry,
-  type ComposerDirectorySort,
 } from "@/lib/composer-directory";
 
 import { ComposerListItem } from "./ComposerListItem";
 
 export function ComposerList({
   composers,
-  sort,
 }: {
   composers: ComposerDirectoryEntry[];
-  sort: ComposerDirectorySort;
 }) {
-  if (sort === "latin") {
-    return (
-      <ul className="grid grid-cols-1 gap-x-6 sm:grid-cols-2 xl:grid-cols-4">
-        {composers.map((composer) => (
-          <ComposerListItem composer={composer} key={composer.id} />
-        ))}
-      </ul>
-    );
-  }
-
   return (
     <div className="space-y-10">
       {groupComposers(composers).map((group) => (

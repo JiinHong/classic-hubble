@@ -35,6 +35,10 @@ export function SearchExperience({
     const trimmed = query.trim();
     return trimmed ? findWorksByQueryInList(works, trimmed) : works;
   }, [query, works]);
+  const matchedWorkSlugs = useMemo(
+    () => new Set(workResults.map((work) => work.slug)),
+    [workResults],
+  );
 
   const performanceResults = useMemo(() => {
     const lowered = query.trim().toLowerCase();
@@ -58,9 +62,12 @@ export function SearchExperience({
         .join(" ")
         .toLowerCase();
 
-      return haystack.includes(lowered);
+      return (
+        haystack.includes(lowered) ||
+        performance.program.some((item) => matchedWorkSlugs.has(item.workSlug))
+      );
     });
-  }, [city, performances, query]);
+  }, [city, matchedWorkSlugs, performances, query]);
 
   return (
     <section aria-labelledby="search-heading" className="space-y-5">
