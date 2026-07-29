@@ -8,8 +8,10 @@ import {
 
 export function FeaturedComposerCard({
   composer,
+  eager = false,
 }: {
   composer: ComposerDirectoryEntry;
+  eager?: boolean;
 }) {
   if (!composer.portraitSrc) return null;
 
@@ -24,6 +26,7 @@ export function FeaturedComposerCard({
             alt=""
             className="object-cover object-top grayscale transition duration-300 group-hover:grayscale-0"
             fill
+            loading={eager ? "eager" : "lazy"}
             sizes="(max-width: 639px) 48px, 64px"
             src={composer.portraitSrc}
           />

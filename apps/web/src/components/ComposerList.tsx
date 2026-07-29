@@ -16,7 +16,7 @@ export function ComposerList({
 }) {
   return (
     <div className="space-y-10">
-      {groupComposers(composers).map((group) => {
+      {groupComposers(composers).map((group, groupIndex) => {
         const featuredComposers = showFeatured
           ? selectFeaturedComposers(group.composers)
           : [];
@@ -40,8 +40,12 @@ export function ComposerList({
                 aria-label={`${group.label} 먼저 만나는 작곡가`}
                 className="mb-4 grid grid-cols-2 gap-2 sm:gap-3 xl:grid-cols-4"
               >
-                {featuredComposers.map((composer) => (
-                  <FeaturedComposerCard composer={composer} key={composer.id} />
+                {featuredComposers.map((composer, featuredIndex) => (
+                  <FeaturedComposerCard
+                    composer={composer}
+                    eager={groupIndex === 0 && featuredIndex === 0}
+                    key={composer.id}
+                  />
                 ))}
               </ul>
             ) : null}

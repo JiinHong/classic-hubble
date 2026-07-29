@@ -75,8 +75,11 @@ describe("ComposerDirectory", () => {
       name: "바로크 전체 작곡가",
     });
 
-    expect(featuredList.querySelectorAll("img")).toHaveLength(2);
-    expect(featuredList.querySelector("img")?.getAttribute("alt")).toBe("");
+    const featuredImages = featuredList.querySelectorAll("img");
+    expect(featuredImages).toHaveLength(2);
+    expect(featuredImages[0]?.getAttribute("alt")).toBe("");
+    expect(featuredImages[0]?.getAttribute("loading")).toBe("eager");
+    expect(featuredImages[1]?.getAttribute("loading")).toBe("lazy");
     expect(
       within(featuredList)
         .getAllByRole("link")
