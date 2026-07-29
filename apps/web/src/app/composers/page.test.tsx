@@ -31,11 +31,12 @@ describe("ComposersPage", () => {
   it("passes the composer loader result to the directory", async () => {
     const composers = [
       {
+        featuredRank: 1,
         id: "bach",
-        isCore: true,
         name: "Johann Sebastian Bach",
         nameKo: "요한 제바스티안 바흐",
         period: "baroque" as const,
+        portraitSrc: "/composer-portraits/johann-sebastian-bach.jpg",
       },
     ];
     mocks.getComposerDirectory.mockResolvedValue(composers);

@@ -5,6 +5,7 @@ import {
   composerIdentityKey,
   filterAndSortComposers,
   groupComposers,
+  selectFeaturedComposers,
   toComposerDirectoryEntry,
 } from "./composer-directory";
 
@@ -26,14 +27,30 @@ const unknown = toComposerDirectoryEntry({
   nameKo: null,
   period: null,
 });
+const machaut = toComposerDirectoryEntry({
+  id: "machaut",
+  name: "Guillaume de Machaut",
+  nameKo: null,
+  period: "Medieval",
+});
 
 describe("composer directory rules", () => {
-  it("normalizes period and derives core status", () => {
+  it("normalizes periods and derives featured presentation metadata", () => {
     expect(bach.period).toBe("baroque");
-    expect(bach.isCore).toBe(true);
+    expect(bach.featuredRank).toBe(1);
+    expect(bach.portraitSrc).toBe(
+      "/composer-portraits/johann-sebastian-bach.jpg",
+    );
     expect(debussy.period).toBe("twentieth");
     expect(unknown.period).toBe("other");
+    expect(unknown.featuredRank).toBeNull();
+    expect(unknown.portraitSrc).toBeNull();
     expect(unknown.nameKo).toBe("Unknown Composer");
+    expect(machaut).toMatchObject({
+      featuredRank: 1,
+      nameKo: "기욤 드 마쇼",
+      portraitSrc: "/composer-portraits/guillaume-de-machaut.jpg",
+    });
     expect(
       toComposerDirectoryEntry({
         id: "adams",
@@ -49,7 +66,7 @@ describe("composer directory rules", () => {
         nameKo: null,
         period: "Classical",
       }),
-    ).toMatchObject({ isCore: true, nameKo: "요제프 하이든" });
+    ).toMatchObject({ featuredRank: 2, nameKo: "요제프 하이든" });
     expect(
       toComposerDirectoryEntry({
         id: "schnittke",
@@ -103,6 +120,24 @@ describe("composer directory rules", () => {
       "baroque",
       "twentieth",
       "other",
+    ]);
+  });
+
+  it("selects at most four featured composers in editorial order", () => {
+    const candidates = [
+      { ...bach, id: "fifth", featuredRank: 5, name: "Five" },
+      { ...bach, id: "third", featuredRank: 3, name: "Three" },
+      { ...bach, id: "first", featuredRank: 1, name: "One" },
+      { ...bach, id: "fourth", featuredRank: 4, name: "Four" },
+      { ...bach, id: "second", featuredRank: 2, name: "Two" },
+      unknown,
+    ];
+
+    expect(selectFeaturedComposers(candidates).map((entry) => entry.id)).toEqual([
+      "first",
+      "second",
+      "third",
+      "fourth",
     ]);
   });
 

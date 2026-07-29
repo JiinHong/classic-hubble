@@ -35,8 +35,10 @@ describe("ComposerDirectory", () => {
     render(<ComposerDirectory composers={composers} />);
 
     expect(screen.getByText("3명의 작곡가")).toBeTruthy();
-    expect(screen.getByText("요한 제바스티안 바흐")).toBeTruthy();
-    expect(screen.getByText("Johann Sebastian Bach")).toBeTruthy();
+    expect(screen.getAllByText("요한 제바스티안 바흐").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Johann Sebastian Bach").length).toBeGreaterThan(
+      0,
+    );
   });
 
   it("searches and filters without hiding the other period permanently", () => {
@@ -56,12 +58,43 @@ describe("ComposerDirectory", () => {
     expect(screen.queryByText("클로드 드뷔시")).toBeNull();
   });
 
-  it("marks core composers and links them to discovery", () => {
+  it("leads a period with portrait links without explicit importance labels", () => {
     render(<ComposerDirectory composers={composers} />);
 
-    expect(screen.getAllByText("핵심").length).toBeGreaterThan(0);
+    expect(screen.queryByText("핵심")).toBeNull();
+
+    const baroqueSection = screen
+      .getByRole("heading", { name: "바로크" })
+      .closest("section");
+    expect(baroqueSection).not.toBeNull();
+
+    const featuredList = within(baroqueSection!).getByRole("list", {
+      name: "바로크 먼저 만나는 작곡가",
+    });
+    const completeList = within(baroqueSection!).getByRole("list", {
+      name: "바로크 전체 작곡가",
+    });
+
+    expect(featuredList.querySelectorAll("img")).toHaveLength(2);
+    expect(featuredList.querySelector("img")?.getAttribute("alt")).toBe("");
     expect(
-      screen
+      within(featuredList)
+        .getAllByRole("link")
+        .map((link) => link.getAttribute("href")),
+    ).toEqual([
+      composerHref("요한 제바스티안 바흐"),
+      composerHref("안토니오 비발디"),
+    ]);
+    expect(
+      within(completeList)
+        .getAllByRole("link")
+        .map((link) => link.getAttribute("href")),
+    ).toEqual([
+      composerHref("안토니오 비발디"),
+      composerHref("요한 제바스티안 바흐"),
+    ]);
+    expect(
+      within(featuredList)
         .getByRole("link", { name: /요한 제바스티안 바흐/ })
         .getAttribute("href"),
     ).toBe(`/?composer=${encodeURIComponent("요한 제바스티안 바흐")}`);
@@ -98,10 +131,13 @@ describe("ComposerDirectory", () => {
     const baroqueHeading = screen.getByRole("heading", { name: "바로크" });
     const otherHeading = screen.getByRole("heading", { name: "기타" });
     const baroqueSection = baroqueHeading.closest("section");
+    const completeBaroqueList = within(baroqueSection!).getByRole("list", {
+      name: "바로크 전체 작곡가",
+    });
 
     expect(baroqueSection).not.toBeNull();
     expect(
-      within(baroqueSection!)
+      within(completeBaroqueList)
         .getAllByRole("link")
         .map((link) => link.getAttribute("href")),
     ).toEqual([
@@ -109,8 +145,14 @@ describe("ComposerDirectory", () => {
       composerHref("게오르크 프리드리히 헨델"),
     ]);
     expect(otherHeading).toBeTruthy();
+    const completeOtherList = within(otherHeading.closest("section")!).getByRole(
+      "list",
+      { name: "기타 전체 작곡가" },
+    );
     expect(
-      screen.getByRole("link", { name: /존 애덤스/ }).getAttribute("href"),
+      within(completeOtherList)
+        .getByRole("link", { name: /존 애덤스/ })
+        .getAttribute("href"),
     ).toBe(composerHref("존 애덤스"));
   });
 
@@ -141,6 +183,21 @@ describe("ComposerDirectory", () => {
     expect(screen.getByText("조건에 맞는 작곡가가 없습니다")).toBeTruthy();
   });
 
+  it("hides portrait links during search to avoid duplicate results", () => {
+    render(<ComposerDirectory composers={composers} />);
+
+    fireEvent.change(screen.getByLabelText("작곡가 이름 검색"), {
+      target: { value: "바흐" },
+    });
+
+    expect(
+      screen.queryByRole("list", { name: "바로크 먼저 만나는 작곡가" }),
+    ).toBeNull();
+    expect(
+      screen.getAllByRole("link", { name: /요한 제바스티안 바흐/ }),
+    ).toHaveLength(1);
+  });
+
   it("distinguishes a catalog load failure from a filtered empty list", () => {
     render(<ComposerDirectory composers={[]} />);
 
@@ -155,8 +212,8 @@ describe("ComposerDirectory", () => {
       <ComposerDirectory
         composers={[
           toComposerDirectoryEntry({
-            id: "adams",
-            name: "John Adams",
+            id: "ades",
+            name: "Thomas Adès",
             nameKo: null,
             period: "21st Century",
           }),
@@ -164,6 +221,6 @@ describe("ComposerDirectory", () => {
       />,
     );
 
-    expect(screen.getAllByText("John Adams")).toHaveLength(1);
+    expect(screen.getAllByText("Thomas Adès")).toHaveLength(1);
   });
 });

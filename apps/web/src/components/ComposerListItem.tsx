@@ -13,25 +13,14 @@ export function ComposerListItem({
   return (
     <li className="border-b border-stone-200">
       <Link
-        className="group block min-h-16 py-3 outline-none focus-visible:ring-2 focus-visible:ring-emerald-700 focus-visible:ring-offset-2"
+        className="group block min-h-16 min-w-0 py-3 outline-none focus-visible:ring-2 focus-visible:ring-emerald-700 focus-visible:ring-offset-2"
         href={composerDiscoveryHref(composer)}
       >
-        <span className="flex items-center gap-2">
-          <span
-            className={`text-sm text-stone-950 ${
-              composer.isCore ? "font-black" : "font-bold"
-            }`}
-          >
-            {composer.nameKo}
-          </span>
-          {composer.isCore ? (
-            <span className="border border-rose-200 bg-rose-50 px-1.5 py-0.5 text-[10px] font-black text-rose-700">
-              핵심
-            </span>
-          ) : null}
+        <span className="block text-sm font-bold leading-5 break-words text-stone-950">
+          {composer.nameKo}
         </span>
         {composer.nameKo !== composer.name ? (
-          <span className="mt-1 block text-xs text-stone-500 group-hover:text-emerald-800">
+          <span className="mt-1 block text-xs leading-4 break-words text-stone-500 group-hover:text-emerald-800">
             {composer.name}
           </span>
         ) : null}

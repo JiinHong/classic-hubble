@@ -1,4 +1,13 @@
+import { existsSync } from "node:fs";
+import path from "node:path";
+
 import { describe, expect, it } from "vitest";
+
+import {
+  groupComposers,
+  selectFeaturedComposers,
+  toComposerDirectoryEntry,
+} from "@/lib/composer-directory";
 
 import composers from "./openopus-composers.json";
 
@@ -30,6 +39,45 @@ describe("Open Opus composer snapshot", () => {
         "period",
       ]);
       expect(composer.nameKo).toBeNull();
+    }
+  });
+
+  it("has four local portrait representatives for every named period", () => {
+    const directory = composers.map((composer, index) =>
+      toComposerDirectoryEntry({
+        id: `openopus:${index}`,
+        ...composer,
+      }),
+    );
+    const featuredGroups = groupComposers(directory)
+      .map((group) => ({
+        composers: selectFeaturedComposers(group.composers),
+        key: group.key,
+      }))
+      .filter((group) => group.composers.length > 0);
+
+    expect(
+      featuredGroups.map((group) => ({
+        count: group.composers.length,
+        key: group.key,
+      })),
+    ).toEqual([
+      { count: 4, key: "medieval" },
+      { count: 4, key: "renaissance" },
+      { count: 4, key: "baroque" },
+      { count: 4, key: "classical" },
+      { count: 4, key: "romantic" },
+      { count: 4, key: "twentieth" },
+      { count: 4, key: "contemporary" },
+    ]);
+
+    for (const composer of featuredGroups.flatMap((group) => group.composers)) {
+      expect(composer.portraitSrc).not.toBeNull();
+      expect(
+        existsSync(
+          path.join(process.cwd(), "public", composer.portraitSrc!.slice(1)),
+        ),
+      ).toBe(true);
     }
   });
 });

@@ -108,7 +108,10 @@ export function ComposerDirectory({
 
       <section className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         {visibleComposers.length ? (
-          <ComposerList composers={visibleComposers} />
+          <ComposerList
+            composers={visibleComposers}
+            showFeatured={!query.trim()}
+          />
         ) : (
           <p className="border-y border-stone-200 py-14 text-center text-sm font-bold text-stone-500">
             조건에 맞는 작곡가가 없습니다
