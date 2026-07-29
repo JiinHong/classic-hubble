@@ -21,7 +21,7 @@ Supabase rows override matching names and provide curated Korean labels where av
 - License: public domain, as stated at https://www.openopus.org/
 - Retained fields: portrait image only
 - Local destination: `apps/web/public/composer-portraits/`
-- File count: 28 curated period representatives
+- File count: 29 curated period representatives and fallbacks
 
 Portraits are committed as local 200-by-200 JPEG files. The application does
 not call Open Opus or its asset host at runtime, and no birth or death fields

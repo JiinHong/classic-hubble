@@ -141,6 +141,57 @@ describe("composer directory rules", () => {
     ]);
   });
 
+  it("keeps four romantic representatives when Beethoven is curated as classical", () => {
+    const entries = [
+      {
+        ...toComposerDirectoryEntry({
+          id: "beethoven",
+          name: "Ludwig van Beethoven",
+          nameKo: null,
+          period: "Classical",
+        }),
+      },
+      toComposerDirectoryEntry({
+        id: "chopin",
+        name: "Frédéric Chopin",
+        nameKo: null,
+        period: "Romantic",
+      }),
+      toComposerDirectoryEntry({
+        id: "tchaikovsky",
+        name: "Pyotr Ilyich Tchaikovsky",
+        nameKo: null,
+        period: "Romantic",
+      }),
+      toComposerDirectoryEntry({
+        id: "brahms",
+        name: "Johannes Brahms",
+        nameKo: null,
+        period: "Romantic",
+      }),
+      toComposerDirectoryEntry({
+        id: "schubert",
+        name: "Franz Schubert",
+        nameKo: null,
+        period: "Early Romantic",
+      }),
+    ];
+    const romanticGroup = groupComposers(entries).find(
+      (group) => group.key === "romantic",
+    );
+
+    expect(
+      selectFeaturedComposers(romanticGroup?.composers ?? []).map(
+        (entry) => entry.name,
+      ),
+    ).toEqual([
+      "Frédéric Chopin",
+      "Pyotr Ilyich Tchaikovsky",
+      "Johannes Brahms",
+      "Franz Schubert",
+    ]);
+  });
+
   it("builds an encoded composer discovery link", () => {
     expect(composerDiscoveryHref(bach)).toBe(
       `/?composer=${encodeURIComponent("요한 제바스티안 바흐")}`,

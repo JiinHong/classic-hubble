@@ -133,6 +133,7 @@ const FEATURED_COMPOSER_METADATA = new Map(
         "pyotr-ilyich-tchaikovsky",
       ],
       ["Johannes Brahms", "요하네스 브람스", 4, "johannes-brahms"],
+      ["Franz Schubert", "프란츠 슈베르트", 5, "franz-schubert"],
       ["Igor Stravinsky", "이고르 스트라빈스키", 1, "igor-stravinsky"],
       [
         "Dmitri Shostakovich",
@@ -160,7 +161,6 @@ const FEATURED_COMPOSER_METADATA = new Map(
 const ADDITIONAL_KOREAN_COMPOSER_LABELS = new Map(
   (
     [
-      ["Franz Schubert", "프란츠 슈베르트"],
       ["Robert Schumann", "로베르트 슈만"],
       ["Franz Liszt", "프란츠 리스트"],
       ["Richard Wagner", "리하르트 바그너"],
