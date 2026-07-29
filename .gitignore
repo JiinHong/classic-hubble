@@ -12,6 +12,7 @@ __pycache__
 *.pyc
 *.egg-info
 .vercel
+.worktrees
 .idea
 .DS_Store
 supabase/.temp
