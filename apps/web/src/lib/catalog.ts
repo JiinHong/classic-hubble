@@ -97,11 +97,15 @@ const baselineComposerDirectory = openOpusComposers.map((composer) =>
   }),
 );
 
+function copyBaselineComposerDirectory(): ComposerDirectoryEntry[] {
+  return baselineComposerDirectory.map((composer) => ({ ...composer }));
+}
+
 function mergeComposerRows(
   rows: ComposerDirectoryRow[],
 ): ComposerDirectoryEntry[] {
   const composersByName = new Map(
-    baselineComposerDirectory.map((composer) => [
+    copyBaselineComposerDirectory().map((composer) => [
       composerIdentityKey(composer.name),
       composer,
     ]),
@@ -245,7 +249,7 @@ function mapPerformances(rows: PerformanceRow[]): Performance[] {
 }
 
 export async function getComposerDirectory(): Promise<ComposerDirectoryEntry[]> {
-  if (!isSupabaseConfigured) return baselineComposerDirectory;
+  if (!isSupabaseConfigured) return copyBaselineComposerDirectory();
 
   try {
     const supabase = createSupabaseClient();
@@ -256,9 +260,10 @@ export async function getComposerDirectory(): Promise<ComposerDirectoryEntry[]> 
         .from("composers")
         .select("id, name, name_ko, period")
         .order("name_ko", { ascending: true, nullsFirst: false })
+        .order("id", { ascending: true })
         .range(offset, offset + COMPOSER_PAGE_SIZE - 1);
 
-      if (result.error) return baselineComposerDirectory;
+      if (result.error) return copyBaselineComposerDirectory();
 
       const page = (result.data ?? []) as ComposerDirectoryRow[];
       rows.push(...page);
@@ -267,7 +272,7 @@ export async function getComposerDirectory(): Promise<ComposerDirectoryEntry[]> 
 
     return mergeComposerRows(rows);
   } catch {
-    return baselineComposerDirectory;
+    return copyBaselineComposerDirectory();
   }
 }
 
