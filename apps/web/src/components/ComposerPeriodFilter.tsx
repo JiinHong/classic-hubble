@@ -16,6 +16,7 @@ export function ComposerPeriodFilter({
     <div
       aria-label="시대"
       className="flex overflow-x-auto border-y border-stone-200"
+      role="group"
     >
       {PERIOD_OPTIONS.map((option) => (
         <button

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import { toComposerDirectoryEntry } from "@/lib/composer-directory";
@@ -25,6 +25,16 @@ const composers = [
     period: "20th Century",
   }),
 ];
+
+function composerHref(nameKo: string) {
+  return `/?composer=${encodeURIComponent(nameKo)}`;
+}
+
+function composerLinkHrefs() {
+  return screen
+    .getAllByRole("link")
+    .map((link) => link.getAttribute("href"));
+}
 
 describe("ComposerDirectory", () => {
   it("shows all composers with Korean and original names", () => {
@@ -63,14 +73,39 @@ describe("ComposerDirectory", () => {
     ).toBe(`/?composer=${encodeURIComponent("요한 제바스티안 바흐")}`);
   });
 
-  it("switches the visible list to original-language order", () => {
+  it("shows complete Korean and original-language composer link orders", () => {
     render(<ComposerDirectory composers={composers} />);
 
-    expect(screen.getAllByRole("link")[1]?.textContent).toContain(
-      "Johann Sebastian Bach",
-    );
+    expect(composerLinkHrefs()).toEqual([
+      composerHref("안토니오 비발디"),
+      composerHref("요한 제바스티안 바흐"),
+      composerHref("클로드 드뷔시"),
+    ]);
+
     fireEvent.click(screen.getByRole("button", { name: "A–Z" }));
-    expect(screen.getAllByRole("link")[1]?.textContent).toContain("Claude Debussy");
+    expect(composerLinkHrefs()).toEqual([
+      composerHref("안토니오 비발디"),
+      composerHref("클로드 드뷔시"),
+      composerHref("요한 제바스티안 바흐"),
+    ]);
+  });
+
+  it("exposes period controls as a named group and updates pressed state", () => {
+    render(<ComposerDirectory composers={composers} />);
+
+    const periodControls = screen.getByRole("group", { name: "시대" });
+    const allButton = within(periodControls).getByRole("button", { name: "전체" });
+    const baroqueButton = within(periodControls).getByRole("button", {
+      name: "바로크",
+    });
+
+    expect(allButton.getAttribute("aria-pressed")).toBe("true");
+    expect(baroqueButton.getAttribute("aria-pressed")).toBe("false");
+
+    fireEvent.click(baroqueButton);
+
+    expect(allButton.getAttribute("aria-pressed")).toBe("false");
+    expect(baroqueButton.getAttribute("aria-pressed")).toBe("true");
   });
 
   it("shows an explicit no-results state", () => {
