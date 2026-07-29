@@ -9,6 +9,13 @@ import {
   type Work,
 } from "@classic-hubble/shared";
 
+import openOpusComposers from "@/data/openopus-composers.json";
+
+import {
+  composerIdentityKey,
+  toComposerDirectoryEntry,
+  type ComposerDirectoryEntry,
+} from "./composer-directory";
 import { createSupabaseClient, isSupabaseConfigured } from "./supabase/client";
 
 type SourceType = "supabase" | "fallback";
@@ -23,6 +30,13 @@ type CatalogSnapshot = {
 type Relation<T> = T | T[] | null;
 
 type ComposerRow = {
+  id: string;
+  name: string;
+  name_ko: string | null;
+  period: string | null;
+};
+
+type ComposerDirectoryRow = {
   id: string;
   name: string;
   name_ko: string | null;
@@ -73,6 +87,42 @@ const fallbackSnapshot: CatalogSnapshot = {
   source: "fallback",
   works: fallbackWorks,
 };
+
+const baselineComposerDirectory = openOpusComposers.map((composer) =>
+  toComposerDirectoryEntry({
+    id: `openopus:${composerIdentityKey(composer.name)}`,
+    name: composer.name,
+    nameKo: composer.nameKo,
+    period: composer.period,
+  }),
+);
+
+function mergeComposerRows(
+  rows: ComposerDirectoryRow[],
+): ComposerDirectoryEntry[] {
+  const composersByName = new Map(
+    baselineComposerDirectory.map((composer) => [
+      composerIdentityKey(composer.name),
+      composer,
+    ]),
+  );
+
+  for (const row of rows) {
+    composersByName.set(
+      composerIdentityKey(row.name),
+      toComposerDirectoryEntry({
+        id: row.id,
+        name: row.name,
+        nameKo: row.name_ko,
+        period: row.period,
+      }),
+    );
+  }
+
+  return Array.from(composersByName.values());
+}
+
+const COMPOSER_PAGE_SIZE = 1000;
 
 const sourceLabels: Record<ConfidenceLevel, string> = {
   estimated: "추정 매칭",
@@ -192,6 +242,33 @@ function mapPerformances(rows: PerformanceRow[]): Performance[] {
       venue: venue?.name ?? "",
     };
   });
+}
+
+export async function getComposerDirectory(): Promise<ComposerDirectoryEntry[]> {
+  if (!isSupabaseConfigured) return baselineComposerDirectory;
+
+  try {
+    const supabase = createSupabaseClient();
+    const rows: ComposerDirectoryRow[] = [];
+
+    for (let offset = 0; ; offset += COMPOSER_PAGE_SIZE) {
+      const result = await supabase
+        .from("composers")
+        .select("id, name, name_ko, period")
+        .order("name_ko", { ascending: true, nullsFirst: false })
+        .range(offset, offset + COMPOSER_PAGE_SIZE - 1);
+
+      if (result.error) return baselineComposerDirectory;
+
+      const page = (result.data ?? []) as ComposerDirectoryRow[];
+      rows.push(...page);
+      if (page.length < COMPOSER_PAGE_SIZE) break;
+    }
+
+    return mergeComposerRows(rows);
+  } catch {
+    return baselineComposerDirectory;
+  }
 }
 
 export async function getCatalogSnapshot(): Promise<CatalogSnapshot> {
