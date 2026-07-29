@@ -1,12 +1,22 @@
 "use client";
 
 import Link from "next/link";
-import { Bell, Headphones, LogIn, LogOut, Search, Settings2, UserRound } from "lucide-react";
+import {
+  Bell,
+  Headphones,
+  LibraryBig,
+  LogIn,
+  LogOut,
+  Search,
+  Settings2,
+  UserRound,
+} from "lucide-react";
 
 import { useAuth } from "./AuthProvider";
 
 const navigation = [
   { href: "/", label: "탐색", icon: Search },
+  { href: "/composers", label: "작곡가", icon: LibraryBig },
   { href: "/watchlist", label: "관심곡", icon: Bell },
   { href: "/admin/review", label: "검수", icon: Settings2 },
 ];

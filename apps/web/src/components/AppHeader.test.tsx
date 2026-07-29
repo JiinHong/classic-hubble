@@ -40,6 +40,9 @@ describe("AppHeader authentication", () => {
         "aria-label",
       ),
     ).toBe("탐색");
+    expect(screen.getByRole("link", { name: "작곡가" }).getAttribute("href")).toBe(
+      "/composers",
+    );
     expect(
       screen.getByRole("link", { name: "클래식허블 홈" }).getAttribute(
         "aria-label",
