@@ -23,10 +23,13 @@ describe("Open Opus composer snapshot", () => {
     ]) {
       expect(periods.has(expectedPeriod)).toBe(true);
     }
-    expect(Object.keys(composers[0] ?? {}).sort()).toEqual([
-      "name",
-      "nameKo",
-      "period",
-    ]);
+    for (const composer of composers) {
+      expect(Object.keys(composer).sort()).toEqual([
+        "name",
+        "nameKo",
+        "period",
+      ]);
+      expect(composer.nameKo).toBeNull();
+    }
   });
 });
