@@ -17,12 +17,17 @@ const quickQueries = ["라흐 피협 2번", "운명", "신세계", "브바협"];
 type SearchMode = "works" | "performances";
 
 type SearchExperienceProps = {
+  initialQuery?: string;
   performances: Performance[];
   works: Work[];
 };
 
-export function SearchExperience({ performances, works }: SearchExperienceProps) {
-  const [query, setQuery] = useState("");
+export function SearchExperience({
+  initialQuery = "",
+  performances,
+  works,
+}: SearchExperienceProps) {
+  const [query, setQuery] = useState(initialQuery);
   const [mode, setMode] = useState<SearchMode>("works");
   const [city, setCity] = useState("전체");
 

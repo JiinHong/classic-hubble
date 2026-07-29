@@ -5,7 +5,14 @@ import { PerformanceCard } from "@/components/PerformanceCard";
 import { SearchExperience } from "@/components/SearchExperience";
 import { getCatalogSnapshot } from "@/lib/catalog";
 
-export default async function Home() {
+type HomeProps = {
+  searchParams: Promise<{ composer?: string | string[] }>;
+};
+
+export default async function Home({ searchParams }: HomeProps) {
+  const composerParam = (await searchParams).composer;
+  const initialComposerQuery =
+    typeof composerParam === "string" ? composerParam : (composerParam?.[0] ?? "");
   const catalog = await getCatalogSnapshot();
   const upcomingPerformances = getUpcomingPerformancesFromList(catalog.performances);
   const openCount = catalog.performances.filter(
@@ -17,7 +24,11 @@ export default async function Home() {
     <main>
       <section className="border-b border-stone-200 bg-white">
         <div className="mx-auto grid max-w-7xl gap-8 px-4 py-6 sm:px-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:px-8">
-          <SearchExperience performances={catalog.performances} works={catalog.works} />
+          <SearchExperience
+            initialQuery={initialComposerQuery}
+            performances={catalog.performances}
+            works={catalog.works}
+          />
 
           <aside className="space-y-4">
             <div className="rounded-lg border border-stone-200 bg-stone-950 p-5 text-white shadow-sm">
