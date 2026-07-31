@@ -10,7 +10,24 @@ import {
 } from "@/lib/composer-directory";
 
 import koreanNames from "./composer-korean-names.json";
+import koreanNameProvenance from "./composer-korean-name-provenance.json";
 import composers from "./openopus-composers.json";
+
+type KoreanNameProvenance = Record<
+  string,
+  {
+    displayName: string;
+    review: {
+      note: string;
+      status: "reviewed" | "sparse-ko-institutional-usage";
+    };
+    sources: Array<{
+      publisher: string;
+      title: string;
+      url: string;
+    }>;
+  }
+>;
 
 describe("Open Opus composer snapshot", () => {
   it("contains a broad, composer-only, unique baseline", () => {
@@ -89,6 +106,40 @@ describe("Open Opus composer snapshot", () => {
           path.join(process.cwd(), "public", composer.portraitSrc!.slice(1)),
         ),
       ).toBe(true);
+    }
+  });
+
+  it("documents review provenance for every Korean composer label", () => {
+    const provenance =
+      koreanNameProvenance as unknown as KoreanNameProvenance;
+    const localizedNames = Object.keys(koreanNames).toSorted();
+    const provenanceNames = Object.keys(provenance).toSorted();
+
+    expect(provenanceNames).toEqual(localizedNames);
+
+    for (const [name, label] of Object.entries(koreanNames)) {
+      const entry = provenance[name];
+
+      expect(entry.displayName).toBe(label);
+      expect(entry.sources.length).toBeGreaterThanOrEqual(1);
+      expect(entry.review.status).toMatch(
+        /^(reviewed|sparse-ko-institutional-usage)$/,
+      );
+
+      if (entry.review.status === "reviewed") {
+        expect(entry.sources.length).toBeGreaterThanOrEqual(2);
+      } else {
+        expect(entry.review.note.trim().length).toBeGreaterThan(0);
+      }
+
+      for (const source of entry.sources) {
+        expect(source.publisher.trim()).toBe(source.publisher);
+        expect(source.publisher.length).toBeGreaterThan(0);
+        expect(source.title.trim()).toBe(source.title);
+        expect(source.title.length).toBeGreaterThan(0);
+        expect(() => new URL(source.url)).not.toThrow();
+        expect(source.url).toMatch(/^https:\/\//);
+      }
     }
   });
 });

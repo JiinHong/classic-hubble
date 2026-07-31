@@ -15,6 +15,7 @@ Supabase rows override matching names and provide curated Korean labels where av
 ## Reviewed Korean Composer Names
 
 - Local file: `apps/web/src/data/composer-korean-names.json`
+- Provenance file: `apps/web/src/data/composer-korean-name-provenance.json`
 - Review date: 2026-07-31
 - Scope: all 220 composer names in `apps/web/src/data/openopus-composers.json`
 - Runtime behavior: static local lookup only; no Wikidata, Wikipedia, search, or
@@ -22,10 +23,21 @@ Supabase rows override matching names and provide curated Korean labels where av
 - Precedence: explicit Supabase `name_ko` values remain authoritative over the
   fixed dictionary
 
+`composer-korean-name-provenance.json` is the version-controlled review record
+for the display dictionary. Its top-level keys must exactly match
+`composer-korean-names.json`; each entry records the chosen `displayName`, one
+or more direct source URLs, and a review status. The focused data test enforces
+that the provenance keys and display names stay in lockstep with the runtime
+dictionary, that every entry has source evidence, and that entries marked
+`reviewed` have at least two direct source links.
+
 Korean labels were seeded from Korean Wikipedia/Wikidata labels and Korean
-Wikipedia page titles, then reviewed against independent Korean search-result
-evidence from concert halls, catalog services, press, and community/classical
-music references. Examples used to resolve common-form differences include:
+Wikipedia page titles, then reviewed against independent identity evidence and
+Korean-facing usage where available. Evidence recorded in the provenance file
+uses stable direct links, including Wikidata composer entities, Korean
+Wikipedia articles, MusicBrainz artist pages, and English Wikipedia identity
+articles for alternate Open Opus spellings or sparse Korean coverage.
+Examples used to resolve common-form differences include:
 
 - Korean Wikipedia/Wikidata baseline pages such as
   `https://ko.wikipedia.org/wiki/에런_코플런드`,
@@ -50,6 +62,13 @@ uses the repeated concert form; for example `Béla Bartók` is stored as
 `벨라 바르톡`. Where the database seed already contains a Korean label, that
 explicit Supabase label remains the authoritative display value for matching
 Supabase rows.
+
+When Korean institutional or catalog usage is sparse, the provenance entry uses
+`review.status: "sparse-ko-institutional-usage"` and must include a note. Those
+entries retain conservative Hangul transliterations while documenting direct
+identity evidence instead of pretending that a Korean institutional consensus
+exists. Examples currently marked sparse include `Camargo Guarnieri`,
+`Joly Braga Santos`, and `Vagn Holmboe`.
 
 ## Open Opus Composer Portraits
 
