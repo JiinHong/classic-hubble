@@ -79,6 +79,17 @@ function directKoreanFacingEvidencePublishers(
   );
 }
 
+function directKoreanFacingDisplayNameEvidencePublishers(
+  entry: KoreanNameProvenance[string],
+) {
+  return new Set(
+    entry.sources
+      .filter((source) => isDirectKoreanFacingEvidence(source))
+      .filter((source) => source.title.includes(entry.displayName))
+      .map((source) => source.publisher),
+  );
+}
+
 describe("Open Opus composer snapshot", () => {
   it("contains a broad, composer-only, unique baseline", () => {
     expect(composers.length).toBeGreaterThanOrEqual(200);
@@ -173,7 +184,7 @@ describe("Open Opus composer snapshot", () => {
       .filter(([, entry]) => entry.review.status === "reviewed")
       .filter(
         ([, entry]) =>
-          directKoreanFacingEvidencePublishers(entry.sources).size < 2,
+          directKoreanFacingDisplayNameEvidencePublishers(entry).size < 2,
       )
       .map(([name]) => name);
 
@@ -185,8 +196,11 @@ describe("Open Opus composer snapshot", () => {
     expect(josefSuk.sources.map((source) => source.url)).not.toContain(
       "https://ko.wikipedia.org/wiki/%EC%9A%94%EC%84%B8%ED%94%84_%EC%88%98%ED%81%AC_(%EB%B0%94%EC%9D%B4%EC%98%AC%EB%A6%B0_%EC%97%B0%EC%A3%BC%EC%9E%90)",
     );
+    expect(
+      directKoreanFacingDisplayNameEvidencePublishers(josefSuk),
+    ).toEqual(new Set(["Seoul Philharmonic", "Yes24"]));
     expect(directKoreanFacingEvidencePublishers(josefSuk.sources)).toEqual(
-      new Set(["Daejeon Arts Center", "Seoul Philharmonic"]),
+      new Set(["Daejeon Arts Center", "Seoul Philharmonic", "Yes24"]),
     );
 
     for (const [name, label] of Object.entries(koreanNames)) {

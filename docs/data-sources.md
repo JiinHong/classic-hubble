@@ -32,9 +32,11 @@ the recorded Korean-usage corroboration rather than whether a human looked at
 the label. The focused data test enforces that the provenance keys and display
 names stay in lockstep with the runtime dictionary, that every entry has source
 evidence, and that entries marked `reviewed` have at least two direct
-Korean-facing, composer-specific source URLs from distinct publishers. Generic
-homepages, search URLs, Wikidata labels, MusicBrainz pages, and non-Korean
-identity links do not count toward that `reviewed` threshold.
+Korean-facing, composer-specific source URLs from distinct publishers whose
+recorded source titles explicitly contain the selected `displayName`. Generic
+homepages, search URLs, alternate-spelling pages, Wikidata labels, MusicBrainz
+pages, and non-Korean identity links do not count toward that `reviewed`
+threshold.
 
 Korean labels were seeded from Korean Wikipedia/Wikidata labels and Korean
 Wikipedia page titles, then manually reviewed against independent identity
@@ -43,8 +45,8 @@ provenance file uses stable direct links, including Wikidata composer entities,
 Korean Wikipedia articles, MusicBrainz artist pages, and English Wikipedia
 identity articles for alternate Open Opus spellings or sparse Korean coverage.
 Only direct Korean-facing pages that identify or support the intended composer
-count as corroboration for `reviewed`. Examples used to resolve common-form
-differences include:
+and record the exact selected display form count as corroboration for
+`reviewed`. Examples used to resolve common-form differences include:
 
 - Korean Wikipedia/Wikidata baseline pages such as
   `https://ko.wikipedia.org/wiki/에런_코플런드`,
@@ -55,7 +57,7 @@ differences include:
   and Daejeon Arts Center
   `https://www.daejeon.go.kr/djac/performanceView.do?code=2818&menuSeq=6709&type=image&yyyymm=202305`.
 - Catalog/streaming references such as Yes24
-  `https://www.yes24.com/`, Apple Music Classical
+  `https://www.yes24.com/product/goods/29786887`, Apple Music Classical
   `https://music.apple.com/`, medici.tv Korea `https://www.medici.tv/ko/`,
   and Berlin Philharmonic Digital Concert Hall
   `https://www.digitalconcerthall.com/ko/`.
@@ -71,13 +73,19 @@ explicit Supabase label remains the authoritative display value for matching
 Supabase rows.
 
 When the recorded evidence lacks two qualifying Korean-facing direct sources
-from distinct publishers, the provenance entry uses
+from distinct publishers using the exact selected display form, the provenance
+entry uses
 `review.status: "sparse-ko-institutional-usage"` and must include a note. Those
 entries retain manually reviewed conservative Hangul labels while documenting
 identity evidence instead of pretending that a Korean institutional consensus is
 already recorded. Examples currently marked sparse include `Aaron Copland`,
 `Camargo Guarnieri`, `Joly Braga Santos`, `Vagn Holmboe`, `Arnold Bax`, and
 `Wilhelm Stenhammar`.
+
+Alternate spellings may remain in provenance as identity context without
+counting toward `reviewed`; for example Daejeon Arts Center identifies
+`Josef Suk (1874-1935)` under `요제프 수크`, while the selected display form
+`요세프 수크` is corroborated by Seoul Philharmonic and Yes24.
 
 ## Open Opus Composer Portraits
 

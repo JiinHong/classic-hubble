@@ -3363,7 +3363,7 @@
     "displayName": "요세프 수크",
     "review": {
       "status": "reviewed",
-      "note": "Seoul Philharmonic and Daejeon Arts Center directly identify Josef Suk (1874-1935) as the composer in Korean-facing programme notes; Seoul Philharmonic uses 요세프 수크 and Daejeon records the same composer as 요제프 수크."
+      "note": "Seoul Philharmonic and Yes24 directly identify or describe the composer with the exact reviewed display form 요세프 수크. Daejeon Arts Center remains documented as alternate-spelling identity evidence for Josef Suk (1874-1935), but does not count toward exact-form corroboration."
     },
     "sources": [
       {
@@ -3375,6 +3375,11 @@
         "publisher": "Seoul Philharmonic",
         "title": "서울시향 공연 프로그램: 요세프 수크(1874-1935), 현을 위한 세레나데",
         "url": "https://www.seoulphil.or.kr/perf/view?langCd=ko&menuFlag=MFLG0001&perfNo=5304"
+      },
+      {
+        "publisher": "Yes24",
+        "title": "Yes24 음반소개: 체코 음악의 거장 요세프 수크의 서정적인 피아노 작품들",
+        "url": "https://www.yes24.com/product/goods/29786887"
       },
       {
         "publisher": "Daejeon Arts Center",
