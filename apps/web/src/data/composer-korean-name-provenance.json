@@ -458,8 +458,8 @@
   "Arnold Bax": {
     "displayName": "아널드 백스",
     "review": {
-      "status": "reviewed",
-      "note": "Korean encyclopedia metadata or article coverage supports the reviewed display name."
+      "status": "sparse-ko-institutional-usage",
+      "note": "Wikidata has a Korean label, but this artifact has no direct Korean-facing article, concert, catalog, press, or community corroborating page; retained the label with sparse-evidence status."
     },
     "sources": [
       {
@@ -2714,8 +2714,8 @@
   "Howard Hanson": {
     "displayName": "하워드 핸슨",
     "review": {
-      "status": "reviewed",
-      "note": "Korean encyclopedia metadata or article coverage supports the reviewed display name."
+      "status": "sparse-ko-institutional-usage",
+      "note": "Wikidata has a Korean label, but this artifact has no direct Korean-facing article, concert, catalog, press, or community corroborating page; retained the label with sparse-evidence status."
     },
     "sources": [
       {
@@ -2834,8 +2834,8 @@
   "Jacob Obrecht": {
     "displayName": "야코프 오브레흐트",
     "review": {
-      "status": "reviewed",
-      "note": "Korean encyclopedia metadata or article coverage supports the reviewed display name."
+      "status": "sparse-ko-institutional-usage",
+      "note": "Wikidata has a Korean label, but this artifact has no direct Korean-facing article, concert, catalog, press, or community corroborating page; retained the label with sparse-evidence status."
     },
     "sources": [
       {
@@ -5090,8 +5090,8 @@
   "Wilhelm Stenhammar": {
     "displayName": "빌헬름 스텐함마르",
     "review": {
-      "status": "reviewed",
-      "note": "Korean encyclopedia metadata or article coverage supports the reviewed display name."
+      "status": "sparse-ko-institutional-usage",
+      "note": "Wikidata has a Korean label, but this artifact has no direct Korean-facing article, concert, catalog, press, or community corroborating page; retained the label with sparse-evidence status."
     },
     "sources": [
       {

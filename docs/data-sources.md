@@ -29,7 +29,8 @@ for the display dictionary. Its top-level keys must exactly match
 or more direct source URLs, and a review status. The focused data test enforces
 that the provenance keys and display names stay in lockstep with the runtime
 dictionary, that every entry has source evidence, and that entries marked
-`reviewed` have at least two direct source links.
+`reviewed` have concrete Korean-facing evidence rather than only a Wikidata
+Korean label plus non-Korean identity links.
 
 Korean labels were seeded from Korean Wikipedia/Wikidata labels and Korean
 Wikipedia page titles, then reviewed against independent identity evidence and
@@ -68,7 +69,8 @@ When Korean institutional or catalog usage is sparse, the provenance entry uses
 entries retain conservative Hangul transliterations while documenting direct
 identity evidence instead of pretending that a Korean institutional consensus
 exists. Examples currently marked sparse include `Camargo Guarnieri`,
-`Joly Braga Santos`, and `Vagn Holmboe`.
+`Joly Braga Santos`, `Vagn Holmboe`, `Arnold Bax`, and
+`Wilhelm Stenhammar`.
 
 ## Open Opus Composer Portraits
 

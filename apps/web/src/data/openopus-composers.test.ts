@@ -29,6 +29,28 @@ type KoreanNameProvenance = Record<
   }
 >;
 
+const KOREAN_FACING_SOURCE_PUBLISHERS = new Set([
+  "Korean Wikipedia",
+  "KOPIS",
+  "Lotte Concert Hall",
+  "Sejong Center",
+  "Seoul Arts Center",
+  "Yes24",
+]);
+
+function hasKoreanFacingEvidence(
+  sources: KoreanNameProvenance[string]["sources"],
+) {
+  return sources.some((source) => {
+    const url = new URL(source.url);
+
+    return (
+      url.hostname === "ko.wikipedia.org" ||
+      KOREAN_FACING_SOURCE_PUBLISHERS.has(source.publisher)
+    );
+  });
+}
+
 describe("Open Opus composer snapshot", () => {
   it("contains a broad, composer-only, unique baseline", () => {
     expect(composers.length).toBeGreaterThanOrEqual(200);
@@ -116,6 +138,13 @@ describe("Open Opus composer snapshot", () => {
     const provenanceNames = Object.keys(provenance).toSorted();
 
     expect(provenanceNames).toEqual(localizedNames);
+
+    const reviewedWithoutKoreanFacingEvidence = Object.entries(provenance)
+      .filter(([, entry]) => entry.review.status === "reviewed")
+      .filter(([, entry]) => !hasKoreanFacingEvidence(entry.sources))
+      .map(([name]) => name);
+
+    expect(reviewedWithoutKoreanFacingEvidence).toEqual([]);
 
     for (const [name, label] of Object.entries(koreanNames)) {
       const entry = provenance[name];
