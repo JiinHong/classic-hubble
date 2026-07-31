@@ -67,6 +67,19 @@ This design was approved in the conversation on 2026-07-31.
 - A future composer without a reviewed Korean label may retain its original
   name as the only line until the dictionary is updated.
 
+## Site Footer
+
+- Add one shared footer to the root application layout so it appears at the
+  bottom of every page.
+- Separate the footer from page content with a thin neutral border.
+- Render `Classic Hubble by Jimin, Jinhong` as the primary line.
+- Render `© 2026 Classic Hubble. All rights reserved.` as the secondary line.
+- Keep both lines readable but visually subordinate to page content.
+- Match the existing light stone and emerald visual system rather than copying
+  the dark colors from the reference screenshot.
+- Do not add social links, language controls, legal links, or additional
+  branding in this change.
+
 ## Testing
 
 - Snapshot tests prove exact dictionary coverage of all 220 baseline names and
@@ -77,6 +90,9 @@ This design was approved in the conversation on 2026-07-31.
   return once in search results, and do not change the displayed total count.
 - Component tests prove Korean-before-original DOM order for plain list items
   and verify that an empty remainder list is omitted.
+- A layout test proves that the shared footer renders the approved maker and
+  copyright text.
 - Run the complete test suite, lint, and production build.
 - Verify the production page at desktop and mobile widths, including search,
-  period filtering, text overflow, duplicate links, and browser console errors.
+  period filtering, footer placement, text overflow, duplicate links, and
+  browser console errors.
