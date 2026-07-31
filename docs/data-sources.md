@@ -26,28 +26,34 @@ Supabase rows override matching names and provide curated Korean labels where av
 `composer-korean-name-provenance.json` is the version-controlled review record
 for the display dictionary. Its top-level keys must exactly match
 `composer-korean-names.json`; each entry records the chosen `displayName`, one
-or more direct source URLs, and a review status. The focused data test enforces
-that the provenance keys and display names stay in lockstep with the runtime
-dictionary, that every entry has source evidence, and that entries marked
-`reviewed` have concrete Korean-facing evidence rather than only a Wikidata
-Korean label plus non-Korean identity links.
+or more direct source URLs, and a review status. Every display label in the
+dictionary was manually reviewed, but the review status reports the strength of
+the recorded Korean-usage corroboration rather than whether a human looked at
+the label. The focused data test enforces that the provenance keys and display
+names stay in lockstep with the runtime dictionary, that every entry has source
+evidence, and that entries marked `reviewed` have at least two direct
+Korean-facing, composer-specific source URLs from distinct publishers. Generic
+homepages, search URLs, Wikidata labels, MusicBrainz pages, and non-Korean
+identity links do not count toward that `reviewed` threshold.
 
 Korean labels were seeded from Korean Wikipedia/Wikidata labels and Korean
-Wikipedia page titles, then reviewed against independent identity evidence and
-Korean-facing usage where available. Evidence recorded in the provenance file
-uses stable direct links, including Wikidata composer entities, Korean
-Wikipedia articles, MusicBrainz artist pages, and English Wikipedia identity
-articles for alternate Open Opus spellings or sparse Korean coverage.
-Examples used to resolve common-form differences include:
+Wikipedia page titles, then manually reviewed against independent identity
+evidence and Korean-facing usage where available. Evidence recorded in the
+provenance file uses stable direct links, including Wikidata composer entities,
+Korean Wikipedia articles, MusicBrainz artist pages, and English Wikipedia
+identity articles for alternate Open Opus spellings or sparse Korean coverage.
+Only direct Korean-facing pages that identify or support the intended composer
+count as corroboration for `reviewed`. Examples used to resolve common-form
+differences include:
 
 - Korean Wikipedia/Wikidata baseline pages such as
   `https://ko.wikipedia.org/wiki/에런_코플런드`,
   `https://ko.wikipedia.org/wiki/버르토크_벨러`, and Wikidata labels queried
   through `https://query.wikidata.org/sparql`.
-- Concert and venue sources such as Seoul Arts Center
-  `https://www.sac.or.kr/`, Lotte Concert Hall
-  `https://www.lotteconcerthall.com/`, and Sejong Center
-  `https://www.sejongpac.or.kr/`.
+- Direct concert and venue pages such as Seoul Philharmonic
+  `https://www.seoulphil.or.kr/perf/view?langCd=ko&menuFlag=MFLG0001&perfNo=5304`
+  and Daejeon Arts Center
+  `https://www.daejeon.go.kr/djac/performanceView.do?code=2818&menuSeq=6709&type=image&yyyymm=202305`.
 - Catalog/streaming references such as Yes24
   `https://www.yes24.com/`, Apple Music Classical
   `https://music.apple.com/`, medici.tv Korea `https://www.medici.tv/ko/`,
@@ -64,12 +70,13 @@ uses the repeated concert form; for example `Béla Bartók` is stored as
 explicit Supabase label remains the authoritative display value for matching
 Supabase rows.
 
-When Korean institutional or catalog usage is sparse, the provenance entry uses
+When the recorded evidence lacks two qualifying Korean-facing direct sources
+from distinct publishers, the provenance entry uses
 `review.status: "sparse-ko-institutional-usage"` and must include a note. Those
-entries retain conservative Hangul transliterations while documenting direct
-identity evidence instead of pretending that a Korean institutional consensus
-exists. Examples currently marked sparse include `Camargo Guarnieri`,
-`Joly Braga Santos`, `Vagn Holmboe`, `Arnold Bax`, and
+entries retain manually reviewed conservative Hangul labels while documenting
+identity evidence instead of pretending that a Korean institutional consensus is
+already recorded. Examples currently marked sparse include `Aaron Copland`,
+`Camargo Guarnieri`, `Joly Braga Santos`, `Vagn Holmboe`, `Arnold Bax`, and
 `Wilhelm Stenhammar`.
 
 ## Open Opus Composer Portraits
