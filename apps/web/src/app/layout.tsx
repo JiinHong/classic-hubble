@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 
 import { AppHeader } from "@/components/AppHeader";
 import { AuthProvider } from "@/components/AuthProvider";
+import { SiteFooter } from "@/components/SiteFooter";
 import { UserLibraryProvider } from "@/components/UserLibraryProvider";
 
 import "./globals.css";
@@ -33,11 +34,12 @@ export default function RootLayout({
       lang="ko"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full bg-stone-50 text-stone-950">
+      <body className="flex min-h-full flex-col bg-stone-50 text-stone-950">
         <AuthProvider>
           <UserLibraryProvider>
             <AppHeader />
-            {children}
+            <div className="flex-1">{children}</div>
+            <SiteFooter />
           </UserLibraryProvider>
         </AuthProvider>
       </body>
