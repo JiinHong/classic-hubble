@@ -20,6 +20,12 @@ export function ComposerList({
         const featuredComposers = showFeatured
           ? selectFeaturedComposers(group.composers)
           : [];
+        const featuredIds = new Set(
+          featuredComposers.map((composer) => composer.id),
+        );
+        const plainComposers = showFeatured
+          ? group.composers.filter((composer) => !featuredIds.has(composer.id))
+          : group.composers;
 
         return (
           <section aria-labelledby={`period-${group.key}`} key={group.key}>
@@ -50,14 +56,16 @@ export function ComposerList({
               </ul>
             ) : null}
 
-            <ul
-              aria-label={`${group.label} 전체 작곡가`}
-              className="grid grid-cols-2 gap-x-4 sm:gap-x-6 xl:grid-cols-4"
-            >
-              {group.composers.map((composer) => (
-                <ComposerListItem composer={composer} key={composer.id} />
-              ))}
-            </ul>
+            {plainComposers.length ? (
+              <ul
+                aria-label={`${group.label} 작곡가 목록`}
+                className="grid grid-cols-2 gap-x-4 sm:gap-x-6 xl:grid-cols-4"
+              >
+                {plainComposers.map((composer) => (
+                  <ComposerListItem composer={composer} key={composer.id} />
+                ))}
+              </ul>
+            ) : null}
           </section>
         );
       })}

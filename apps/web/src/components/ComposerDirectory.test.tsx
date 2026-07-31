@@ -19,6 +19,12 @@ const composers = [
     period: "Baroque",
   }),
   toComposerDirectoryEntry({
+    id: "scarlatti",
+    name: "Domenico Scarlatti",
+    nameKo: "도메니코 스카를라티",
+    period: "Baroque",
+  }),
+  toComposerDirectoryEntry({
     id: "debussy",
     name: "Claude Debussy",
     nameKo: "클로드 드뷔시",
@@ -34,7 +40,7 @@ describe("ComposerDirectory", () => {
   it("shows all composers with Korean and original names", () => {
     render(<ComposerDirectory composers={composers} />);
 
-    expect(screen.getByText("3명의 작곡가")).toBeTruthy();
+    expect(screen.getByText("4명의 작곡가")).toBeTruthy();
     expect(screen.getAllByText("요한 제바스티안 바흐").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Johann Sebastian Bach").length).toBeGreaterThan(
       0,
@@ -54,7 +60,7 @@ describe("ComposerDirectory", () => {
       target: { value: "" },
     });
     fireEvent.click(screen.getByRole("button", { name: "바로크" }));
-    expect(screen.getByText("2명의 작곡가")).toBeTruthy();
+    expect(screen.getByText("3명의 작곡가")).toBeTruthy();
     expect(screen.queryByText("클로드 드뷔시")).toBeNull();
   });
 
@@ -71,8 +77,8 @@ describe("ComposerDirectory", () => {
     const featuredList = within(baroqueSection!).getByRole("list", {
       name: "바로크 먼저 만나는 작곡가",
     });
-    const completeList = within(baroqueSection!).getByRole("list", {
-      name: "바로크 전체 작곡가",
+    const plainList = within(baroqueSection!).getByRole("list", {
+      name: "바로크 작곡가 목록",
     });
 
     const featuredImages = featuredList.querySelectorAll("img");
@@ -89,13 +95,20 @@ describe("ComposerDirectory", () => {
       composerHref("안토니오 비발디"),
     ]);
     expect(
-      within(completeList)
+      within(plainList)
         .getAllByRole("link")
         .map((link) => link.getAttribute("href")),
-    ).toEqual([
-      composerHref("안토니오 비발디"),
-      composerHref("요한 제바스티안 바흐"),
-    ]);
+    ).toEqual([composerHref("도메니코 스카를라티")]);
+    expect(
+      within(baroqueSection!).getAllByRole("link", {
+        name: /요한 제바스티안 바흐/,
+      }),
+    ).toHaveLength(1);
+    const plainLink = within(plainList).getByRole("link", {
+      name: /도메니코 스카를라티.*Domenico Scarlatti/,
+    });
+    expect(plainLink.children[0]?.textContent).toBe("도메니코 스카를라티");
+    expect(plainLink.children[1]?.textContent).toBe("Domenico Scarlatti");
     expect(
       within(featuredList)
         .getByRole("link", { name: /요한 제바스티안 바흐/ })
@@ -103,26 +116,52 @@ describe("ComposerDirectory", () => {
     ).toBe(`/?composer=${encodeURIComponent("요한 제바스티안 바흐")}`);
   });
 
+  it("omits a plain list when a period contains only featured composers", () => {
+    render(
+      <ComposerDirectory
+        composers={[
+          toComposerDirectoryEntry({
+            id: "bach",
+            name: "Johann Sebastian Bach",
+            nameKo: "요한 제바스티안 바흐",
+            period: "Baroque",
+          }),
+        ]}
+      />,
+    );
+
+    const baroqueSection = screen
+      .getByRole("heading", { name: "바로크" })
+      .closest("section");
+    expect(baroqueSection).not.toBeNull();
+    expect(
+      within(baroqueSection!).queryByRole("list", {
+        name: "바로크 작곡가 목록",
+      }),
+    ).toBeNull();
+    expect(within(baroqueSection!).getAllByRole("list")).toHaveLength(1);
+  });
+
   it("keeps period headings and sorts original names within a period in A–Z mode", () => {
     render(
       <ComposerDirectory
         composers={[
           toComposerDirectoryEntry({
-            id: "handel",
-            name: "George Frideric Handel",
-            nameKo: "게오르크 프리드리히 헨델",
+            id: "scarlatti",
+            name: "Domenico Scarlatti",
+            nameKo: "도메니코 스카를라티",
             period: "Baroque",
           }),
           toComposerDirectoryEntry({
-            id: "vivaldi",
-            name: "Antonio Vivaldi",
-            nameKo: "안토니오 비발디",
+            id: "rameau",
+            name: "Jean-Philippe Rameau",
+            nameKo: "장필리프 라모",
             period: "Baroque",
           }),
           toComposerDirectoryEntry({
-            id: "adams",
-            name: "John Adams",
-            nameKo: "존 애덤스",
+            id: "test-composer",
+            name: "Test Composer",
+            nameKo: "테스트 작곡가",
             period: "Unclassified",
           }),
         ]}
@@ -135,7 +174,7 @@ describe("ComposerDirectory", () => {
     const otherHeading = screen.getByRole("heading", { name: "기타" });
     const baroqueSection = baroqueHeading.closest("section");
     const completeBaroqueList = within(baroqueSection!).getByRole("list", {
-      name: "바로크 전체 작곡가",
+      name: "바로크 작곡가 목록",
     });
 
     expect(baroqueSection).not.toBeNull();
@@ -144,19 +183,19 @@ describe("ComposerDirectory", () => {
         .getAllByRole("link")
         .map((link) => link.getAttribute("href")),
     ).toEqual([
-      composerHref("안토니오 비발디"),
-      composerHref("게오르크 프리드리히 헨델"),
+      composerHref("도메니코 스카를라티"),
+      composerHref("장필리프 라모"),
     ]);
     expect(otherHeading).toBeTruthy();
     const completeOtherList = within(otherHeading.closest("section")!).getByRole(
       "list",
-      { name: "기타 전체 작곡가" },
+      { name: "기타 작곡가 목록" },
     );
     expect(
       within(completeOtherList)
-        .getByRole("link", { name: /존 애덤스/ })
+        .getByRole("link", { name: /테스트 작곡가/ })
         .getAttribute("href"),
-    ).toBe(composerHref("존 애덤스"));
+    ).toBe(composerHref("테스트 작곡가"));
   });
 
   it("exposes period controls as a named group and updates pressed state", () => {
