@@ -1,3 +1,5 @@
+import koreanComposerNames from "@/data/composer-korean-names.json";
+
 export const PERIOD_OPTIONS = [
   { key: "all", label: "전체" },
   { key: "medieval", label: "중세" },
@@ -68,116 +70,82 @@ const PERIOD_LABELS: Record<ComposerPeriodKey, string> = {
 const FEATURED_COMPOSER_METADATA = new Map(
   (
     [
-      [
-        "Guillaume de Machaut",
-        "기욤 드 마쇼",
-        1,
-        "guillaume-de-machaut",
-      ],
-      ["Guillaume Dufay", "기욤 뒤파이", 2, "guillaume-dufay"],
-      ["Léonin", "레오냉", 3, "leonin"],
-      ["Pérotin", "페로탱", 4, "perotin"],
-      [
-        "Claudio Monteverdi",
-        "클라우디오 몬테베르디",
-        1,
-        "claudio-monteverdi",
-      ],
+      ["Guillaume de Machaut", 1, "guillaume-de-machaut"],
+      ["Guillaume Dufay", 2, "guillaume-dufay"],
+      ["Léonin", 3, "leonin"],
+      ["Pérotin", 4, "perotin"],
+      ["Claudio Monteverdi", 1, "claudio-monteverdi"],
       [
         "Giovanni Pierluigi da Palestrina",
-        "조반니 피에를루이지 다 팔레스트리나",
         2,
         "giovanni-pierluigi-da-palestrina",
       ],
-      ["Josquin Des Prez", "조스캥 데프레", 3, "josquin-des-prez"],
-      ["William Byrd", "윌리엄 버드", 4, "william-byrd"],
-      [
-        "Johann Sebastian Bach",
-        "요한 제바스티안 바흐",
-        1,
-        "johann-sebastian-bach",
-      ],
+      ["Josquin Des Prez", 3, "josquin-des-prez"],
+      ["William Byrd", 4, "william-byrd"],
+      ["Johann Sebastian Bach", 1, "johann-sebastian-bach"],
       [
         "George Frideric Handel",
-        "게오르크 프리드리히 헨델",
         2,
         "george-frideric-handel",
       ],
-      ["Antonio Vivaldi", "안토니오 비발디", 3, "antonio-vivaldi"],
-      ["Henry Purcell", "헨리 퍼셀", 4, "henry-purcell"],
+      ["Antonio Vivaldi", 3, "antonio-vivaldi"],
+      ["Henry Purcell", 4, "henry-purcell"],
       [
         "Wolfgang Amadeus Mozart",
-        "볼프강 아마데우스 모차르트",
         1,
         "wolfgang-amadeus-mozart",
       ],
-      ["Franz Joseph Haydn", "요제프 하이든", 2, "franz-joseph-haydn"],
+      ["Franz Joseph Haydn", 2, "franz-joseph-haydn"],
       [
         "Christoph Willibald von Gluck",
-        "크리스토프 빌리발트 글루크",
         3,
         "christoph-willibald-von-gluck",
       ],
-      ["Luigi Boccherini", "루이지 보케리니", 4, "luigi-boccherini"],
+      ["Luigi Boccherini", 4, "luigi-boccherini"],
       [
         "Ludwig van Beethoven",
-        "루트비히 판 베토벤",
         1,
         "ludwig-van-beethoven",
       ],
-      ["Frédéric Chopin", "프레데리크 쇼팽", 2, "frederic-chopin"],
+      ["Frédéric Chopin", 2, "frederic-chopin"],
       [
         "Pyotr Ilyich Tchaikovsky",
-        "표트르 일리치 차이콥스키",
         3,
         "pyotr-ilyich-tchaikovsky",
       ],
-      ["Johannes Brahms", "요하네스 브람스", 4, "johannes-brahms"],
-      ["Franz Schubert", "프란츠 슈베르트", 5, "franz-schubert"],
-      ["Igor Stravinsky", "이고르 스트라빈스키", 1, "igor-stravinsky"],
+      ["Johannes Brahms", 4, "johannes-brahms"],
+      ["Franz Schubert", 5, "franz-schubert"],
+      ["Igor Stravinsky", 1, "igor-stravinsky"],
       [
         "Dmitri Shostakovich",
-        "드미트리 쇼스타코비치",
         2,
         "dmitri-shostakovich",
       ],
-      ["Sergei Prokofiev", "세르게이 프로코피예프", 3, "sergei-prokofiev"],
-      ["Béla Bartók", "벨라 바르톡", 4, "bela-bartok"],
-      ["Arvo Pärt", "아르보 패르트", 1, "arvo-part"],
-      ["Philip Glass", "필립 글래스", 2, "philip-glass"],
-      ["Steve Reich", "스티브 라이히", 3, "steve-reich"],
-      ["John Adams", "존 애덤스", 4, "john-adams"],
+      ["Sergei Prokofiev", 3, "sergei-prokofiev"],
+      ["Béla Bartók", 4, "bela-bartok"],
+      ["Arvo Pärt", 1, "arvo-part"],
+      ["Philip Glass", 2, "philip-glass"],
+      ["Steve Reich", 3, "steve-reich"],
+      ["John Adams", 4, "john-adams"],
     ] as const
-  ).map(([name, nameKo, featuredRank, portraitSlug]) => [
+  ).map(([name, featuredRank, portraitSlug]) => [
     normalizeText(name),
     {
       featuredRank,
-      nameKo,
       portraitSrc: `/composer-portraits/${portraitSlug}.jpg`,
     },
   ]),
 );
 
-const ADDITIONAL_KOREAN_COMPOSER_LABELS = new Map(
-  (
-    [
-      ["Robert Schumann", "로베르트 슈만"],
-      ["Franz Liszt", "프란츠 리스트"],
-      ["Richard Wagner", "리하르트 바그너"],
-      ["Antonín Dvořák", "안토닌 드보르자크"],
-      ["Gustav Mahler", "구스타프 말러"],
-      ["Claude Debussy", "클로드 드뷔시"],
-      ["Maurice Ravel", "모리스 라벨"],
-      ["Sergei Rachmaninoff", "세르게이 라흐마니노프"],
-    ] as const
-  ).map(([name, nameKo]) => [normalizeText(name), nameKo]),
+const KOREAN_COMPOSER_LABELS = new Map(
+  Object.entries(koreanComposerNames).map(([name, nameKo]) => [
+    normalizeText(name),
+    nameKo,
+  ]),
 );
 
-function koreanComposerLabel(identityKey: string) {
-  return (
-    FEATURED_COMPOSER_METADATA.get(identityKey)?.nameKo ??
-    ADDITIONAL_KOREAN_COMPOSER_LABELS.get(identityKey)
-  );
+export function koreanComposerLabel(identityKey: string) {
+  return KOREAN_COMPOSER_LABELS.get(identityKey);
 }
 
 function normalizeText(value: string) {

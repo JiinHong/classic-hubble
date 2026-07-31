@@ -77,6 +77,28 @@ describe("composer directory rules", () => {
     ).toBe("contemporary");
   });
 
+  it("uses the reviewed Korean dictionary when the source label is empty", () => {
+    expect(
+      toComposerDirectoryEntry({
+        id: "copland",
+        name: "Aaron Copland",
+        nameKo: null,
+        period: "20th Century",
+      }).nameKo,
+    ).toBe("에런 코플런드");
+  });
+
+  it("keeps an explicit source label ahead of the reviewed dictionary", () => {
+    expect(
+      toComposerDirectoryEntry({
+        id: "copland",
+        name: "Aaron Copland",
+        nameKo: "애런 코플랜드",
+        period: "20th Century",
+      }).nameKo,
+    ).toBe("애런 코플랜드");
+  });
+
   it("searches Korean and original-language names", () => {
     const entries = [bach, debussy];
 

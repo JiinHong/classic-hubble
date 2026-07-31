@@ -12,6 +12,45 @@
 The snapshot is committed so `/composers` does not depend on Open Opus at runtime.
 Supabase rows override matching names and provide curated Korean labels where available.
 
+## Reviewed Korean Composer Names
+
+- Local file: `apps/web/src/data/composer-korean-names.json`
+- Review date: 2026-07-31
+- Scope: all 220 composer names in `apps/web/src/data/openopus-composers.json`
+- Runtime behavior: static local lookup only; no Wikidata, Wikipedia, search, or
+  catalog service calls at runtime
+- Precedence: explicit Supabase `name_ko` values remain authoritative over the
+  fixed dictionary
+
+Korean labels were seeded from Korean Wikipedia/Wikidata labels and Korean
+Wikipedia page titles, then reviewed against independent Korean search-result
+evidence from concert halls, catalog services, press, and community/classical
+music references. Examples used to resolve common-form differences include:
+
+- Korean Wikipedia/Wikidata baseline pages such as
+  `https://ko.wikipedia.org/wiki/에런_코플런드`,
+  `https://ko.wikipedia.org/wiki/버르토크_벨러`, and Wikidata labels queried
+  through `https://query.wikidata.org/sparql`.
+- Concert and venue sources such as Seoul Arts Center
+  `https://www.sac.or.kr/`, Lotte Concert Hall
+  `https://www.lotteconcerthall.com/`, and Sejong Center
+  `https://www.sejongpac.or.kr/`.
+- Catalog/streaming references such as Yes24
+  `https://www.yes24.com/`, Apple Music Classical
+  `https://music.apple.com/`, medici.tv Korea `https://www.medici.tv/ko/`,
+  and Berlin Philharmonic Digital Concert Hall
+  `https://www.digitalconcerthall.com/ko/`.
+- Korean press and community/classical music references, used only as
+  corroborating evidence when institutional and catalog sources disagreed or
+  were sparse.
+
+Where Korean Wikipedia used a formal native-order title but Korean concert and
+catalog sources repeatedly used a more recognizable concert form, the dictionary
+uses the repeated concert form; for example `Béla Bartók` is stored as
+`벨라 바르톡`. Where the database seed already contains a Korean label, that
+explicit Supabase label remains the authoritative display value for matching
+Supabase rows.
+
 ## Open Opus Composer Portraits
 
 - Source: https://www.openopus.org/

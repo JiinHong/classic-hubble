@@ -9,6 +9,7 @@ import {
   toComposerDirectoryEntry,
 } from "@/lib/composer-directory";
 
+import koreanNames from "./composer-korean-names.json";
 import composers from "./openopus-composers.json";
 
 describe("Open Opus composer snapshot", () => {
@@ -38,7 +39,17 @@ describe("Open Opus composer snapshot", () => {
         "nameKo",
         "period",
       ]);
-      expect(composer.nameKo).toBeNull();
+    }
+
+    const originalNames = composers.map((composer) => composer.name).toSorted();
+    const localizedNames = Object.keys(koreanNames).toSorted();
+
+    expect(localizedNames).toEqual(originalNames);
+    expect(Object.values(koreanNames)).toHaveLength(composers.length);
+
+    for (const label of Object.values(koreanNames)) {
+      expect(label.trim()).toBe(label);
+      expect(label).toMatch(/[가-힣]/);
     }
   });
 
