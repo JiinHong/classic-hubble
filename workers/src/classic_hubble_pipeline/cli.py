@@ -19,6 +19,7 @@ from .kopis import (
     KopisSyncWindow,
 )
 from .kopis_sync import KopisSyncService
+from .program_matching import match_stored_programs
 from .nol import (
     NolClient,
     NolConfigurationError,
@@ -58,6 +59,17 @@ def main(
     if environ is None:
         load_dotenv()
 
+    if args.command == "program-match":
+        try:
+            settings = SupabaseSettings.from_env(environ)
+            with repository_factory(settings) as repository:
+                report = match_stored_programs(repository, apply=args.apply)
+            _write_json(report, output)
+            return 0
+        except (SupabaseError, ValueError) as error:
+            errors.write(f"Program matching failed: {error}\n")
+            return 1
+
     if args.command == "kopis-check":
         return _run_check(
             args,
@@ -88,6 +100,15 @@ def main(
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="classic-hubble-pipeline")
     subcommands = parser.add_subparsers(dest="command", required=True)
+
+    match = subcommands.add_parser(
+        "program-match", help="Preview canonical work links for stored NOL programs."
+    )
+    match.add_argument(
+        "--apply",
+        action="store_true",
+        help="Apply unambiguous links to previously unlinked rows.",
+    )
 
     check = subcommands.add_parser(
         "kopis-check",
@@ -222,7 +243,7 @@ def _run_sync(
         },
         output,
     )
-    return 0
+    return 0 if result.status == "completed" else 1
 
 
 def _write_json(payload: Mapping[str, object], output: TextIO) -> None:

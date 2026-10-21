@@ -9,6 +9,8 @@ from urllib.parse import urlparse
 
 import httpx
 
+from .work_matching import CanonicalWork
+
 
 class SupabaseError(RuntimeError):
     """Base exception for Supabase worker failures."""
@@ -258,6 +260,92 @@ class SupabaseRepository:
             params=params,
             prefer="return=minimal",
         )
+
+    def load_work_catalog(self, *, page_size: int = 500) -> list[CanonicalWork]:
+        rows = self._read_pages(
+            "works",
+            {
+                "select": "id,slug,title,title_ko,catalogue,composers(name,name_ko),work_aliases(alias)",
+            },
+            page_size=page_size,
+        )
+        return [
+            CanonicalWork(
+                id=row["id"],
+                slug=row["slug"],
+                titles=tuple(
+                    value for value in (row["title"], row.get("title_ko")) if value
+                ),
+                composers=tuple(
+                    value
+                    for value in (
+                        row["composers"]["name"],
+                        row["composers"].get("name_ko"),
+                    )
+                    if value
+                ),
+                catalogue=row.get("catalogue"),
+                aliases=tuple(alias["alias"] for alias in row.get("work_aliases", [])),
+            )
+            for row in rows
+        ]
+
+    def load_unlinked_program_items(
+        self, *, page_size: int = 500
+    ) -> list[dict[str, Any]]:
+        return self._read_pages(
+            "program_items",
+            {
+                "select": "id,display_title,composer_name,source_url",
+                "source_provider": "eq.nol",
+                "work_id": "is.null",
+            },
+            page_size=page_size,
+        )
+
+    def link_program_item(self, item: Mapping[str, Any], work_id: str) -> bool:
+        response = self._request(
+            "PATCH",
+            "program_items",
+            params={
+                "id": f"eq.{item['id']}",
+                "work_id": "is.null",
+                "source_provider": "eq.nol",
+                "display_title": f"eq.{item['display_title']}",
+                "composer_name": f"eq.{item['composer_name']}"
+                if item["composer_name"]
+                else "is.null",
+                "select": "id",
+            },
+            json={"work_id": work_id},
+            prefer="return=representation",
+        )
+        return bool(response.json())
+
+    def _read_pages(
+        self, table: str, params: Mapping[str, str], *, page_size: int
+    ) -> list[dict[str, Any]]:
+        if not 1 <= page_size <= 1000:
+            raise ValueError("Page size must be between 1 and 1000")
+        rows: list[dict[str, Any]] = []
+        while True:
+            response = self._request(
+                "GET",
+                table,
+                params={
+                    **params,
+                    "order": "id.asc",
+                    "offset": str(len(rows)),
+                    "limit": str(page_size),
+                },
+                prefer="count=exact",
+            )
+            page = response.json()
+            if not isinstance(page, list):
+                raise SupabaseResponseError(f"Supabase returned invalid {table} rows")
+            rows.extend(page)
+            if len(page) < page_size:
+                return rows
 
     def _insert_one(self, table: str, payload: Mapping[str, object]) -> str:
         response = self._request(

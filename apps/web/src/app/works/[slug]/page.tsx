@@ -1,4 +1,3 @@
-import { works } from "@classic-hubble/shared";
 import { ArrowLeft, Music2 } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -7,9 +6,7 @@ import { PerformanceCard } from "@/components/PerformanceCard";
 import { WatchlistButton } from "@/components/WatchlistButton";
 import { getCatalogWorkBySlug } from "@/lib/catalog";
 
-export function generateStaticParams() {
-  return works.map((work) => ({ slug: work.slug }));
-}
+export const dynamic = "force-dynamic";
 
 type WorkPageProps = {
   params: Promise<{ slug: string }>;

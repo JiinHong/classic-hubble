@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-
 import {
   confidenceLabel,
   formatPerformanceDate,
@@ -7,16 +6,14 @@ import {
   statusLabel,
 } from "./format";
 
-describe("format helpers", () => {
+describe("performance presentation", () => {
   it("formats a Korean concert date without timezone drift", () => {
     expect(formatPerformanceDate({ date: "2026-07-31", time: "19:30" })).toBe(
       "7월 31일 (금) 19:30",
     );
   });
 
-  it("maps booking status and confidence to compact labels", () => {
-    expect(statusLabel("open")).toBe("예매중");
-    expect(statusLabel("upcoming")).toBe("오픈예정");
+  it("maps confidence to compact labels", () => {
     expect(confidenceLabel(0.824)).toBe("82%");
   });
 
@@ -39,5 +36,19 @@ describe("format helpers", () => {
     expect(programPublicationMessage("unknown")).toBe(
       "프로그램 정보를 확인 중입니다.",
     );
+  });
+  it("shows the full date range instead of an obsolete opening date for a series", () => {
+    expect(
+      formatPerformanceDate({
+        date: "2024-11-09",
+        endDate: "2026-12-31",
+        time: "19:00",
+      }),
+    ).toBe("2024.11.09 ~ 2026.12.31");
+  });
+
+  it("does not infer ticket availability from KOPIS performance state", () => {
+    expect(statusLabel("open")).toBe("공연 중");
+    expect(statusLabel("upcoming")).toBe("공연 예정");
   });
 });

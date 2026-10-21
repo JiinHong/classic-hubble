@@ -23,6 +23,7 @@ from classic_hubble_pipeline.nol import (
     NolProgramItem,
     NolTransportError,
 )
+from classic_hubble_pipeline.work_matching import CanonicalWork
 
 
 def performance_summary(performance_id: str = "PF300001") -> KopisPerformanceSummary:
@@ -229,8 +230,14 @@ def test_sync_writes_raw_records_before_normalized_rows_and_deduplicates_facilit
     )
 
     first_performance_index = events.index(("performance", "PF300001"))
-    assert events.index(("raw", "performance_summary", "PF300001")) < first_performance_index
-    assert events.index(("raw", "performance_detail", "PF300001")) < first_performance_index
+    assert (
+        events.index(("raw", "performance_summary", "PF300001"))
+        < first_performance_index
+    )
+    assert (
+        events.index(("raw", "performance_detail", "PF300001"))
+        < first_performance_index
+    )
     assert events.index(("raw", "facility_detail", "FC000001")) < events.index(
         ("venue", "FC000001")
     )
@@ -364,6 +371,17 @@ def test_sync_writes_nol_raw_data_before_program_rows_and_fetches_one_goods_code
                 ("program_items", performance_id, source_provider, tuple(items))
             )
 
+        def load_work_catalog(self):
+            return [
+                CanonicalWork(
+                    "work-rach",
+                    "rach-2",
+                    ("Piano Concerto No. 2",),
+                    ("Sergei Rachmaninoff",),
+                    "Op. 18",
+                )
+            ]
+
         def finish_ingestion_run(self, run_id, *, status, counters, error=None):
             events.append(("finish", status, counters, error))
 
@@ -390,16 +408,14 @@ def test_sync_writes_nol_raw_data_before_program_rows_and_fetches_one_goods_code
     assert source_payload == {
         "program_status": "confirmed",
         "program_source_url": "https://tickets.interpark.com/goods/26007299",
-        "program_image_urls": [
-            "https://ticketimage.interpark.com/Play/program.jpg"
-        ],
+        "program_image_urls": ["https://ticketimage.interpark.com/Play/program.jpg"],
     }
     stored_item = events[items_index][3][0]
     assert stored_item == {
-        "work_id": None,
+        "work_id": "work-rach",
         "display_title": "Piano Concerto No. 2 in C minor, Op. 18",
         "composer_name": "Sergei Rachmaninoff",
-        "source_type": "verified",
+        "source_type": "official",
         "confidence": 0.98,
         "position": 0,
         "source_url": "https://tickets.interpark.com/goods/26007299",
@@ -455,7 +471,8 @@ def test_nol_failure_is_counted_without_discarding_the_kopis_performance():
     ).run(start_date=date(2026, 7, 1), end_date=date(2026, 7, 31))
 
     assert ("performance", "PF300001") in events
-    assert result.status == "completed"
+    assert result.status == "failed"
     assert result.counters["nol_records"] == 0
     assert result.counters["program_items"] == 0
     assert result.counters["nol_errors"] == 1
+    assert "NolTransportError" in events[-1][-1]

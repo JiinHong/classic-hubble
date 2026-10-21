@@ -12,6 +12,77 @@ from classic_hubble_pipeline.supabase import (
 )
 
 
+def test_load_work_catalog_uses_database_ids_and_stable_pagination():
+    requests = []
+    row = {
+        "id": "w1",
+        "slug": "a",
+        "title": "Concerto",
+        "title_ko": None,
+        "catalogue": "Op. 18",
+        "composers": {"name": "Composer", "name_ko": None},
+        "work_aliases": [{"alias": "Alias"}],
+    }
+
+    def handler(request):
+        requests.append(request)
+        return httpx.Response(200, json=[row] if len(requests) == 1 else [])
+
+    with httpx.Client(transport=httpx.MockTransport(handler)) as client:
+        repo = SupabaseRepository(
+            SupabaseSettings("https://example.supabase.co", "sb_secret_test"),
+            http_client=client,
+        )
+        works = repo.load_work_catalog(page_size=1)
+    assert works[0].id == "w1"
+    assert works[0].aliases == ("Alias",)
+    assert [request.url.params["offset"] for request in requests] == ["0", "1"]
+    assert all(request.url.params["order"] == "id.asc" for request in requests)
+
+
+def test_link_program_item_is_conditional_and_cannot_overwrite_a_reviewed_match():
+    requests = []
+
+    def handler(request):
+        requests.append(request)
+        return httpx.Response(200, json=[])
+
+    with httpx.Client(transport=httpx.MockTransport(handler)) as client:
+        repo = SupabaseRepository(
+            SupabaseSettings("https://example.supabase.co", "sb_secret_test"),
+            http_client=client,
+        )
+        changed = repo.link_program_item(
+            {"id": "item", "display_title": "Concerto", "composer_name": "Composer"},
+            "work",
+        )
+    assert changed is False
+    assert requests[0].url.params["work_id"] == "is.null"
+    assert requests[0].url.params["display_title"] == "eq.Concerto"
+    assert requests[0].url.params["composer_name"] == "eq.Composer"
+    assert requests[0].url.params["source_provider"] == "eq.nol"
+    assert json.loads(requests[0].content) == {"work_id": "work"}
+
+
+def test_unlinked_program_scan_reads_all_pages_before_mutating():
+    requests = []
+
+    def handler(request):
+        requests.append(request)
+        assert request.method == "GET"
+        assert request.url.params["work_id"] == "is.null"
+        assert request.url.params["source_provider"] == "eq.nol"
+        return httpx.Response(200, json=[{"id": "a"}] if len(requests) == 1 else [])
+
+    with httpx.Client(transport=httpx.MockTransport(handler)) as client:
+        repo = SupabaseRepository(
+            SupabaseSettings("https://example.supabase.co", "sb_secret_test"),
+            http_client=client,
+        )
+        assert repo.load_unlinked_program_items(page_size=1) == [{"id": "a"}]
+    assert len(requests) == 2
+
+
 def test_settings_prefer_a_modern_secret_key():
     settings = SupabaseSettings.from_env(
         {
@@ -77,9 +148,7 @@ def test_legacy_service_role_key_is_also_sent_as_a_bearer_token():
     repository.start_ingestion_run("kopis")
 
     assert requests[0].headers["apikey"] == "legacy.service.role.jwt"
-    assert requests[0].headers["authorization"] == (
-        "Bearer legacy.service.role.jwt"
-    )
+    assert requests[0].headers["authorization"] == ("Bearer legacy.service.role.jwt")
     http_client.close()
 
 
@@ -226,9 +295,7 @@ def test_program_item_replacement_upserts_before_deleting_stale_nol_rows():
     assert upsert.url.params["on_conflict"] == (
         "performance_id,source_provider,position"
     )
-    assert upsert.headers["prefer"] == (
-        "resolution=merge-duplicates,return=minimal"
-    )
+    assert upsert.headers["prefer"] == ("resolution=merge-duplicates,return=minimal")
     assert rows[0]["performance_id"] == "performance-1"
     assert rows[0]["source_provider"] == "nol"
     assert delete.method == "DELETE"

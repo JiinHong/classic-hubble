@@ -1,4 +1,9 @@
-export type ConfidenceLevel = "official" | "verified" | "ocr" | "estimated" | "unknown";
+export type ConfidenceLevel =
+  | "official"
+  | "verified"
+  | "ocr"
+  | "estimated"
+  | "unknown";
 
 export type ProgramPublicationStatus =
   | "unknown"
@@ -51,7 +56,8 @@ export type Performance = {
   artists: string[];
   bookingUrl: string;
   posterUrl: string;
-  status: "open" | "upcoming" | "soldout";
+  status: "open" | "upcoming" | "soldout" | "closed";
+  endDate?: string;
   sourceLabel: string;
   program: ProgramItem[];
   programStatus?: ProgramPublicationStatus;
@@ -177,7 +183,8 @@ export const performances: Performance[] = [
     priceRange: "R 90,000 / S 70,000 / A 50,000",
     artists: ["김정원", "KBS교향악단"],
     bookingUrl: "https://tickets.interpark.com/",
-    posterUrl: "https://ticketimage.interpark.com/Play/image/large/26/26009683_p.gif",
+    posterUrl:
+      "https://ticketimage.interpark.com/Play/image/large/26/26009683_p.gif",
     status: "open",
     sourceLabel: "공연장 상세 이미지 OCR + 관리자 검수",
     program: [
@@ -199,7 +206,8 @@ export const performances: Performance[] = [
     priceRange: "전석 40,000",
     artists: ["원재연", "김수연"],
     bookingUrl: "https://www.sac.or.kr/",
-    posterUrl: "https://ticketimage.interpark.com/Play/image/large/26/26009095_p.gif",
+    posterUrl:
+      "https://ticketimage.interpark.com/Play/image/large/26/26009095_p.gif",
     status: "upcoming",
     sourceLabel: "KOPIS + 예술의전당 상세페이지",
     program: [
@@ -221,7 +229,8 @@ export const performances: Performance[] = [
     priceRange: "50,000 - 120,000",
     artists: ["서울시립교향악단", "수산나 멜키"],
     bookingUrl: "https://www.sejongpac.or.kr/",
-    posterUrl: "https://ticketimage.interpark.com/Play/image/large/26/26006680_p.gif",
+    posterUrl:
+      "https://ticketimage.interpark.com/Play/image/large/26/26006680_p.gif",
     status: "open",
     sourceLabel: "공식 프로그램 확인",
     program: [
@@ -265,7 +274,8 @@ export const performances: Performance[] = [
     priceRange: "40,000 - 110,000",
     artists: ["드레스덴 필하모닉", "제임스 에네스"],
     bookingUrl: "https://www.aci.or.kr/",
-    posterUrl: "https://ticketimage.interpark.com/Play/image/large/26/26005009_p.gif",
+    posterUrl:
+      "https://ticketimage.interpark.com/Play/image/large/26/26005009_p.gif",
     status: "open",
     sourceLabel: "NOL 예매 정보 + 공연장 페이지",
     program: [
@@ -283,7 +293,8 @@ export const reviewQueue: ReviewItem[] = [
   {
     id: "review-001",
     performanceId: "perf-sac-gala",
-    imageUrl: "https://ticketimage.interpark.com/Play/image/large/26/26009095_p.gif",
+    imageUrl:
+      "https://ticketimage.interpark.com/Play/image/large/26/26009095_p.gif",
     extractedText: "Rachmaninoff Piano Concerto No. 2 in C minor Op.18",
     suggestedWorkSlug: "rachmaninoff-piano-concerto-2",
     confidence: 0.82,
@@ -327,7 +338,9 @@ const scoreWork = (work: Work, query: string) => {
     if (normalizedQuery.includes(candidate)) score = Math.max(score, 60);
 
     const queryTokens = normalizedQuery.split(" ");
-    const tokenHits = queryTokens.filter((token) => candidate.includes(token)).length;
+    const tokenHits = queryTokens.filter((token) =>
+      candidate.includes(token),
+    ).length;
     if (queryTokens.length > 1 && tokenHits > 0) {
       score = Math.max(score, tokenHits * 18);
     }
@@ -335,7 +348,9 @@ const scoreWork = (work: Work, query: string) => {
 
   const shorthandHits = work.aliases
     .map(normalize)
-    .filter((alias) => alias.length <= 12 && normalizedQuery.includes(alias)).length;
+    .filter(
+      (alias) => alias.length <= 12 && normalizedQuery.includes(alias),
+    ).length;
 
   return score + shorthandHits * 10 - work.popularityRank;
 };
@@ -347,7 +362,8 @@ export const findWorksByQueryInList = (items: Work[], query: string) =>
     .sort((a, b) => b.score - a.score)
     .map(({ work }) => work);
 
-export const findWorksByQuery = (query: string) => findWorksByQueryInList(works, query);
+export const findWorksByQuery = (query: string) =>
+  findWorksByQueryInList(works, query);
 
 export const getWorkBySlug = (slug: string) =>
   works.find((work) => work.slug === slug) ?? null;
@@ -355,7 +371,10 @@ export const getWorkBySlug = (slug: string) =>
 export const getPerformanceById = (id: string) =>
   performances.find((performance) => performance.id === id) ?? null;
 
-export const getPerformancesForWorkFromList = (items: Performance[], slug: string) =>
+export const getPerformancesForWorkFromList = (
+  items: Performance[],
+  slug: string,
+) =>
   items.filter((performance) =>
     performance.program.some((item) => item.workSlug === slug),
   );
@@ -363,7 +382,27 @@ export const getPerformancesForWorkFromList = (items: Performance[], slug: strin
 export const getPerformancesForWork = (slug: string) =>
   getPerformancesForWorkFromList(performances, slug);
 
-export const getUpcomingPerformancesFromList = (items: Performance[]) =>
-  [...items].sort((a, b) => `${a.date} ${a.time}`.localeCompare(`${b.date} ${b.time}`));
+export const getUpcomingPerformancesFromList = (
+  items: Performance[],
+  now = new Date(),
+) => {
+  const today = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Seoul",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(now);
+  return items
+    .filter(
+      (item) =>
+        item.status !== "closed" && (item.endDate ?? item.date) >= today,
+    )
+    .sort(
+      (a, b) =>
+        Number(a.date < today) - Number(b.date < today) ||
+        `${a.date} ${a.time}`.localeCompare(`${b.date} ${b.time}`),
+    );
+};
 
-export const getUpcomingPerformances = () => getUpcomingPerformancesFromList(performances);
+export const getUpcomingPerformances = () =>
+  getUpcomingPerformancesFromList(performances);
