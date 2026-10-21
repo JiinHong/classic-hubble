@@ -1,0 +1,18 @@
+{
+  "version": "2026-10-21.1",
+  "policy": "Source-specific review after bilingual, catalogue and scope checks. A public orchestra label can still be a typo, an arrangement or an excerpt. Retain rejected identities for audit, not as aliases.",
+  "exclude": {
+    "Q3200500": "Valse triste is an individual number, not an alias for all of Kuolema.",
+    "Q392734": "The source describes a violin arrangement of the organ work.",
+    "Q955663": "The label 성채 appears to be a typo for 성체; do not promote it without corroboration.",
+    "Q2521153": "The translation 구도자 needs corroboration; do not promote the first source spelling."
+  },
+  "titles": {
+    "Q657298": "바이올린 협주곡",
+    "Q20646571": "바이올린 소나타 제3번 C장조",
+    "Q5044098": "카니발 서곡",
+    "Q3051034": "여름밤",
+    "Q246907": "러시아 부활절 서곡",
+    "Q12406816": "관현악 모음곡 제2번 b단조"
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "version": "2026-10-21.2",
+  "policy": "Additional per-row review for the composer-page sweep. Source/canonical disagreements are excluded rather than repaired by guessing. Trims retain observed substrings; no new translation is generated.",
+  "sources": {
+    "6331": {"exclude": {"Op. 64": "The source calls this Symphony No. 4, but the canonical identity is The Bard. Do not use the source's catalogue number alone."}},
+    "294271": {"exclude": {"Op. 50": "Five string pieces does not describe the canonical Konzertmusik for Brass and String Orchestra."}},
+    "87592": {"exclude": {"Op. 4": "The source's count of four conflicts with the Altenberg song cycle; needs another source."}},
+    "87486": {"exclude": {"Op. 74": "The source names The Poet's Echo but the canonical identity is Songs and Proverbs of William Blake."}},
+    "391143": {
+      "exclude": {
+        "Op. 53": "Do not import an uncorroborated key label for the Fifth Sonata.",
+        "Op. 62": "Do not import an uncorroborated key label for a late sonata.",
+        "Op. 64": "Do not import an uncorroborated key label for a late sonata.",
+        "Op. 66": "Do not import an uncorroborated key label for a late sonata.",
+        "Op. 68": "Do not import an uncorroborated key label for a late sonata.",
+        "Op. 70": "Do not import an uncorroborated key label for a late sonata."
+      },
+      "titles": {"Op. 9": "왼손을 위한 전주곡과 야상곡", "Op. 60": "프로메테우스 불의 시"}
+    },
+    "7809": {"titles": {"Op. 22": "화려한 기상곡"}},
+    "5902": {
+      "exclude": {"Op. 44": "Part-songs has been rendered as seven-part singing; insufficient evidence for a useful Korean title."},
+      "titles": {"Op. 19 No. 1": "밤의 노래", "Op. 19 No. 2": "기도"}
+    },
+    "1589023": {"titles": {"Op. 21": "카프리콘 협주곡", "Op. 31": "여름 음악"}},
+    "478630": {"titles": {"Op. 29": "세고비아"}}
+  }
+}

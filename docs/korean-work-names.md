@@ -261,3 +261,60 @@ The two distinct works called `비창` remain separate. Verification also passes
 348 Python tests, 12 shared tests, 76 web tests, scoped Ruff, ESLint and the
 Next.js production build. This is sampled search verification, not a claim of
 100% matching accuracy.
+
+## Remaining-catalog continuation (2026-10-21)
+
+This pass examined Korean reference pages for the represented composers and their
+linked work lists (204 source documents), plus 613 public bilingual programme
+labels in the KBS Digital K-Hall archive. It collects names, not video media.
+The reviewed manifest is `workers/data/korean-catalog-continuation.json`, version
+`2026-10-21.continuation.1`. It covers 375 works; 373 receive a new title or alias,
+and two receive additional evidence without changing their existing names.
+
+Source-list parsing now recognises Korean opus notation, explicit parent-list
+genres and paired title/key table columns. Complete subnumbers remain part of
+identity: Op. 8 and Op. 8 No. 12 are not interchangeable. Public archive labels
+are checked for incompatible bilingual numbers/instruments and for excerpts,
+movements or suites that must not become aliases for a complete parent work.
+The archive parser processes supplied HTML; this change does not schedule a new
+automatic crawler or publish unreviewed future candidates.
+
+Reviewed concert and usage evidence takes precedence for new display names:
+`엘레지` (Faure Op. 24), `핑갈의 동굴` (Mendelssohn Op. 26), and
+`불꽃을 향하여` (Scriabin Op. 72). Their evidence is recorded in
+`concert-continuation-review.json`. Wikipedia names remain source-observed
+reference names, not measured claims of audience popularity. Unverified
+translations and guessed shorthand are not added.
+
+`korean-continuation-rejections.json` records 1,156 work-list and 344 archive row
+rejections. These are rows, not distinct works. Examples include contradictory
+Alpine Symphony/Aus Italien bilingual labels, a flute/violin concerto mismatch,
+individual sarabandes from complete Bach suites, and an extracted suite from
+The Miraculous Mandarin. The separate review files retain exclusions and exact
+source-text trims. The public evidence file now has six datasets and retains
+source URLs, Wikipedia revision/license details and short factual name evidence,
+without operational UUIDs or previous-title update guards.
+
+### Verified production result
+
+- 199 previously missing Korean display titles filled; all 2,191 earlier titles
+  preserved. Coverage is now 2,390 of 11,646 works, with 9,256 still unresolved.
+- 496 aliases added: 427 Korean and 69 English. Total aliases: 36,523.
+- All 209 composers, 229 program items, canonical crosswalks, prior aliases and
+  non-title work fields unchanged. All 11,642 imported review-only works remain so.
+- All 375 provenance records verified against the immutable manifest digest.
+  Replay proposes zero title or alias changes.
+- 38 sampled searches pass against the full production catalog. Both Schumann's
+  and MacDowell's works named `숲의 정경` remain distinct. Composer-qualified
+  queries also work when the Korean title token is typed without spaces.
+
+The full-catalog search probe exposed a spacing bug: `슈만 숲의정경` could rank
+unrelated Schumann works ahead of the requested work. A failing regression test
+preceded the fix. Korean-only query tokens now tolerate spacing within candidate
+names; Latin identifiers and exact numbered-work matching keep their prior rules.
+
+Verification passes 363 Python tests, 13 shared tests, 76 web tests, scoped Ruff,
+ESLint and the Next.js production build. Review was sequential in the current
+task, not independent-agent review. This batch does not establish corpus-wide
+matching accuracy or complete Korean-name coverage. The remaining 9,256 works
+need further source research; titles were not translated merely to fill blanks.

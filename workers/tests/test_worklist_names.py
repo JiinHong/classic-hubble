@@ -156,3 +156,92 @@ def test_manifest_preserves_display_title_and_exclusions_have_an_audit_reason():
     assert entry["aliases"][0]["text"] == "교향곡 1번 C 장조"
     assert entry["evidence"][0]["code"] == "Op. 1"
     assert any(row["reason"] == "Source scope needs review" for row in audit)
+
+
+def test_korean_opus_notation_preserves_complete_subnumber_and_raw_evidence():
+    html = """<ul><li>황금 거위 작품번호 45의 1(1926)</li>
+    <li>시타 작품번호 23(1899~1906)</li>
+    <li>두 소품 작품번호 45의 1과 2</li>
+    <li>뱃노래 작품번호 106bis(1915)</li></ul>"""
+    assert extract_rows(html) == [
+        {
+            "code": "Op. 45 No. 1",
+            "title": "황금 거위",
+            "evidence": ["황금 거위 작품번호 45의 1(1926)"],
+        },
+        {
+            "code": "Op. 23",
+            "title": "시타",
+            "evidence": ["시타 작품번호 23(1899~1906)"],
+        },
+    ]
+
+
+def test_paired_title_cells_do_not_mix_two_works_or_drop_opus_subnumbers():
+    html = """<table class="wikitable"><tr><th>곡명</th><th>조성</th><th>곡명</th><th>조성</th></tr>
+    <tr><td>연습곡 Op. 10, 1번</td><td>다장조</td><td>연습곡 Op. 10, 7번</td><td>다장조</td></tr>
+    <tr><td>연습곡 Op. 10, 1번과 2번</td><td>다장조</td><td>연습곡</td><td>다장조</td></tr></table>"""
+    rows = extract_rows(html)
+    assert [(r["code"], r["title"]) for r in rows] == [
+        ("Op. 10 No. 1", "연습곡 Op. 10, 1번"),
+        ("Op. 10 No. 7", "연습곡 Op. 10, 7번"),
+    ]
+    assert rows[0]["evidence"] == ["연습곡 Op. 10, 1번", "다장조"]
+
+
+def test_nested_list_genre_is_used_only_when_explicit_and_unambiguous():
+    html = """<ul><li>녹턴<ul><li>1번 내림 마단조 작품번호 33의 1(1875)</li></ul></li>
+    <li>교향곡 1번 Op. 1<ul><li>1번 Op. 2</li></ul></li>
+    <li>다른 작품<ul><li>2번 Op. 3</li></ul></li></ul>"""
+    rows = extract_rows(html)
+    row = next(r for r in rows if r["code"] == "Op. 33 No. 1")
+    assert row["title"] == "녹턴 1번 내림 마단조"
+    assert row["evidence"] == ["녹턴", "1번 내림 마단조 작품번호 33의 1(1875)"]
+    assert all(r["title"] != "교향곡 1번 1번" for r in rows)
+
+
+def test_opus_subnumber_is_not_mistaken_for_a_work_ordinal_in_conflict_check():
+    row = {"code": "Op. 10 No. 1", "title": "연습곡 Op. 10, 1번", "evidence": []}
+    work = {
+        "id": "w",
+        "composer_id": "c",
+        "catalogue": "Op. 10 No. 1",
+        "title": "Étude in C major, Op. 10, No. 1",
+    }
+    assert match_rows([row], "c", [work])[0]
+
+
+def test_key_only_labels_and_incomplete_canonical_catalogues_are_rejected():
+    work = {
+        "id": "w",
+        "composer_id": "c",
+        "catalogue": "Op. 8",
+        "title": "Étude in D-sharp minor, Op. 8, No. 12",
+    }
+    row = {"code": "Op. 8", "title": "12개의 연습곡", "evidence": []}
+    assert not match_rows([row], "c", [work])[0]
+    work["title"] = "Violin Concerto in E minor"
+    assert not match_rows([{**row, "title": "마단조"}], "c", [work])[0]
+    assert not match_rows([{**row, "title": "내림 마장조"}], "c", [work])[0]
+
+
+def test_korean_ordinal_prefix_still_detects_a_conflict():
+    work = {
+        "id": "w",
+        "composer_id": "c",
+        "catalogue": "Op. 1",
+        "title": "Symphony No. 1",
+    }
+    row = {"code": "Op. 1", "title": "교향곡 제2번", "evidence": []}
+    assert not match_rows([row], "c", [work])[0]
+
+
+def test_catalogue_subnumber_does_not_validate_the_wrong_work_number():
+    work = {
+        "id": "w",
+        "composer_id": "c",
+        "catalogue": "Op. 64 No. 2",
+        "title": "Waltz No. 7 in C-sharp minor, Op. 64, No. 2",
+    }
+    row = {"code": "Op. 64 No. 2", "title": "왈츠 제2번", "evidence": []}
+    assert not match_rows([row], "c", [work])[0]
