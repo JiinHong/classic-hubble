@@ -8,6 +8,12 @@ LLM, use image input, create canonical works, publish a program, or send alerts.
 The producer label is supplied by the operator; it is not proof of a model call.
 No new public table, service endpoint, paid provider or scheduled job is enabled.
 
+An opt-in `openai_music` adapter and offline evaluation path are now available.
+The adapter sends text to GPT-6 Luna, records billed input/cache/output usage,
+retains usage on invalid responses, and never retries automatically. It does not
+by itself run a worker or publish to the website. The 53-document pilot was a
+separate, explicitly authorized API run; the replay below makes no API calls.
+
 The request contains the schema, extraction instructions, OCR document hash and
 stable line IDs with zero-based page indices. It contains no credentials, source
 URLs, original images, DB IDs or object-storage keys. OCR text itself can contain
@@ -28,10 +34,61 @@ Source text is untrusted data, not model instructions.
 - Reuse composer/catalogue/alias matching. Non-program references cannot produce
   a performance suggestion. Partial/uncertain scope and unsupported key notation
   require review. The current matcher does not support every catalogue or language.
-- All results, including unique matches, are `unverified` and `publishable=false`.
+- In the legacy private import workflow, all results, including unique matches,
+  are `unverified` and `publishable=false`.
   Exact quotes do not establish semantic correctness, correct field association,
   or extraction completeness. `no_program_identified` is not evidence that the
   organizer has not published a program.
+
+## Automatic evaluation policy (v2)
+
+`validate_response(..., automatic=True)` preserves valid items independently.
+The document envelope/hash remains strict. Invalid item schemas or source quotes
+are returned in `rejected_items` with an original index, reason and failed field.
+`validation_status` is complete, partial or failed; it is not an accuracy score.
+An inconsistent document status prevents publication even if quotes are valid.
+The original model response and evidence remain unchanged in the evaluation set.
+
+- Korean particles and joined Korean text are allowed in exact quotes. ASCII
+  numeric boundaries still reject `Op. 18` quoted from `Op. 180`. A joined `in`
+  prefix is supported specifically for key evidence.
+- Structured matching supports bilingual names, lifespans, initials, Korean
+  spacing/number styles, quoted nicknames, bilingual keys, catalogue members in
+  aliases, and multiple catalogue systems recorded for the same work.
+- Composer ambiguity, conflicting numbers/keys, multiple matches and generic or
+  composer-only titles do not auto-link. One-character OCR composer typos produce
+  candidates only. Imported canonical IDs can link without human approval when
+  the identity evidence is unique; no new work IDs are invented.
+- `suggested_work_id` is reserved for full-work suggestions. `scoped_work_id`
+  retains an identified work with its movement/excerpt/arrangement/unknown scope;
+  it is not necessarily a parent work and is not a full-work publication.
+- A movement list cannot establish completeness. Non-first listed movements
+  override a model's full-work label; other movement lists remain scope-unknown.
+- Multiple explicit month/day performance dates in one source prevent automatic
+  assignment of all listed works to a single concert. This is a guard, not a full
+  date parser; performance-specific date binding remains to be implemented.
+- `publishable` describes eligible full-work suggestions only. `complete` is a
+  separate flag and cannot be true with invalid/unresolved program items.
+
+No public DB writes, automatic retries, paid scheduling or notifications are
+enabled by this policy. Human approval is not the planned production gate;
+grounding, uniqueness, scope and source freshness are.
+
+## Offline replay
+
+Use a private directory containing `catalogue.json` and one directory per OCR
+hash with `ocr.json` and `extraction.json`. Replay has no network/provider writes,
+requires a new output directory, and creates mode-0600 reports/CSV files.
+
+```sh
+.venv/bin/python -m classic_hubble_pipeline.music_replay \
+  --input /private/path/to/evaluation \
+  --output /private/path/to/new-replay
+```
+
+This reuses paid responses; changing the extraction prompt requires a separate
+new model run. The revised prompt has unit tests but has not yet been re-evaluated
+with live inference. Never describe cached-response replay as a prompt benchmark.
 
 ## Private prepare/import workflow
 
@@ -77,7 +134,18 @@ They use annotated fixtures, not model responses and not an accuracy benchmark.
 
 A live read-only check on 2026-10-21 prepared 224 OCR lines without calling an LLM.
 At that check there were 55 OCR records (53 text results, one empty result, one
-manual case), and **four canonical works**. This is partial OCR coverage, not a
-completed backfill. A chosen text LLM/key, provider-specific schema adapter,
-bounded batch inference and cost tracking, an evaluation set, catalogue expansion,
-and an administrator review/publication interface remain to be implemented.
+manual case). The later evaluation snapshot contains 12,435 canonical works.
+This is partial OCR coverage, not a completed backfill.
+
+The 2026-10-21 replay of 53 saved responses retained 232 of 241 references:
+48 documents fully validated, 3 partially validated and 2 with no valid items.
+There were 18 full-work suggestions and 15 separately scoped identifications
+across 14 documents. These are references, not 33 unique works or a measured
+accuracy. The original 6 full-work suggestions included one partial-work error.
+The replay corrected that overstatement and made zero additional paid calls.
+
+Remaining: semantic/coverage evaluation on held-out annotated posters; source
+date binding; catalogue/alias data quality; selective re-extraction of malformed
+items; scoped-work UI/DB publication; and a resumable, budgeted worker plus an
+atomic source-freshness-checked publication transaction. No new production job
+is deployed by this change. Existing NOL/manual program entries must be preserved.
