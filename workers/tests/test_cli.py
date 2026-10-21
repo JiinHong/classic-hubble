@@ -3,10 +3,57 @@ from __future__ import annotations
 import importlib
 import io
 import json
+from unittest.mock import patch
+from contextlib import nullcontext
 from datetime import date
 
 from classic_hubble_pipeline.kopis import KopisPerformanceSummary
 from classic_hubble_pipeline.nol import NolPerformanceData, NolProgramItem
+from classic_hubble_pipeline.cli import main
+
+
+def test_program_match_cli_does_not_require_kopis_credentials_and_defaults_to_dry_run():
+    output = io.StringIO()
+    with patch(
+        "classic_hubble_pipeline.cli.match_stored_programs", return_value={"updated": 0}
+    ) as match:
+        assert (
+            main(
+                ["program-match"],
+                environ={
+                    "SUPABASE_URL": "https://example.supabase.co",
+                    "SUPABASE_SECRET_KEY": "sb_secret_test",
+                },
+                stdout=output,
+                repository_factory=lambda settings: nullcontext("repository"),
+            )
+            == 0
+        )
+    match.assert_called_once_with("repository", apply=False)
+    assert json.loads(output.getvalue()) == {"updated": 0}
+
+
+def test_sync_cli_returns_failure_for_partial_enrichment_failure():
+    from classic_hubble_pipeline.kopis_sync import KopisSyncResult
+
+    with patch("classic_hubble_pipeline.cli.KopisSyncService") as service:
+        service.return_value.run.return_value = KopisSyncResult(
+            "r", "failed", {"nol_errors": 1}
+        )
+        assert (
+            main(
+                ["kopis-sync", "--start", "2026-10-21", "--end", "2026-10-21"],
+                environ={
+                    "KOPIS_API_KEY": "test",
+                    "SUPABASE_URL": "https://example.supabase.co",
+                    "SUPABASE_SECRET_KEY": "sb_secret_test",
+                },
+                stdout=io.StringIO(),
+                client_factory=lambda settings: nullcontext(None),
+                repository_factory=lambda settings: nullcontext(None),
+            )
+            == 1
+        )
 
 
 def _load_cli_module():
@@ -285,15 +332,12 @@ def test_nol_check_prints_a_safe_deterministic_snapshot_without_credentials():
         "venue_name": "금호아트홀 연세",
         "program_status": "confirmed",
         "program_source_url": "https://tickets.interpark.com/goods/26007299",
-        "program_image_urls": [
-            "https://ticketimage.interpark.com/Play/program.jpg"
-        ],
+        "program_image_urls": ["https://ticketimage.interpark.com/Play/program.jpg"],
         "program_items": [
             {
                 "position": 0,
                 "display_title": (
-                    "W. A. Mozart (1756-1791)\n"
-                    "Violin Sonata No. 18 in G Major, K. 301"
+                    "W. A. Mozart (1756-1791)\nViolin Sonata No. 18 in G Major, K. 301"
                 ),
                 "composer": "W. A. Mozart",
                 "composer_lifespan": "1756-1791",

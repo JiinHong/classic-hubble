@@ -17,6 +17,7 @@ from .kopis import (
     KopisSyncWindow,
 )
 from .nol import NolError, NolPerformanceData, extract_nol_goods_code
+from .work_matching import CanonicalWork, match_work
 
 
 KOREA_TIMEZONE = ZoneInfo("Asia/Seoul")
@@ -44,6 +45,8 @@ CITY_NAMES = {
 
 
 class SyncRepository(Protocol):
+    def load_work_catalog(self) -> list[CanonicalWork]: ...
+
     def start_ingestion_run(self, provider: str) -> str: ...
 
     def finish_ingestion_run(
@@ -250,6 +253,8 @@ class KopisSyncService:
         run_id = self._repository.start_ingestion_run("kopis")
         facility_cache: dict[str, tuple[str, dict[str, str]]] = {}
         seen_performances: set[str] = set()
+        work_catalog: list[CanonicalWork] | None = None
+        first_nol_error: str | None = None
 
         try:
             for window in windows:
@@ -268,9 +273,7 @@ class KopisSyncService:
                     )
                     counters["performance_summaries"] += 1
 
-                    detail = self._client.get_performance_detail(
-                        summary.performance_id
-                    )
+                    detail = self._client.get_performance_detail(summary.performance_id)
                     self._repository.upsert_provider_record(
                         entity_type="performance_detail",
                         provider_id=detail.performance_id,
@@ -309,10 +312,8 @@ class KopisSyncService:
                                     payload=hall.raw_payload,
                                     ingestion_run_id=run_id,
                                 )
-                                hall_ids[hall.hall_id] = (
-                                    self._repository.upsert_hall(
-                                        map_hall(hall, venue_id=venue_id)
-                                    )
+                                hall_ids[hall.hall_id] = self._repository.upsert_hall(
+                                    map_hall(hall, venue_id=venue_id)
                                 )
                                 counters["halls"] += 1
                             facility_cache[detail.facility_id] = (
@@ -334,13 +335,19 @@ class KopisSyncService:
                     )
                     counters["performances"] += 1
 
-                    if self._nol_client is not None and (
-                        nol_url := _first_nol_goods_url(detail.booking_links)
-                    ) is not None:
+                    if (
+                        self._nol_client is not None
+                        and (nol_url := _first_nol_goods_url(detail.booking_links))
+                        is not None
+                    ):
                         try:
                             nol_data = self._nol_client.fetch(nol_url)
-                        except NolError:
+                        except NolError as error:
                             counters["nol_errors"] += 1
+                            if first_nol_error is None:
+                                first_nol_error = f"{type(error).__name__}: {error}"[
+                                    :500
+                                ]
                         else:
                             self._repository.upsert_provider_record(
                                 provider="nol",
@@ -350,7 +357,11 @@ class KopisSyncService:
                                 ingestion_run_id=run_id,
                             )
                             counters["nol_records"] += 1
-                            program_items = _map_nol_program_items(nol_data)
+                            if work_catalog is None:
+                                work_catalog = self._repository.load_work_catalog()
+                            program_items = _map_nol_program_items(
+                                nol_data, work_catalog
+                            )
                             self._repository.replace_program_items(
                                 performance_id,
                                 "nol",
@@ -389,14 +400,20 @@ class KopisSyncService:
             )
             raise
 
+        status = "failed" if counters["nol_errors"] else "completed"
         self._repository.finish_ingestion_run(
             run_id,
-            status="completed",
+            status=status,
             counters=counters,
+            error=(
+                f"NOL: {counters['nol_errors']} failed, {counters['nol_records']} succeeded. First error: {first_nol_error}"
+                if first_nol_error
+                else None
+            ),
         )
         return KopisSyncResult(
             run_id=run_id,
-            status="completed",
+            status=status,
             counters=counters,
         )
 
@@ -474,13 +491,15 @@ def _nol_raw_payload(nol_data: NolPerformanceData) -> dict[str, object]:
     return payload
 
 
-def _map_nol_program_items(nol_data: NolPerformanceData) -> list[dict[str, object]]:
+def _map_nol_program_items(
+    nol_data: NolPerformanceData, works: Sequence[CanonicalWork]
+) -> list[dict[str, object]]:
     return [
         {
-            "work_id": None,
+            "work_id": match_work(item.work_title, item.composer, works).work_id,
             "display_title": item.work_title,
             "composer_name": item.composer,
-            "source_type": "verified",
+            "source_type": "official",
             "confidence": 0.98,
             "position": item.position,
             "source_url": nol_data.program_source_url,

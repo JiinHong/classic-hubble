@@ -1,0 +1,848 @@
+{
+  "exported_on": "2026-10-21",
+  "purpose": "Candidate sources for manual annotation, not ground truth or an accuracy benchmark",
+  "performances": [
+    {
+      "kopis_id": "PF280791",
+      "performance_title": "제338회 부천필하모닉오케스트라 정기연주회: ENIGMA",
+      "starts_on": "2026-07-17",
+      "source_url": "https://tickets.interpark.com/goods/25017076",
+      "image_urls": [
+        "http://www.kopis.or.kr/upload/pfmIntroImage/PF_PF280791_202512030101023410.jpg"
+      ],
+      "annotation_status": "pending",
+      "program_text": [
+        {
+          "composer": null,
+          "text": "슈베르트 교향곡 제8번 ‘미완성’\nF. Schubert Symphony No. 8 in b minor, D. 759 ‘Unfinished’"
+        },
+        {
+          "composer": null,
+          "text": "숲 속의 밤 노래\nNachtgesang im Walde, D. 913 for male chorus and horns"
+        },
+        {
+          "composer": null,
+          "text": "* 본 프로그램은 주최 측 사정에 의해 변경될 수 있습니다."
+        },
+        {
+          "composer": null,
+          "text": "엘가 수수께끼 변주곡\nE. Elegar Enigma Variations, Op. 36"
+        },
+        {
+          "composer": null,
+          "text": "Program 90분"
+        }
+      ]
+    },
+    {
+      "kopis_id": "PF281255",
+      "performance_title": "제266회 국립심포니오케스트라 정기연주회: 파야, 삼각모자 모음곡",
+      "starts_on": "2026-08-07",
+      "source_url": "https://tickets.interpark.com/goods/25017043",
+      "image_urls": [
+        "http://www.kopis.or.kr/upload/pfmIntroImage/PF_PF281255_202602090549238010.jpg"
+      ],
+      "annotation_status": "pending",
+      "program_text": [
+        {
+          "composer": null,
+          "text": "※ 본 공연 내용은 주최 측 사정에 의해 변경될 수 있습니다.\nThe program can be subject to change."
+        },
+        {
+          "composer": null,
+          "text": "파야, ‘삼각모자’ 모음곡 1번 & 2번\nM. de Falla, ‘El sombrero de tres picos,’ Suites No. 1 & 2"
+        },
+        {
+          "composer": null,
+          "text": "샤브리에, ‘스페인’\nE. Chabrier, ‘Espana’"
+        },
+        {
+          "composer": null,
+          "text": "랄로, 스페인 교향곡 라 단조, Op. 21\nE. Lalo, Symphonie espagnole in d minor, Op. 21"
+        },
+        {
+          "composer": null,
+          "text": "파야, 오페라 중 간주곡과 춤곡\nM. de Falla, Interlude and Dance from Opera"
+        }
+      ]
+    },
+    {
+      "kopis_id": "PF286696",
+      "performance_title": "서울시향 유럽 투어 프리뷰 콘서트, 베토벤: 합창",
+      "starts_on": "2026-08-12",
+      "source_url": "https://tickets.interpark.com/goods/26002559",
+      "image_urls": [
+        "http://www.kopis.or.kr/upload/pfmIntroImage/PF_PF286696_202603090510109000.jpg"
+      ],
+      "annotation_status": "pending",
+      "program_text": [
+        {
+          "composer": null,
+          "text": "존 아담스, 부상 처치사\nJohn Adams, The Wound-Dresser"
+        },
+        {
+          "composer": null,
+          "text": "베토벤, 교향곡 제9번 ‘합창’\nBeethoven, Symphony No. 9 in D minor, Op. 125 ‘Choral’"
+        }
+      ]
+    },
+    {
+      "kopis_id": "PF288102",
+      "performance_title": "예술의전당 토요콘서트, 프리뷰 베토벤 (7월)",
+      "starts_on": "2026-07-18",
+      "source_url": "https://tickets.interpark.com/goods/26004113",
+      "image_urls": [
+        "http://www.kopis.or.kr/upload/pfmIntroImage/PF_PF288102_202603260216148830.jpg"
+      ],
+      "annotation_status": "pending",
+      "program_text": [
+        {
+          "composer": null,
+          "text": "베토벤 / 피아노 협주곡 제4번 G장조 Op.58\n베토벤 / 교향곡 제9번 d단조 Op.125 \"합창\""
+        }
+      ]
+    },
+    {
+      "kopis_id": "PF289261",
+      "performance_title": "세상의 모든 플레이리스트: 이혜지, 김정훈 [원주]",
+      "starts_on": "2026-07-30",
+      "source_url": "https://tickets.interpark.com/goods/26005174",
+      "image_urls": [
+        "http://www.kopis.or.kr/upload/pfmIntroImage/PF_PF289261_202604130311001050.gif"
+      ],
+      "annotation_status": "pending",
+      "program_text": [
+        {
+          "composer": "Maurice Ravel",
+          "text": "Kaddish\n이혜지, soprano\n김진세, guitar"
+        },
+        {
+          "composer": null,
+          "text": "Quique Sinesi (b. 1960)\nCielo Abierto\n김진세, guitar"
+        },
+        {
+          "composer": "Charles Gounod",
+          "text": "Selections from Roméo et Juliette\nㅡ Je veux vivre\n이혜지, soprano\n윤모영, piano"
+        },
+        {
+          "composer": "Cesare Andrea Bixio",
+          "text": "Parlami d'amore Mariù\n김정훈, tenor\n김진세, guitar"
+        },
+        {
+          "composer": null,
+          "text": "ㅡ Ah! lève-toi, soleil!\n김정훈, tenor\n윤모영, piano"
+        },
+        {
+          "composer": "Carl Philipp Emanuel Bach",
+          "text": "Rondo espressivo\nfrom Sonata in B minor, H. 245\n김진세, guitar"
+        },
+        {
+          "composer": "Heitor Villa-Lobos",
+          "text": "Melodia Sentimental\n이혜지, soprano\n김진세, guitar"
+        },
+        {
+          "composer": null,
+          "text": "ㅡ Salut! tombeau sombre et silencieux\n이혜지, soprano\n김정훈, tenor\n윤모영, piano"
+        },
+        {
+          "composer": "Manuel M. Ponce",
+          "text": "Estrellita\n김정훈, tenor\n김진세, guitar"
+        },
+        {
+          "composer": "Jules Massenet",
+          "text": "Nuit d'Espagne\n이혜지, soprano\n김진세, guitar"
+        },
+        {
+          "composer": "Nino Rota",
+          "text": "Parla più piano\n김정훈, tenor\n김진세, guitar"
+        }
+      ]
+    },
+    {
+      "kopis_id": "PF291514",
+      "performance_title": "고잉홈프로젝트: 1939 (feat. 바이올린 타츠키 나리타)",
+      "starts_on": "2026-07-15",
+      "source_url": "https://tickets.interpark.com/goods/26006971",
+      "image_urls": [
+        "http://www.kopis.or.kr/upload/pfmIntroImage/PF_PF291514_202605150202145081.jpg",
+        "http://www.kopis.or.kr/upload/pfmIntroImage/PF_PF291514_202605150202145020.jpg"
+      ],
+      "annotation_status": "pending",
+      "program_text": [
+        {
+          "composer": null,
+          "text": "- 인터미션 -"
+        },
+        {
+          "composer": null,
+          "text": "B. Bartók: Violin Concerto No. 2, Sz. 112\n벨라 버르토크: 바이올린 협주곡 제2번 Sz. 112\n협연 | 타츠키 나리타, 바이올린"
+        },
+        {
+          "composer": null,
+          "text": "타츠키 나리타, violin, play-direct\n고잉홈프로젝트, orchestra"
+        },
+        {
+          "composer": null,
+          "text": "D. Shostakovich: Symphony No. 6 inB minor, Op. 54\n드미트리 쇼스타코비치: 교향곡 제6번 나단조 Op. 54"
+        },
+        {
+          "composer": null,
+          "text": "* 프로그램은 사정에 따라 변경될 수 있습니다"
+        }
+      ]
+    },
+    {
+      "kopis_id": "PF291803",
+      "performance_title": "피아니스트 임재한 베토벤 소나타 전곡시리즈 3",
+      "starts_on": "2026-07-19",
+      "source_url": "https://tickets.interpark.com/goods/26007175",
+      "image_urls": [
+        "http://www.kopis.or.kr/upload/pfmIntroImage/PF_PF291803_202605201040262520.jpg"
+      ],
+      "annotation_status": "pending",
+      "program_text": [
+        {
+          "composer": null,
+          "text": "I. L. v. Beethoven Piano Sonata No.30, 31 & 32 (2025. 3)\nII. L. v. Beethoven Piano Sonata No.15, 22, 23 & Chromatic Fantasy (2026. 3)"
+        },
+        {
+          "composer": null,
+          "text": "＊Jaehan Plays Beethoven Series"
+        }
+      ]
+    },
+    {
+      "kopis_id": "PF291824",
+      "performance_title": "김소영 오보에 독주회",
+      "starts_on": "2026-07-26",
+      "source_url": "https://tickets.interpark.com/goods/26007286",
+      "image_urls": [
+        "http://www.kopis.or.kr/upload/pfmIntroImage/PF_PF291824_202605201123243911.jpg",
+        "http://www.kopis.or.kr/upload/pfmIntroImage/PF_PF291824_202605201123243850.jpg"
+      ],
+      "annotation_status": "pending",
+      "program_text": [
+        {
+          "composer": null,
+          "text": "Daniel Schnyder Sonata for Oboe and Piano\nI. Quarter=116\nII. Langsam, tempo rubato\nIII. Schnell\nIV. Sehr schnell : Alla breve"
+        },
+        {
+          "composer": null,
+          "text": "-INTERMISSION-"
+        },
+        {
+          "composer": null,
+          "text": "F.Poulenc - Trio for Oboe, Bassoon and Piano, FP 43\nI. Presto\nII. Andante\nIII. Rondo"
+        },
+        {
+          "composer": null,
+          "text": "J.S.Bach - Sonata for Oboe and piano in C major, BWV 1033\nI. Andante\nII. Allegro\nIII. Adagio\nIV. Menuetto"
+        },
+        {
+          "composer": null,
+          "text": "C.Schumann - 3 Romances for oboe and Piano, Op. 22\nI. Andante molto\nII. Allegretto\nIII. Leidenschaftlich schnell"
+        }
+      ]
+    },
+    {
+      "kopis_id": "PF292002",
+      "performance_title": "금호영아티스트콘서트, 송영준 색소폰 독주회",
+      "starts_on": "2026-07-25",
+      "source_url": "https://tickets.interpark.com/goods/26007129",
+      "image_urls": [
+        "http://www.kopis.or.kr/upload/pfmIntroImage/PF_PF292002_202605221010172950.jpg"
+      ],
+      "annotation_status": "pending",
+      "program_text": [
+        {
+          "composer": null,
+          "text": "피에르 막스 뒤부아 Pierre Max Dubois\n알토 색소폰과 피아노를 위한 성격적 소품들, Op.77\nPièces Caractéristiques en Forme de Suite for Alto Saxophone and Piano, Op.77\nÀ l'espagnole\nÀ la russe\nÀ la française\nÀ la hongroise\nÀ la parisienne"
+        },
+        {
+          "composer": null,
+          "text": "I N T E R M I S S I O N"
+        },
+        {
+          "composer": null,
+          "text": "프란츠 도플러 Franz Doppler\n플루트와 오케스트라를 위한 헝가리 전원 환상곡, Op.26 (소프라노 색소폰과 피아노 연주)\nFantaisie Pastorale Hongroise for Flute and Orchestra, Op.26 (performed on Soprano Saxophone and Piano)"
+        },
+        {
+          "composer": null,
+          "text": "조지 거슈윈 George Gershwin\n랩소디 인 블루 (색소폰과 피아노를 위한 편곡 준 나가오)\nRhapsody in Blue (arranged for Saxophone and Piano by Jun Nagao)"
+        },
+        {
+          "composer": null,
+          "text": "가브리엘 포레 Gabriel Fauré\n네 개의 손을 위한 돌리 모음곡, Op.56 (소프라노 색소폰과 피아노를 위한 편곡 뱅상 다비드)\nDolly Suite for Piano 4 Hands, Op.56 (arranged for Soprano Saxophone and Piano by Vincent David)\nBerceuse\nMi-a-ou\nLe jardin de Dolly\nKitty-valse\nTendresse\nLe pas espagnol"
+        }
+      ]
+    },
+    {
+      "kopis_id": "PF292006",
+      "performance_title": "금호영아티스트콘서트, 이재은 바이올린 독주회",
+      "starts_on": "2026-08-08",
+      "source_url": "https://tickets.interpark.com/goods/26007134",
+      "image_urls": [
+        "http://www.kopis.or.kr/upload/pfmIntroImage/PF_PF292006_202605221017459620.jpg"
+      ],
+      "annotation_status": "pending",
+      "program_text": [
+        {
+          "composer": null,
+          "text": "I N T E R M I S S I O N"
+        },
+        {
+          "composer": null,
+          "text": "클로드 드뷔시 Claude Debussy\n바이올린과 피아노를 위한 소나타 g단조, L.140\nSonata for Violin and Piano in g minor, L.140\nAllegro vivo\nIntermède. Fantastique et léger\nFinale. Très animé"
+        },
+        {
+          "composer": null,
+          "text": "헨리크 비에니아프스키 Henryk Wieniawski\n바이올린과 오케스트라를 위한 구노 ‘파우스트’ 주제에 의한 화려한 환상곡, Op.20 (바이올린과 피아노 연주)\nFantaisie Brillante on Themes from Gounod’s “Faust” for Violin and Orchestra, Op.20 (performed on Violin and Piano)"
+        },
+        {
+          "composer": null,
+          "text": "로베르트 슈만 Robert Schumann\n바이올린과 피아노를 위한 소나타 제3번 a단조, WoO27\nSonata for Violin and Piano No.3 in a minor, WoO27\nZiemlich langsam\nLebhaft\nIntermezzo\nFinale"
+        },
+        {
+          "composer": null,
+          "text": "볼프강 아마데우스 모차르트 Wolfgang Amadeus Mozart\n바이올린과 피아노를 위한 소나타 제32번 B-flat장조, K.454\nSonata for Violin and Piano No.32 in B-flat Major, K.454\nLargo – Allegro\nAndante\nAllegretto"
+        }
+      ]
+    },
+    {
+      "kopis_id": "PF292081",
+      "performance_title": "금호영아티스트콘서트, 김하경 피아노 독주회",
+      "starts_on": "2026-07-18",
+      "source_url": "https://tickets.interpark.com/goods/26007119",
+      "image_urls": [
+        "http://www.kopis.or.kr/upload/pfmIntroImage/PF_PF292081_202605220253352010.jpg"
+      ],
+      "annotation_status": "pending",
+      "program_text": [
+        {
+          "composer": null,
+          "text": "프란츠 요제프 하이든 Franz Joseph Haydn\n건반 소나타 E장조, H.16/31\nKeyboard Sonata in E Major, H.16/31\nModerato\nAllegretto\nFinale: Presto"
+        },
+        {
+          "composer": null,
+          "text": "I N T E R M I S S I O N"
+        },
+        {
+          "composer": null,
+          "text": "요하네스 브람스 Johannes Brahms\n피아노를 위한 헨델 주제에 의한 25개의 변주곡과 푸가 B-flat장조, Op.24\n25 Variations and Fugue on a Theme of Händel for Piano in B-flat Major, Op.24\nThemeVariations 1–25Fugue"
+        },
+        {
+          "composer": null,
+          "text": "프레데리크 쇼팽 Frédéric Chopin\n피아노를 위한 뱃노래 F-sharp장조, Op.60, CT.6\nBarcarolle for Piano in F-sharp Major, Op.60, CT.6"
+        },
+        {
+          "composer": null,
+          "text": "프란츠 리스트 Franz Liszt\n피아노를 위한 메피스토 왈츠 제1번, S.514\nMephisto Waltz for Piano No.1, S.514"
+        }
+      ]
+    },
+    {
+      "kopis_id": "PF292362",
+      "performance_title": "고잉홈프로젝트: The Iron Curtain (feat. 클라리넷 조인혁)",
+      "starts_on": "2026-08-09",
+      "source_url": "https://tickets.interpark.com/goods/26007204",
+      "image_urls": [
+        "http://www.kopis.or.kr/upload/pfmIntroImage/PF_PF292362_202605270219333060.jpg"
+      ],
+      "annotation_status": "pending",
+      "program_text": [
+        {
+          "composer": null,
+          "text": "A. Copland: El SalónMéxico\n애런 코플런드: 엘 살롱 멕시코"
+        },
+        {
+          "composer": null,
+          "text": "- 인터미션 -"
+        },
+        {
+          "composer": null,
+          "text": "A. Copland: Clarinet Concerto\n애런 코플런드: 클라리넷 협주곡\n협연 | 조인혁, 클라리넷"
+        },
+        {
+          "composer": null,
+          "text": "스베틀린 루세브, play-direct\n고잉홈프로젝트, orchestra"
+        },
+        {
+          "composer": null,
+          "text": "*프로그램은사정에 따라 변경될 수 있습니다."
+        },
+        {
+          "composer": null,
+          "text": "D. Shostakovich: Symphony No. 5 in D minor, Op. 47\n드미트리 쇼스타코비치: 교향곡 제5번 라단조 Op. 47"
+        }
+      ]
+    },
+    {
+      "kopis_id": "PF292898",
+      "performance_title": "서울시향 퇴근길 토크 콘서트 Ⅱ: 여름 음악 축제 ②",
+      "starts_on": "2026-07-16",
+      "source_url": "https://tickets.interpark.com/goods/26008129",
+      "image_urls": [
+        "http://www.kopis.or.kr/upload/pfmIntroImage/PF_PF292898_202606040228078920.jpg"
+      ],
+      "annotation_status": "pending",
+      "program_text": [
+        {
+          "composer": null,
+          "text": "스위스 루체른 페스티벌\n말러, 교향곡 제5번 4악장\nMahler, Symphony No. 5 in c-sharp minor\nIV. Adagietto"
+        },
+        {
+          "composer": null,
+          "text": "모차르트, <마술피리> 서곡\nMozart, Die Zauberflöte, K. 620: Overture"
+        },
+        {
+          "composer": null,
+          "text": "마스카니, <카발레리아 루스티카나> 간주곡\nMascagni, Cavalleria Rusticana: Intermezzo"
+        },
+        {
+          "composer": null,
+          "text": "로시니, <세비야의 이발사> 서곡\nRossini, Il Barbiere di Siviglia: Overture"
+        },
+        {
+          "composer": null,
+          "text": "영국 BBC 프롬스\n엘가, 현악 세레나데 1, 2악장\nElgar, Serenade for Strings in e minor, Op. 20\nI. Allegro piacevole\nII. Larghetto\n이탈리아 베로나 페스티벌\n베르디, <아이다> 중 '개선 행진곡'\nVerdi, 'Triumphal March' from Aida"
+        },
+        {
+          "composer": null,
+          "text": "오스트리아 잘츠부르크 페스티벌\n모차르트, <후궁으로부터의 탈출> 서곡\nMozart, Die Entführung aus dem Serail, K. 384: Overture"
+        }
+      ]
+    },
+    {
+      "kopis_id": "PF292901",
+      "performance_title": "서울시향 퇴근길 토크 콘서트 II: 여름 음악 축제 ①",
+      "starts_on": "2026-07-14",
+      "source_url": "https://tickets.interpark.com/goods/26008117",
+      "image_urls": [
+        "http://www.kopis.or.kr/upload/pfmIntroImage/PF_PF292901_202606040234169980.jpg"
+      ],
+      "annotation_status": "pending",
+      "program_text": [
+        {
+          "composer": null,
+          "text": "영국, BBC 프롬스\n엘가, 현악 세레나데 1, 2악장\nElgar, Serenade for Strings in e minor, Op. 20\nI. Allegro piacevole\nII. Larghetto"
+        },
+        {
+          "composer": null,
+          "text": "오스트리아, 잘츠부르크 페스티벌\n모차르트, <후궁으로부터의 탈출> 서곡\nMozart, Die Entführung aus dem Serail, K. 384: Overture"
+        },
+        {
+          "composer": null,
+          "text": "마스카니, <카발레리아 루스티카나> 간주곡\nMascagni, Cavalleria Rusticana: Intermezzo"
+        },
+        {
+          "composer": null,
+          "text": "로시니, <세비야의 이발사> 서곡\nRossini, Il Barbiere di Siviglia: Overture"
+        },
+        {
+          "composer": null,
+          "text": "스위스, 루체른 페스티벌\n말러, 교향곡 제5번 4악장\nMahler, Symphony No. 5 in c-sharp minor\nIV. Adagietto"
+        },
+        {
+          "composer": null,
+          "text": "모차르트, <마술피리> 서곡\nMozart, Die Zauberflöte, K. 620: Overture"
+        },
+        {
+          "composer": null,
+          "text": "이탈리아, 베로나 페스티벌\n베르디, <아이다> 중 '개선 행진곡'\nVerdi, 'Triumphal March' from Aida"
+        }
+      ]
+    },
+    {
+      "kopis_id": "PF293094",
+      "performance_title": "이수민 비올라 리사이틀",
+      "starts_on": "2026-07-18",
+      "source_url": "https://tickets.interpark.com/goods/26008102",
+      "image_urls": [
+        "http://www.kopis.or.kr/upload/pfmIntroImage/PF_PF293094_202606080229384140.jpg"
+      ],
+      "annotation_status": "pending",
+      "program_text": [
+        {
+          "composer": null,
+          "text": "칼리보다(1801-1866) 비올라와 피아노를 위한 6개의 녹턴, Op. 186\nJ. W. Kalliwoda Six Nocturnes for Viola and Piano, Op. 186"
+        },
+        {
+          "composer": null,
+          "text": "샤르벤카(1847-1917) 비올라 환상 소나타, Op. 106\nP. Scharwenka Viola &quot;Fantasy&quot; Sonata, Op. 106"
+        },
+        {
+          "composer": null,
+          "text": "브람스(1833-1897) 비올라와 피아노를 위한 소나타 F단조, Op. 120 No. 1\nJ. Brahms Sonata for Viola and Piano in F minor, Op. 120 No. 1"
+        },
+        {
+          "composer": null,
+          "text": "비외탕(1820~1881) 엘레지 F단조, Op. 30\nH. Vieuxtemps Elegy in F minor, Op. 30"
+        }
+      ]
+    },
+    {
+      "kopis_id": "PF293366",
+      "performance_title": "소프라노 이주현 귀국 독창회: 낯선 풍경들: 현대의 목소리",
+      "starts_on": "2026-07-27",
+      "source_url": "https://tickets.interpark.com/goods/26008373",
+      "image_urls": [
+        "http://www.kopis.or.kr/upload/pfmIntroImage/PF_PF293366_202606111029370890.jpg"
+      ],
+      "annotation_status": "pending",
+      "program_text": [
+        {
+          "composer": null,
+          "text": "G. Wimberger ... Kästner-Liederbuch * 한국초연\nⅣ. Lob des Einschlafens\nS. Matthus ... Aus der grünen Mappe * 한국초연\nⅠ. Vorwort\nⅡ. Der Sommer\nⅢ. Lass die stummen Blicke schweifen\nⅤ. Was ist Liebe?\nⅧ. Auf dem See liegt dumpfe Schwüle\nD. Milhaud ... Chansons de Ronsard, Op. 223\nⅠ. À une Fontaine\nD. Argento ... Lady with a Hand Mirror Aria from Opera <Postcard from Morocco>\nA. Casella ... L'adieu à la vie, Op. 26 * 한국초연\nⅠ. O toi, suprême accomplissement de la vie...\nA. Schönberg ... Brettl-Lieder\nⅠ. Galathea\nⅥ. Jedem das Seine\nⅧ. Arie aus dem Spiegel von Arkadien\nJ. Tesori ... The Girl in 14G (14층에 사는 여자)\nJ. Dove ... “Brrrrr Chick Chick Chick Chick!” from Opera <Pinocchio> * 한국초연"
+        }
+      ]
+    },
+    {
+      "kopis_id": "PF293420",
+      "performance_title": "예술의전당 토요콘서트, 프리뷰 베토벤 (8월)",
+      "starts_on": "2026-08-15",
+      "source_url": "https://tickets.interpark.com/goods/26007999",
+      "image_urls": [
+        "http://www.kopis.or.kr/upload/pfmIntroImage/PF_PF293420_202606110114448020.jpg"
+      ],
+      "annotation_status": "pending",
+      "program_text": [
+        {
+          "composer": null,
+          "text": "베토벤 / 교향곡 제8번 F장조 Op.93,\n베토벤 / 교향곡 제4번 B♭장조 Op.60"
+        }
+      ]
+    },
+    {
+      "kopis_id": "PF293485",
+      "performance_title": "서예은 바이올린 독주회",
+      "starts_on": "2026-07-19",
+      "source_url": "https://tickets.interpark.com/goods/26008280",
+      "image_urls": [
+        "http://www.kopis.or.kr/upload/pfmIntroImage/PF_PF293485_202606110325540600.jpg"
+      ],
+      "annotation_status": "pending",
+      "program_text": [
+        {
+          "composer": null,
+          "text": "W.A. Mozart ... Violin Sonata No. 17 in C Major, K. 296\nE. Chausson ... Poème, Op. 25\nL.v. Beethoven ... Violin Sonata No. 9 in A Major, Op. 47 “Kreutzer”"
+        }
+      ]
+    },
+    {
+      "kopis_id": "PF293679",
+      "performance_title": "조유리 바이올린 독주회: 베토벤 소나타 전곡 시리즈 Ⅱ",
+      "starts_on": "2026-07-19",
+      "source_url": "https://tickets.interpark.com/goods/26008547",
+      "image_urls": [
+        "http://www.kopis.or.kr/upload/pfmIntroImage/PF_PF293679_202606151131585710.jpg"
+      ],
+      "annotation_status": "pending",
+      "program_text": [
+        {
+          "composer": null,
+          "text": "Violin Sonata, Op. 30, No. 6 in A Major\nⅠ. Allegro\nⅡ. Adagio molto espressivo\nⅢ. Allegretto con variazioni"
+        },
+        {
+          "composer": "L.v. Beethoven",
+          "text": "Violin Sonata, Op. 23, No. 4 in a minor\nⅠ. Presto\nⅡ. Andante scherzoso, più Allegretto\nⅢ. Allegro molto"
+        },
+        {
+          "composer": null,
+          "text": "Violin Sonata, Op. 24, No. 5 in F Major\nⅠ. Allegro\nⅡ. Adagio molto espressivo\nⅢ. Scherzo. Allegro molto\nⅣ. Rondo. Allegro ma non troppo"
+        }
+      ]
+    },
+    {
+      "kopis_id": "PF293681",
+      "performance_title": "첼로 안소연 & 플루트 차민경 듀오 리사이틀",
+      "starts_on": "2026-07-19",
+      "source_url": "https://tickets.interpark.com/goods/26008464",
+      "image_urls": [
+        "http://www.kopis.or.kr/upload/pfmIntroImage/PF_PF293681_202606151138076211.jpg",
+        "http://www.kopis.or.kr/upload/pfmIntroImage/PF_PF293681_202606151138075970.jpg"
+      ],
+      "annotation_status": "pending",
+      "program_text": [
+        {
+          "composer": null,
+          "text": "P. Gaubert ... Piece Romantique for Flute, Cello and Piano\nA. Piazzolla ... Café 1930 from\nH. Villa- Lobos ... Assobio A Játo (The Jet Whistle)\nC.M.v. Weber ... Trio for Piano, Flute and Cello in g minor, Op. 63"
+        }
+      ]
+    },
+    {
+      "kopis_id": "PF293697",
+      "performance_title": "소프라노 노지윤 독창회",
+      "starts_on": "2026-07-29",
+      "source_url": "https://tickets.interpark.com/goods/26008437",
+      "image_urls": [
+        "http://www.kopis.or.kr/upload/pfmIntroImage/PF_PF293697_202606151243394620.jpg"
+      ],
+      "annotation_status": "pending",
+      "program_text": [
+        {
+          "composer": "Antonín Dvorák",
+          "text": "Cigánské melodie(Gypsy Songs), Op. 55\n1. Má písen zas mi láskou zní\n2. Aj! Kterak trojhranec muj\n3. A les je tichý kolem kol\n4. Kdyz mne stará matka\n5. Struna naladena\n6. Široké rukávy\n7. Dejte klec jestrábu"
+        },
+        {
+          "composer": null,
+          "text": "— Intermission —"
+        },
+        {
+          "composer": "Gioachino Rossini",
+          "text": "La regata veneziana\n1. Anzoleta avanti la regata\n2. Anzoleta co passa la regata\n3. Anzoleta dopo la regata"
+        },
+        {
+          "composer": "Franz Liszt",
+          "text": "Comment, disaient-ils (S.276/2; 1844, rev. 1859)\nOh! quand je dors (S.282/2; 1842, rev. 1849)\nEnfant, si j’étais roi (S.283/2; 1844, rev. 1849)\nS’il est un charmant gazon (S.284/2; 1844, rev. 1849)"
+        },
+        {
+          "composer": "Landon Ronald",
+          "text": "A Cycle of Life\n1. Prelude\n2. Down in the Forest (Spring)\n3. Love I have won you (Summer)\n4. The winds are calling (Autumn)\n5. Drift down, drift down (Winter)"
+        },
+        {
+          "composer": "Henry Purcell",
+          "text": "Music for a While"
+        }
+      ]
+    },
+    {
+      "kopis_id": "PF293699",
+      "performance_title": "소프라노 양귀비 & 메조소프라노 김미영의 혁신",
+      "starts_on": "2026-07-17",
+      "source_url": "https://tickets.interpark.com/goods/26008460",
+      "image_urls": [
+        "http://www.kopis.or.kr/upload/pfmIntroImage/PF_PF293699_202606151250455380.jpg"
+      ],
+      "annotation_status": "pending",
+      "program_text": [
+        {
+          "composer": "H. ARLEN",
+          "text": "Over the rainbow 메조소프라노 김미영"
+        },
+        {
+          "composer": "G. GERSHWIN",
+          "text": "Summertime 소프라노 양귀비"
+        },
+        {
+          "composer": null,
+          "text": "P a u s e"
+        },
+        {
+          "composer": null,
+          "text": "G. B. PERGOLESI (1710-1736) Stabat Mater\n소프라노 양귀비\n메조소프라노 / 지휘 김미영\n오르간 오세은\n앙상블 안음"
+        },
+        {
+          "composer": null,
+          "text": "한국 민요\n한오백년 소프라노 양귀비, 메조소프라노 김미영\n밀양 아리랑"
+        },
+        {
+          "composer": null,
+          "text": "NEGRO SPIRITUALS SERIES - 흑인영가 듀엣\nDeep River 소프라노 양귀비, 메조소프라노 김미영\nGo, tell it on the mountain"
+        }
+      ]
+    },
+    {
+      "kopis_id": "PF293733",
+      "performance_title": "이은미 바이올린 독주회",
+      "starts_on": "2026-07-14",
+      "source_url": "https://tickets.interpark.com/goods/26008222",
+      "image_urls": [
+        "http://www.kopis.or.kr/upload/pfmIntroImage/PF_PF293733_202606150206060270.jpg"
+      ],
+      "annotation_status": "pending",
+      "program_text": [
+        {
+          "composer": null,
+          "text": "Ludwig van Beethoven"
+        },
+        {
+          "composer": null,
+          "text": "Violin Sonata No. 4 in a minor, Op. 23"
+        },
+        {
+          "composer": null,
+          "text": "Violin Sonata No. 7 in c minor, Op. 30"
+        },
+        {
+          "composer": null,
+          "text": "Violin Sonata No 1 in D Major, Op. 12"
+        }
+      ]
+    },
+    {
+      "kopis_id": "PF293734",
+      "performance_title": "김진승 바이올린 독주회",
+      "starts_on": "2026-07-16",
+      "source_url": "https://tickets.interpark.com/goods/26007831",
+      "image_urls": [
+        "http://www.kopis.or.kr/upload/pfmIntroImage/PF_PF293734_202606150212062372.jpg",
+        "http://www.kopis.or.kr/upload/pfmIntroImage/PF_PF293734_202606150212062341.jpg",
+        "http://www.kopis.or.kr/upload/pfmIntroImage/PF_PF293734_202606150212062300.jpg"
+      ],
+      "annotation_status": "pending",
+      "program_text": [
+        {
+          "composer": "Erich Wolfgang Korngold",
+          "text": "Much Ado About Nothing, Suite for Violin & Piano, Op. 11\n1. Maiden in the Bridal Chamber\n2. Dogberry and Verges - March of the Watch\n3. Scene in the Garden\n4. Masquerade – Hornpipe"
+        },
+        {
+          "composer": "Astor Piazzolla",
+          "text": "Histoire du Tango\n1. Bordel 1900\n2. Café 1930\n3. Night Club 1960\nGt. 정 욱"
+        },
+        {
+          "composer": null,
+          "text": "유주환 ju-Hwan Yu (*1968)\nBarroco tangueros for Violin and Guitar\n바이올린과 기타를 위한 《바로코 탕게로스》\nI. La pista (춤의 자리)\nII. Ciaccona (샤콘느)\nIII. Cantilena (숨의 노래)\nGt. 정 욱"
+        },
+        {
+          "composer": "Francis Poulenc",
+          "text": "Sonata for Violin and Piano\n1. Allegro con fuoco\n2. Intermezzo\n3. Presto tragico"
+        }
+      ]
+    },
+    {
+      "kopis_id": "PF293900",
+      "performance_title": "진종관 피아노 리사이틀",
+      "starts_on": "2026-08-05",
+      "source_url": "https://tickets.interpark.com/goods/26008671",
+      "image_urls": [
+        "http://www.kopis.or.kr/upload/pfmIntroImage/PF_PF293900_202606231116209360.jpg"
+      ],
+      "annotation_status": "pending",
+      "program_text": [
+        {
+          "composer": "Franz Peter Schubert",
+          "text": "Impromptus Op. 90 D. 899 (1827) - Ⅱ. Allegro & Ⅲ. Andante"
+        },
+        {
+          "composer": "Frédéric Chopin",
+          "text": "Barcarolle in F Sharp Major, Op. 60 (1846) - Allegretto"
+        },
+        {
+          "composer": "Alexander Nikolayevich Scriabin",
+          "text": "Piano Sonata No. 4 Op. 30, in F sharp Major (1903) - Ⅰ. Andante & Ⅱ. Prestissimo volando"
+        },
+        {
+          "composer": "Sergei Rachmaninoff",
+          "text": "Piano Sonata No. 2 in B flat minor, Op. 36 (1931) (arranged by Sanfty)"
+        },
+        {
+          "composer": "Claude Achille Debussy",
+          "text": "Rêverie L. 68, (1890) - Andantino (Sans lenteur)"
+        },
+        {
+          "composer": "Frédéric Chopin",
+          "text": "Waltz No. 5 Op. 42, in A flat Major (1840) - Vivace"
+        }
+      ]
+    },
+    {
+      "kopis_id": "PF293955",
+      "performance_title": "소울 첼로 앙상블 정기연주회",
+      "starts_on": "2026-07-15",
+      "source_url": "https://tickets.interpark.com/goods/26008707",
+      "image_urls": [
+        "http://www.kopis.or.kr/upload/pfmIntroImage/PF_PF293955_202606170227113481.jpg",
+        "http://www.kopis.or.kr/upload/pfmIntroImage/PF_PF293955_202606170227113420.jpg"
+      ],
+      "annotation_status": "pending",
+      "program_text": [
+        {
+          "composer": "Pyotr Ilyich Tchaikovsky",
+          "text": "The Nutcracker Suite for 8 Cellos\nI. Ouverture miniature\nII. Danses Caractéristiques\na) Mache c) Danse russe Trépak\nIII. Valse des Fleurs\n장하얀, 박주현, 김지양, 김채린, 정민교, 박여원, 박보경, 남유리나, 김수현\nPyotr Ilyich Tchaikovsky (1840-1893)\nRococo Variations\nSolo 이호찬\n김지양, 박여원, 남유리나, 박보경, 김수현, 정민교, 박주현, 김채린\nintermission\nCamille Saint-Saëns (1835-1921)\nRomance for 4 Cellos, Op. 36\nAntonín Dvo?ák (1841-1904)\nHumoresque for 4 Cellos, Op. 101\n남유리나, 박주현, 이은수, 김채린\nClaude Debussy (1862-1918)\nLa Fille Aux Cheveux de Lin for 4 Cellos\nDavid Popper (1843-1913)\nTarentella for 4 Cellos, Op. 33\n박여원, 정민교, 김수현, 박보경\nSergei Rachmaninoff (1873-1943)\nVocalise for 4 Cellos, Op. 34\nDavid Popper (1843-1913)\nDance of the elves for 4 Cellos, Op. 39\n장하얀, 이호찬, 박주현, 김지양\nPolonaise de Concert, Op. 14\nBlaise Déjardin (b. 1984)Varaitions on A NEW WORLD\n장하얀, 김지양, 이호찬, 남유리나, 이은수, 박주현, 김채린, 박여원, 정민교, 김수현, 박보경"
+        }
+      ]
+    },
+    {
+      "kopis_id": "PF294167",
+      "performance_title": "제6회 아르스 피아노 앙상블 정기연주회: Belle Harmonie",
+      "starts_on": "2026-08-14",
+      "source_url": "https://tickets.interpark.com/goods/26008521",
+      "image_urls": [
+        "http://www.kopis.or.kr/upload/pfmIntroImage/PF_PF294167_202606190253518120.jpg"
+      ],
+      "annotation_status": "pending",
+      "program_text": [
+        {
+          "composer": null,
+          "text": "· Tchaikovsky - \"The Nutcracker\"\n· Borodin - Polovtsian Dance from the Opera ‘Prince Igor’\n· Saint Saëns - Danse macabre Op.40\n· Bizet - Carmen Fantasy\n· Rachmaninoff - Suite No.2 Op.17\n· Ravel - La Valse?"
+        }
+      ]
+    },
+    {
+      "kopis_id": "PF294238",
+      "performance_title": "조현우 호른 리사이틀",
+      "starts_on": "2026-07-13",
+      "source_url": "https://tickets.interpark.com/goods/26008446",
+      "image_urls": [
+        "http://www.kopis.or.kr/upload/pfmIntroImage/PF_PF294238_202606221051217950.jpg"
+      ],
+      "annotation_status": "pending",
+      "program_text": [
+        {
+          "composer": null,
+          "text": "제인 비그네리ㅣ호른과 피아노를 위한 소나타, 작품번호 7\nJane Vignery - Sonata for Horn and Piano, Op. 7"
+        },
+        {
+          "composer": null,
+          "text": "폴 뒤카ㅣ호른과 피아노를 위한 빌라넬레\nPaul Dukas - Villanelle for Horn and Piano"
+        },
+        {
+          "composer": null,
+          "text": "알렉산드르 글라주노프ㅣ레브리, 작품번호 24\nAlexander Glazunov - Rêverie, Op. 24"
+        },
+        {
+          "composer": null,
+          "text": "장 미셸 드파이ㅣ호른과 피아노를 위한 알파\nJean-Michel Defaye - Alpha for Horn and Piano"
+        },
+        {
+          "composer": null,
+          "text": "프랑시스 풀랑크ㅣ호른과 피아노를 위한 엘리제\nFrancis Poulenc - Élégie for Horn and Piano"
+        }
+      ]
+    },
+    {
+      "kopis_id": "PF294416",
+      "performance_title": "김나윤 클라리넷 독주회",
+      "starts_on": "2026-08-04",
+      "source_url": "https://tickets.interpark.com/goods/26008870",
+      "image_urls": [
+        "http://www.kopis.or.kr/upload/pfmIntroImage/PF_PF294416_202606231143125770.jpg"
+      ],
+      "annotation_status": "pending",
+      "program_text": [
+        {
+          "composer": null,
+          "text": "C.M. Widor ... Introduction et Rondo, Op. 72\nF. Poulenc ... Sonata for Clarinet and Piano, FP 184\nC. Schumann ... Drei Romanzen, Op. 22\nJ. Brahms ... Sonata No. 1 in f minor, Op. 120"
+        }
+      ]
+    },
+    {
+      "kopis_id": "PF294419",
+      "performance_title": "김대환 피아노 독주회",
+      "starts_on": "2026-07-14",
+      "source_url": "https://tickets.interpark.com/goods/26007192",
+      "image_urls": [
+        "http://www.kopis.or.kr/upload/pfmIntroImage/PF_PF294419_202606231243010090.jpg"
+      ],
+      "annotation_status": "pending",
+      "program_text": [
+        {
+          "composer": "L. v. Beethoven",
+          "text": "Piano Sonata No. 21 in C major, Op. 53 “Waldstein”\nI. Allegro con brio\nII. Introduzione. Adagio molto\nIII. Rondo. Allegretto moderato - Prestissimo"
+        },
+        {
+          "composer": "R. Schumann",
+          "text": "Humoreske, Op. 20\nI. Einfach\nII. Hastig\nIII. Einfach und zart\nIV. Innig\nV. Sehr lebhaft\nVI. Mit einigem Pomp\nVII. Zum Beschluss"
+        },
+        {
+          "composer": "A. Scriabin",
+          "text": "Sonata No. 2 in g-sharp minor, Op. 19\nI. Andante\nII. Presto"
+        },
+        {
+          "composer": "Joseph Haydn",
+          "text": "Divertimento in A major, Hob. XVI:12\nI. Andante\nII. Menuet - Trio\nIII. Finale"
+        }
+      ]
+    }
+  ]
+}

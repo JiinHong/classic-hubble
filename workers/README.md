@@ -9,9 +9,11 @@ Python workers cover the ingestion path that should stay outside the Next.js req
 - `kopis_sync.py`: maps KOPIS records and optionally enriches NOL-linked performances before writing normalized program rows.
 - `supabase.py`: writes worker data through the Supabase Data API with a server-only secret key.
 - `cli.py`: exposes key-safe KOPIS/NOL diagnostics and synchronization commands.
-- `ocr.py`: queues poster/detail images for text extraction by an LLM vision model.
-- `normalizer.py`: maps extracted program text to canonical work IDs through alias matching.
-- `notifications.py`: selects watchlist matches that are eligible for email or web push.
+- `work_matching.py`: conservatively matches explicit program text against the canonical works and aliases stored in Supabase.
+- `program_matching.py`: previews or applies matches for existing unlinked NOL program rows.
+- `ocr.py`: placeholder only. The planned image reader is OCR, not a vision LLM; image recognition is not operational yet.
+- `normalizer.py`: legacy prototype with a small hardcoded catalogue; it is not used by the ingestion matcher.
+- `notifications.py`: prototype matching helpers; production email and web-push delivery are not implemented here.
 
 ## Local Commands
 
@@ -68,7 +70,25 @@ Start with a small live batch:
   --enrich-nol
 ```
 
-`--enrich-nol` is opt-in so the baseline KOPIS job remains independent from NOL availability and the extra request volume is explicit. The sync follows the first valid NOL goods link supplied by KOPIS, stores the raw NOL response first, and then replaces only NOL-owned program rows. A temporary NOL failure increments `nol_errors` without discarding the successful KOPIS performance. Re-running the same range updates by provider natural keys and does not duplicate NOL program rows or review images.
+`--enrich-nol` is opt-in so the baseline KOPIS job remains independent from NOL availability and the extra request volume is explicit. The sync follows the first valid NOL goods link supplied by KOPIS, stores the raw NOL response first, and then replaces only NOL-owned program rows. A temporary NOL failure increments `nol_errors` without discarding the successful KOPIS performance. Any NOL error marks the overall run failed and exits the command with status 1; the first error is included in the stored run summary. Re-running the same range updates by provider natural keys and does not duplicate NOL program rows or review images.
+
+## Canonical Work Matching
+
+New NOL rows are linked only when the composer and an explicit catalogue number or exact title/alias identify one database work. Conflicting work numbers/keys, ambiguous composers, excerpts, and mixed program blocks remain unlinked. A source-derived match is labelled `official`, not human-`verified`. These rules are intentionally conservative and are not an accuracy guarantee.
+
+Preview existing unlinked NOL rows without modifying production data:
+
+```bash
+.venv/bin/classic-hubble-pipeline program-match
+```
+
+The JSON report includes candidates and reasons. After reviewing that report and the canonical catalogue, explicitly apply accepted deterministic matches:
+
+```bash
+.venv/bin/classic-hubble-pipeline program-match --apply
+```
+
+The command reads all candidate rows before writing and updates only rows that are still unlinked, still NOL-owned, and whose source title/composer have not changed. `matched` counts proposed matches; `updated` can be smaller if a concurrent edit made a row ineligible. No canonical works are invented or automatically inserted. See `docs/evaluation/README.md` for the real-source evaluation backlog.
 
 The NOL ticket-front endpoints are used by NOL's public web client but are not a versioned public Open API. Their response shape can change. Keep the live `nol-check` command in deployment smoke tests and treat sustained parser errors as an adapter update signal, not as permission to guess missing data.
 
