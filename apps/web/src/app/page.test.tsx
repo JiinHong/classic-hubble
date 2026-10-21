@@ -1,5 +1,5 @@
 import { performances, reviewQueue, works } from "@classic-hubble/shared";
-import { render } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
@@ -23,27 +23,50 @@ afterEach(() => {
 });
 
 describe("Home composer search params", () => {
+  it("shows an outage instead of an empty search or sample claims", async () => {
+    mocks.getCatalogSnapshot.mockResolvedValue({
+      performances: [],
+      works: [],
+      reviewQueue: [],
+      source: "unavailable",
+    });
+    render(await Home({ searchParams: Promise.resolve({}) }));
+    expect(screen.getByRole("alert").textContent).toContain(
+      "공연 정보를 불러오지 못했습니다",
+    );
+    expect(mocks.SearchExperience).not.toHaveBeenCalled();
+    expect(screen.queryByText("OCR 검수 대기")).toBeNull();
+  });
   it.each([
     ["an absent composer", undefined, ""],
-    ["a repeated composer", ["first composer", "second composer"], "first composer"],
+    [
+      "a repeated composer",
+      ["first composer", "second composer"],
+      "first composer",
+    ],
     ["a scalar composer", "세르게이 라흐마니노프", "세르게이 라흐마니노프"],
-  ])("passes %s to SearchExperience as initialQuery", async (_, composer, initialQuery) => {
-    mocks.getCatalogSnapshot.mockResolvedValue({
-      performances,
-      reviewQueue,
-      source: "fallback",
-      works,
-    });
+  ])(
+    "passes %s to SearchExperience as initialQuery",
+    async (_, composer, initialQuery) => {
+      mocks.getCatalogSnapshot.mockResolvedValue({
+        performances,
+        reviewQueue,
+        source: "fallback",
+        works,
+      });
 
-    render(
-      await Home({
-        searchParams: Promise.resolve(composer === undefined ? {} : { composer }),
-      }),
-    );
+      render(
+        await Home({
+          searchParams: Promise.resolve(
+            composer === undefined ? {} : { composer },
+          ),
+        }),
+      );
 
-    expect(mocks.SearchExperience).toHaveBeenCalledWith(
-      expect.objectContaining({ initialQuery }),
-      undefined,
-    );
-  });
+      expect(mocks.SearchExperience).toHaveBeenCalledWith(
+        expect.objectContaining({ initialQuery }),
+        undefined,
+      );
+    },
+  );
 });

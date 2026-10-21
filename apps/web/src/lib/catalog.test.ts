@@ -151,3 +151,98 @@ describe("getComposerDirectory", () => {
     expect(composers).toHaveLength(openOpusComposers.length);
   });
 });
+
+describe("getCatalogSnapshot", () => {
+  afterEach(() => {
+    mocks.configured.value = true;
+    mocks.createSupabaseClient.mockReset();
+    vi.resetModules();
+  });
+
+  function database(pages: Record<string, unknown[][]>, failedTable?: string) {
+    const ranges: Record<string, ReturnType<typeof vi.fn>> = {};
+    const from = vi.fn((table: string) => {
+      const range = (ranges[table] ??= vi.fn(async (start: number) => ({
+        data: pages[table]?.[start / 1000] ?? [],
+        error: failedTable === table ? new Error("unavailable") : null,
+      })));
+      const query = { order: vi.fn(() => query), range };
+      return { select: vi.fn(() => query) };
+    });
+    mocks.createSupabaseClient.mockReturnValue({ from });
+    return ranges;
+  }
+
+  const performance = (id: string) => ({
+    kopis_performance_id: id,
+    title: id,
+    starts_at: "2026-12-01T10:00:00Z",
+    status: "upcoming",
+    program_items: [],
+  });
+
+  it("never replaces a missing configuration with fictional performances", async () => {
+    mocks.configured.value = false;
+    const { getCatalogSnapshot } = await import("./catalog");
+    expect(await getCatalogSnapshot()).toMatchObject({
+      performances: [],
+      works: [],
+      reviewQueue: [],
+      source: "unavailable",
+    });
+  });
+
+  it("loads performances beyond the first API page even with an empty work catalog", async () => {
+    const ranges = database({
+      performances: [
+        Array.from({ length: 1000 }, (_, i) => performance(`p${i}`)),
+        [performance("last")],
+      ],
+      works: [[]],
+    });
+    const { getCatalogSnapshot } = await import("./catalog");
+    const result = await getCatalogSnapshot();
+    expect(result.source).toBe("supabase");
+    expect(result.performances).toHaveLength(1001);
+    expect(result.performances.at(-1)?.id).toBe("last");
+    expect(result.reviewQueue).toEqual([]);
+    expect(ranges.performances).toHaveBeenNthCalledWith(2, 1000, 1999);
+  });
+
+  it("keeps an empty database empty", async () => {
+    database({});
+    const { getCatalogSnapshot } = await import("./catalog");
+    expect(await getCatalogSnapshot()).toEqual({
+      performances: [],
+      works: [],
+      reviewQueue: [],
+      source: "supabase",
+    });
+  });
+
+  it("excludes legacy demo performances and keeps closed distinct from sold out", async () => {
+    database({
+      performances: [
+        [
+          performance("perf-incheon-brahms"),
+          { ...performance("PF123456"), status: "closed" },
+        ],
+      ],
+    });
+    const { getCatalogSnapshot } = await import("./catalog");
+    const result = await getCatalogSnapshot();
+    expect(result.performances.map((p) => p.id)).toEqual(["PF123456"]);
+    expect(result.performances[0].status).toBe("closed");
+  });
+
+  it("does not publish a partial catalog or sample review queue when queries fail", async () => {
+    database({ performances: [[performance("p")]] }, "works");
+    const { getCatalogSnapshot } = await import("./catalog");
+    expect(await getCatalogSnapshot()).toEqual({
+      performances: [],
+      works: [],
+      reviewQueue: [],
+      source: "unavailable",
+    });
+  });
+});

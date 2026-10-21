@@ -1,4 +1,3 @@
-import { performances } from "@classic-hubble/shared";
 import { ArrowLeft, CalendarDays, ExternalLink, MapPin, Ticket } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -13,9 +12,7 @@ import {
 } from "@/lib/format";
 import { getCatalogPerformanceById } from "@/lib/catalog";
 
-export function generateStaticParams() {
-  return performances.map((performance) => ({ id: performance.id }));
-}
+export const dynamic = "force-dynamic";
 
 type PerformancePageProps = {
   params: Promise<{ id: string }>;

@@ -1,7 +1,5 @@
 import {
-  performances as fallbackPerformances,
-  reviewQueue as fallbackReviewQueue,
-  works as fallbackWorks,
+  getUpcomingPerformancesFromList,
   type ConfidenceLevel,
   type Performance,
   type ProgramPublicationStatus,
@@ -18,7 +16,7 @@ import {
 } from "./composer-directory";
 import { createSupabaseClient, isSupabaseConfigured } from "./supabase/client";
 
-type SourceType = "supabase" | "fallback";
+type SourceType = "supabase" | "unavailable";
 
 type CatalogSnapshot = {
   performances: Performance[];
@@ -76,17 +74,20 @@ type PerformanceRow = {
   program_status: ProgramPublicationStatus | null;
   source_label: string | null;
   starts_at: string;
+  ends_on: string | null;
   status: "open" | "upcoming" | "soldout" | "closed";
   title: string;
   venues: Relation<{ city: string; name: string }>;
 };
 
-const fallbackSnapshot: CatalogSnapshot = {
-  performances: fallbackPerformances,
-  reviewQueue: fallbackReviewQueue,
-  source: "fallback",
-  works: fallbackWorks,
-};
+function unavailableSnapshot(): CatalogSnapshot {
+  return {
+    performances: [],
+    reviewQueue: [],
+    source: "unavailable",
+    works: [],
+  };
+}
 
 const baselineComposerDirectory = openOpusComposers.map((composer) =>
   toComposerDirectoryEntry({
@@ -163,23 +164,17 @@ function datePartsForKorea(value: string) {
   return { date: datePart, time: timePart };
 }
 
-function normalizeStatus(status: PerformanceRow["status"]): Performance["status"] {
-  return status === "closed" ? "soldout" : status;
-}
-
-function mapWorks(rows: WorkRow[], performanceRows: PerformanceRow[]): Work[] {
+function mapWorks(rows: WorkRow[], performances: Performance[]): Work[] {
   const performanceIdsByWork = new Map<string, string[]>();
 
-  for (const performance of performanceRows) {
-    const performanceId = performance.kopis_performance_id;
-    if (!performanceId) continue;
-
-    for (const item of performance.program_items ?? []) {
-      const slug = firstRelation(item.works)?.slug;
+  for (const performance of getUpcomingPerformancesFromList(performances)) {
+    const performanceId = performance.id;
+    for (const item of performance.program) {
+      const slug = item.workSlug;
       if (!slug) continue;
 
       const ids = performanceIdsByWork.get(slug) ?? [];
-      ids.push(performanceId);
+      if (!ids.includes(performanceId)) ids.push(performanceId);
       performanceIdsByWork.set(slug, ids);
     }
   }
@@ -207,48 +202,54 @@ function mapWorks(rows: WorkRow[], performanceRows: PerformanceRow[]): Work[] {
 }
 
 function mapPerformances(rows: PerformanceRow[]): Performance[] {
-  return rows.map((row) => {
-    const parts = datePartsForKorea(row.starts_at);
-    const venue = firstRelation(row.venues);
+  // The original seed migration used perf-* identifiers for demo performances.
+  return rows
+    .filter((row) => !row.kopis_performance_id?.startsWith("perf-"))
+    .map((row) => {
+      const parts = datePartsForKorea(row.starts_at);
+      const venue = firstRelation(row.venues);
 
-    return {
-      artists: row.artists ?? [],
-      bookingUrl: row.booking_url ?? "#",
-      city: venue?.city ?? "",
-      date: parts.date,
-      id: row.kopis_performance_id ?? row.title,
-      posterUrl: row.poster_url ?? "/window.svg",
-      priceRange: row.price_range ?? "",
-      programImageUrls: row.program_image_urls ?? [],
-      program: (row.program_items ?? [])
-        .sort((a, b) => a.position - b.position)
-        .map((item) => ({
-          composerName: item.composer_name ?? "",
-          displayTitle: item.display_title,
-          source: {
-            confidence: Number(item.confidence),
-            label:
-              item.source_provider === "nol"
-                ? "NOL 원문"
-                : (sourceLabels[item.source_type] ?? sourceLabels.unknown),
-            type: item.source_type,
-          },
-          workSlug: firstRelation(item.works)?.slug ?? "",
-        })),
-      programSourceUrl: row.program_source_url,
-      programStatus:
-        row.program_status ??
-        ((row.program_items?.length ?? 0) > 0 ? "confirmed" : "unknown"),
-      sourceLabel: row.source_label ?? "",
-      status: normalizeStatus(row.status),
-      time: parts.time,
-      title: row.title,
-      venue: venue?.name ?? "",
-    };
-  });
+      return {
+        artists: row.artists ?? [],
+        bookingUrl: row.booking_url ?? "#",
+        city: venue?.city ?? "",
+        date: parts.date,
+        endDate: row.ends_on ?? undefined,
+        id: row.kopis_performance_id ?? row.title,
+        posterUrl: row.poster_url ?? "/window.svg",
+        priceRange: row.price_range ?? "",
+        programImageUrls: row.program_image_urls ?? [],
+        program: (row.program_items ?? [])
+          .sort((a, b) => a.position - b.position)
+          .map((item) => ({
+            composerName: item.composer_name ?? "",
+            displayTitle: item.display_title,
+            source: {
+              confidence: Number(item.confidence),
+              label:
+                item.source_provider === "nol"
+                  ? "NOL 원문"
+                  : (sourceLabels[item.source_type] ?? sourceLabels.unknown),
+              type: item.source_type,
+            },
+            workSlug: firstRelation(item.works)?.slug ?? "",
+          })),
+        programSourceUrl: row.program_source_url,
+        programStatus:
+          row.program_status ??
+          ((row.program_items?.length ?? 0) > 0 ? "confirmed" : "unknown"),
+        sourceLabel: row.source_label ?? "",
+        status: row.status,
+        time: parts.time,
+        title: row.title,
+        venue: venue?.name ?? "",
+      };
+    });
 }
 
-export async function getComposerDirectory(): Promise<ComposerDirectoryEntry[]> {
+export async function getComposerDirectory(): Promise<
+  ComposerDirectoryEntry[]
+> {
   if (!isSupabaseConfigured) return copyBaselineComposerDirectory();
 
   try {
@@ -276,17 +277,38 @@ export async function getComposerDirectory(): Promise<ComposerDirectoryEntry[]> 
   }
 }
 
+async function readCatalogPages<T>(
+  supabase: ReturnType<typeof createSupabaseClient>,
+  table: "works" | "performances",
+  columns: string,
+  sortColumn: string,
+): Promise<T[]> {
+  const rows: T[] = [];
+  for (let offset = 0; ; offset += 1000) {
+    const result = await supabase
+      .from(table)
+      .select(columns)
+      .order(sortColumn, { ascending: true })
+      .order("id", { ascending: true })
+      .range(offset, offset + 999);
+    if (result.error) throw new Error(`Catalog query failed: ${table}`);
+    const page = (result.data ?? []) as T[];
+    rows.push(...page);
+    if (page.length < 1000) return rows;
+  }
+}
+
 export async function getCatalogSnapshot(): Promise<CatalogSnapshot> {
-  if (!isSupabaseConfigured) return fallbackSnapshot;
+  if (!isSupabaseConfigured) return unavailableSnapshot();
 
   try {
     const supabase = createSupabaseClient();
 
-    const [worksResult, performancesResult] = await Promise.all([
-      supabase
-        .from("works")
-        .select(
-          `
+    const [workRows, performanceRows] = await Promise.all([
+      readCatalogPages<WorkRow>(
+        supabase,
+        "works",
+        `
           slug,
           title,
           title_ko,
@@ -296,15 +318,16 @@ export async function getCatalogSnapshot(): Promise<CatalogSnapshot> {
           composers(id, name, name_ko, period),
           work_aliases(alias)
         `,
-        )
-        .order("popularity_rank", { ascending: true }),
-      supabase
-        .from("performances")
-        .select(
-          `
+        "popularity_rank",
+      ),
+      readCatalogPages<PerformanceRow>(
+        supabase,
+        "performances",
+        `
           kopis_performance_id,
           title,
           starts_at,
+          ends_on,
           status,
           artists,
           price_range,
@@ -325,29 +348,19 @@ export async function getCatalogSnapshot(): Promise<CatalogSnapshot> {
             works(slug)
           )
         `,
-        )
-        .order("starts_at", { ascending: true }),
+        "starts_at",
+      ),
     ]);
 
-    if (worksResult.error || performancesResult.error) {
-      return fallbackSnapshot;
-    }
-
-    const performanceRows = (performancesResult.data ?? []) as unknown as PerformanceRow[];
-    const workRows = (worksResult.data ?? []) as unknown as WorkRow[];
-
-    if (workRows.length === 0 || performanceRows.length === 0) {
-      return fallbackSnapshot;
-    }
-
+    const performances = mapPerformances(performanceRows);
     return {
-      performances: mapPerformances(performanceRows),
-      reviewQueue: fallbackReviewQueue,
+      performances,
+      reviewQueue: [],
       source: "supabase",
-      works: mapWorks(workRows, performanceRows),
+      works: mapWorks(workRows, performances),
     };
   } catch {
-    return fallbackSnapshot;
+    return unavailableSnapshot();
   }
 }
 
@@ -355,8 +368,9 @@ export async function getCatalogWorkBySlug(slug: string) {
   const catalog = await getCatalogSnapshot();
   return {
     catalog,
-    performances: catalog.performances.filter((performance) =>
-      performance.program.some((item) => item.workSlug === slug),
+    performances: getUpcomingPerformancesFromList(catalog.performances).filter(
+      (performance) =>
+        performance.program.some((item) => item.workSlug === slug),
     ),
     work: catalog.works.find((item) => item.slug === slug) ?? null,
   };
