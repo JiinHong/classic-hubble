@@ -467,6 +467,10 @@ def test_unreviewed_catalog_imports_do_not_auto_link():
             "id": "partial", "slug": "wikidata-q789", "title": "Symphony",
             "composers": {"name": "Composer"}, "work_aliases": [],
         },
+        {
+            "id": "component", "slug": "component-waldszenen-3", "title": "Einsame Blumen",
+            "composers": {"name": "Composer"}, "work_aliases": [],
+        },
     ]
 
     def handler(request):
@@ -482,3 +486,4 @@ def test_unreviewed_catalog_imports_do_not_auto_link():
     assert works[0].requires_review is True
     assert works[1].requires_review is False
     assert works[2].requires_review is True
+    assert works[3].requires_review is True

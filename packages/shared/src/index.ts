@@ -20,6 +20,15 @@ export type Composer = {
   period: string;
 };
 
+export type WorkReference = {
+  slug: string;
+  title: string;
+  titleKo: string;
+  catalogue: string;
+  position: number | null;
+  aliases?: string[];
+};
+
 export type Work = {
   slug: string;
   title: string;
@@ -30,6 +39,8 @@ export type Work = {
   instrumentation: string;
   popularityRank: number | null;
   referenceUrl?: string;
+  partOf?: WorkReference[];
+  parts?: WorkReference[];
   upcomingPerformanceIds: string[];
 };
 
@@ -333,7 +344,7 @@ const normalize = (value: string) =>
       (_, genre: string) => ` ${genreShorthand[genre]} `,
     )
     .replace(/현악\s*4중주/g, "현악 사중주")
-    .replace(/(?:제\s*)?(\d+)\s*번/g, " $1번 ")
+    .replace(/(?:제\s*)?(\d+)\s*(?:번|곡)(?=$|\s|[^가-힣])/g, " $1번 ")
     .replace(/[.,:;'"“”‘’〈〉<>()\[\]\-]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
@@ -345,24 +356,54 @@ const tokenMatches = (candidate: string, token: string) => {
   return candidate.includes(token);
 };
 
-const scoreWork = (work: Work, query: string) => {
-  const normalizedQuery = normalize(query);
-  if (!normalizedQuery) return { score: 0, complete: false };
+const searchTermsCache = new WeakMap<Work, {
+  signature: string; ownCandidates: string[]; candidates: string[]; aliases: string[];
+  composerTokens: string[];
+}>();
 
-  const candidates = [
+const searchTerms = (work: Work) => {
+  const signature = JSON.stringify([work.title, work.titleKo, work.catalogue,
+    work.composer.name, work.composer.nameKo, work.aliases, work.partOf]);
+  const cached = searchTermsCache.get(work);
+  if (cached?.signature === signature) return cached;
+  const ownCandidates = [
     work.title,
     work.titleKo,
     work.catalogue,
     work.composer.name,
     work.composer.nameKo,
     ...work.aliases,
+  ].map(normalize).filter(Boolean);
+  const candidates = [
+    ...ownCandidates,
+    ...(work.partOf ?? []).flatMap((parent) => [
+      parent.title,
+      parent.titleKo,
+      parent.catalogue,
+      ...(parent.aliases ?? []),
+      ...(parent.position === null ? [] : [`${parent.position}번`, `No. ${parent.position}`]),
+    ]),
   ]
     .map(normalize)
     .filter(Boolean);
+  const composerTokens = normalize(work.composer.nameKo).split(" ")
+    .filter(token => /^[가-힣]{2,}$/.test(token)).sort((a, b) => b.length - a.length);
+  const result = { signature, ownCandidates, candidates, aliases: work.aliases.map(normalize), composerTokens };
+  searchTermsCache.set(work, result);
+  return result;
+};
+
+const scoreWork = (work: Work, normalizedQuery: string) => {
+  const { ownCandidates, candidates, aliases, composerTokens } = searchTerms(work);
 
   let score = 0;
   const compactQuery = normalizedQuery.replace(/\s/g, "");
-  const queryTokens = normalizedQuery.split(" ");
+  const queryTokens = normalizedQuery.split(" ").flatMap(token => {
+    const prefix = /^[가-힣]+$/.test(token)
+      ? composerTokens.find(name => token.length > name.length && token.startsWith(name))
+      : undefined;
+    return prefix ? [prefix, token.slice(prefix.length)] : [token];
+  });
   let complete = queryTokens.every((token) =>
     candidates.some((candidate) => tokenMatches(candidate, token)),
   );
@@ -389,8 +430,7 @@ const scoreWork = (work: Work, query: string) => {
     }
   }
 
-  const shorthandHits = work.aliases
-    .map(normalize)
+  const shorthandHits = aliases
     .filter(
       (alias) =>
         alias.length > 0 && alias.length <= 12 && normalizedQuery.includes(alias),
@@ -402,14 +442,17 @@ const scoreWork = (work: Work, query: string) => {
     ? catalogue.split(" ").length
     : 0;
 
-  return { score: score + shorthandHits * 10 + catalogueBonus, complete };
+  const contextPenalty = queryTokens.every(token =>
+    ownCandidates.some(candidate => tokenMatches(candidate, token))) ? 0 : 10;
+  return { score: score + shorthandHits * 10 + catalogueBonus - contextPenalty, complete };
 };
 
 export const findWorksByQueryInList = (items: Work[], query: string) => {
-  const ranked = items.map((work) => ({ work, ...scoreWork(work, query) }));
-  const hasCompleteMatch = ranked.some((item) => item.complete);
+  const normalizedQuery = normalize(query);
+  if (!normalizedQuery) return [];
+  const ranked = items.map((work) => ({ work, ...scoreWork(work, normalizedQuery) }));
   return ranked
-    .filter(({ score, complete }) => score > 0 && (!hasCompleteMatch || complete))
+    .filter(({ score, complete }) => score > 0 && complete)
     .sort(
       (a, b) =>
         b.score - a.score ||

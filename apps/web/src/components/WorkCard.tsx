@@ -35,6 +35,12 @@ export function WorkCard({ action, work }: WorkCardProps) {
             className="mt-1 size-4 shrink-0 opacity-0 transition group-hover:opacity-100"
           />
         </Link>
+        {work.partOf?.map((parent) => (
+          <Link key={parent.slug} href={`/works/${parent.slug}`}
+            className="mt-2 block break-words text-sm font-semibold leading-5 text-emerald-800 hover:underline">
+            {parent.titleKo} · {parent.position === null ? "수록곡" : `${parent.position}번 수록곡`}
+          </Link>
+        ))}
         <p className="mt-1 line-clamp-1 text-sm font-semibold text-stone-600">
           {work.title} {work.catalogue}
         </p>

@@ -1,0 +1,23 @@
+{
+  "source": {
+    "url": "https://crediamusic.wisacdn.com/news/programbook/CSJ_PROGRAM_SAC-ARCHIVE.pdf",
+    "sha256": "1532207c266e8d77414dde094fb92d9e5da2bcc928a86218ad943d4431587698",
+    "pages": [4, 5, 6],
+    "observed_at": "2026-10-21",
+    "publisher": "Credia, Seong-Jin Cho recital program, Seoul Arts Center, 2020-11-04"
+  },
+  "parent_slug": "wikidata-q3565331",
+  "expected_parent_title": "Waldszenen",
+  "expected_composer": "Robert Schumann",
+  "parts": [
+    {"position": 1, "title": "Eintritt", "title_ko": "숲의 입구", "catalogue": "Op. 82 No. 1"},
+    {"position": 2, "title": "Jäger auf der Lauer", "title_ko": "잠복 중인 사냥꾼", "catalogue": "Op. 82 No. 2"},
+    {"position": 3, "title": "Einsame Blumen", "title_ko": "고독한 꽃", "catalogue": "Op. 82 No. 3"},
+    {"position": 4, "title": "Verrufene Stelle", "title_ko": "저주받은 장소", "catalogue": "Op. 82 No. 4"},
+    {"position": 5, "title": "Freundliche Landschaft", "title_ko": "기분 좋은 풍경", "catalogue": "Op. 82 No. 5"},
+    {"position": 6, "title": "Herberge", "title_ko": "여인숙에서", "catalogue": "Op. 82 No. 6"},
+    {"position": 7, "title": "Vogel als Prophet", "title_ko": "예언의 새", "catalogue": "Op. 82 No. 7"},
+    {"position": 8, "title": "Jagdlied", "title_ko": "사냥의 노래", "catalogue": "Op. 82 No. 8"},
+    {"position": 9, "title": "Abschied", "title_ko": "이별", "catalogue": "Op. 82 No. 9"}
+  ]
+}

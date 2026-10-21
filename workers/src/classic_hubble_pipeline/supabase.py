@@ -349,7 +349,7 @@ class SupabaseRepository:
                 ),
                 catalogue=row.get("catalogue"),
                 aliases=tuple(alias["alias"] for alias in row.get("work_aliases", [])),
-                requires_review=row["slug"].startswith("wikidata-") or (
+                requires_review=row["slug"].startswith(("wikidata-", "component-")) or (
                     any(
                         (a.get("source") or "").startswith("wikidata:")
                         for a in row.get("work_aliases", [])
