@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from typing import Any
 from urllib.parse import urlparse
 
@@ -206,6 +206,32 @@ class SupabaseRepository:
             values,
             on_conflict="kopis_hall_id",
         )
+
+    def load_source_performances(
+        self, *, start: date, end: date, page_size: int = 500
+    ) -> list[dict[str, Any]]:
+        return self._read_pages(
+            "performances",
+            {
+                "select": "id,intro_image_urls",
+                "kopis_performance_id": "not.is.null",
+                "starts_on": f"lte.{end.isoformat()}",
+                "ends_on": f"gte.{start.isoformat()}",
+            },
+            page_size=page_size,
+        )
+
+    def load_source_archives(self, *, page_size: int = 500) -> list[dict[str, Any]]:
+        rows = self._read_pages(
+            "provider_records",
+            {
+                "select": "id,payload",
+                "provider": "eq.r2",
+                "entity_type": "eq.source_archive",
+            },
+            page_size=page_size,
+        )
+        return [row["payload"] for row in rows]
 
     def upsert_performance(self, payload: Mapping[str, object]) -> str:
         values = dict(payload)

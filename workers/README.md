@@ -8,6 +8,8 @@ Python workers cover the ingestion path that should stay outside the Next.js req
 - `nol.py`: validates official NOL/Interpark goods URLs and deterministically extracts program text or publication state from NOL ticket-front JSON.
 - `kopis_sync.py`: maps KOPIS records and optionally enriches NOL-linked performances before writing normalized program rows.
 - `supabase.py`: writes worker data through the Supabase Data API with a server-only secret key.
+- `source_archive.py`: archives every KOPIS introduction image in the current three-month-past/six-month-future window, with per-source recovery checkpoints.
+- `r2.py`: stores original bytes in Cloudflare R2 by SHA-256, reuses identical files, and verifies downloaded bytes.
 - `cli.py`: exposes key-safe KOPIS/NOL diagnostics and synchronization commands.
 - `work_matching.py`: conservatively matches explicit program text against the canonical works and aliases stored in Supabase.
 - `program_matching.py`: previews or applies matches for existing unlinked NOL program rows.
@@ -22,6 +24,20 @@ python3 -m venv .venv
 .venv/bin/python -m pip install -e 'workers[dev]'
 .venv/bin/python -m pytest workers/tests
 ```
+
+## Original Image Storage
+
+The `source-archiver` Cloud Run job runs separately from catalog collection. Set
+`S3_ENDPOINT_URL` to the account endpoint, without the bucket path; set `S3_BUCKET`
+separately and `S3_REGION=auto`. `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, and the
+Supabase server secret belong only in the worker environment or Secret Manager.
+The module entry point reads environment variables; it does not load `.env`
+automatically. See `docs/r2-operations.md` for deployment and recovery commands.
+
+This stage saves original bytes, source URLs and revision hashes. A changed image
+is not yet evidence that its musical program changed. OCR, text extraction and
+comparison of normalized works are later stages; this job does not publish
+program changes or send notifications.
 
 ## KOPIS Connectivity Check
 

@@ -12,6 +12,33 @@ from classic_hubble_pipeline.supabase import (
 )
 
 
+def test_source_image_scan_covers_all_pages_in_collection_window():
+    from datetime import date
+    requests = []
+
+    def handler(request):
+        requests.append(request)
+        return httpx.Response(200, json=[{"id": "p1", "intro_image_urls": ["url"]}] if len(requests) == 1 else [])
+
+    with httpx.Client(transport=httpx.MockTransport(handler)) as client:
+        repo = SupabaseRepository(SupabaseSettings("https://example.supabase.co", "sb_secret_test"), http_client=client)
+        assert len(repo.load_source_performances(start=date(2026, 7, 21), end=date(2027, 4, 21), page_size=1)) == 1
+    assert [r.url.params["offset"] for r in requests] == ["0", "1"]
+    assert requests[0].url.params["starts_on"] == "lte.2027-04-21"
+    assert requests[0].url.params["ends_on"] == "gte.2026-07-21"
+    assert requests[0].url.params["kopis_performance_id"] == "not.is.null"
+
+
+def test_source_archive_states_are_read_only_from_private_r2_metadata():
+    def handler(request):
+        assert request.url.params["provider"] == "eq.r2"
+        assert request.url.params["entity_type"] == "eq.source_archive"
+        return httpx.Response(200, json=[{"id": "a", "payload": {"source_url": "url"}}])
+    with httpx.Client(transport=httpx.MockTransport(handler)) as client:
+        repo = SupabaseRepository(SupabaseSettings("https://example.supabase.co", "sb_secret_test"), http_client=client)
+        assert repo.load_source_archives() == [{"source_url": "url"}]
+
+
 def test_collection_checkpoint_is_private_provider_metadata():
     requests = []
     checkpoint = {"completed_ids": ["PF1"], "complete": False}
