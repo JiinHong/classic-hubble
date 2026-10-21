@@ -20,7 +20,7 @@ export function SiteFooter() {
           </a>
         </p>
         <p className="mt-1 text-xs leading-5 text-stone-500">
-          작품 자료: Wikidata (CC0), 한국어 위키백과 기여자 (
+          작품 자료: Wikidata (CC0), 한국어·영어 위키백과 기여자 (
           <a
             href="https://creativecommons.org/licenses/by-sa/4.0/"
             target="_blank"

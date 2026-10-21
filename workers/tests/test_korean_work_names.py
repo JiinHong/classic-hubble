@@ -112,6 +112,71 @@ def test_derived_names_are_not_claimed_as_observed_community_usage():
     assert plan["provenance"][0]["payload"]["verification"] == "formal_rendering_only"
 
 
+def test_english_names_do_not_require_or_change_a_korean_display_title():
+    args = fixture()
+    manifest, works, *_ = args
+    manifest["origin"] = "wikipedia-names"
+    manifest["language"] = "en"
+    entry = manifest["works"][0]
+    entry["previous_title_ko"] = entry["title_ko"] = None
+    works[0]["title_ko"] = None
+    entry["aliases"] = [
+        {
+            "text": "Moonlight Sonata",
+            "locale": "en",
+            "kind": "title",
+            "sources": entry["sources"],
+        }
+    ]
+    plan = build_plan(*args)
+    assert plan["titles"] == []
+    assert len(plan["aliases"]) == 1
+    assert plan["aliases"][0]["locale"] == "en"
+    assert plan["aliases"][0]["source"].startswith("en-wikipedia:")
+    assert plan["provenance"][0]["payload"]["verification"] == "source_names_only"
+
+
+def test_alias_locale_is_validated():
+    args = fixture()
+    args[0]["works"][0]["aliases"][0]["locale"] = "invalid"
+    with pytest.raises(ValueError, match="locale"):
+        build_plan(*args)
+
+
+def test_english_only_manifest_cannot_erase_existing_korean_names():
+    args = fixture()
+    args[0]["language"] = "en"
+    args[0]["works"][0]["title_ko"] = None
+    with pytest.raises(ValueError, match="cannot change"):
+        build_plan(*args)
+
+
+def test_english_alias_import_does_not_conflict_with_later_korean_curation():
+    args = fixture()
+    args[0]["language"] = "en"
+    entry = args[0]["works"][0]
+    entry["title_ko"] = entry["previous_title_ko"] = None
+    entry["aliases"] = [
+        {
+            "text": "Moonlight Sonata",
+            "locale": "en",
+            "kind": "title",
+            "sources": entry["sources"],
+        }
+    ]
+    plan = build_plan(*args)
+    assert not plan["titles"]
+    assert [a["alias"] for a in plan["aliases"]] == ["Moonlight Sonata"]
+
+
+def test_worklist_names_are_identified_as_source_names_not_community_verification():
+    args = fixture()
+    args[0]["origin"] = "worklist-names"
+    plan = build_plan(*args)
+    assert plan["aliases"][0]["source"].startswith("ko-worklist:")
+    assert plan["provenance"][0]["payload"]["verification"] == "source_names_only"
+
+
 def test_large_dictionary_reads_use_bounded_identity_batches():
     from classic_hubble_pipeline.korean_work_names import read_selected
 

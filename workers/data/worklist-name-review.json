@@ -1,0 +1,64 @@
+{
+  "version": "2026-10-21.1",
+  "policy": "Per-row exclusions and exact-substring trims after source/catalogue comparison. No translation or new nickname generation.",
+  "sources": {
+    "90950": {
+      "composer": "Ludwig van Beethoven",
+      "titles": {
+        "Op. 132": "현악 사중주 15번 a 단조",
+        "Op. 118": "비가",
+        "WoO 134": "그리움"
+      },
+      "notes": {"Op. 132": "The quoted Heiliger Dankgesang names a movement, not the complete quartet."}
+    },
+    "87473": {
+      "composer": "George Frideric Handel",
+      "titles": {"HWV 264": "캐롤라인 왕비를 위한 장례식 송가"}
+    },
+    "45499": {
+      "composer": "Wolfgang Amadeus Mozart",
+      "exclude": {"K. 452": "Source incorrectly says quartet for a quintet."},
+      "titles": {"K. 522": "음악의 유희", "K. 317": "대관식 미사", "K. 427": "대미사"}
+    },
+    "338016": {
+      "composer": "Johannes Brahms",
+      "exclude": {
+        "Op. 24": "English title with Korean instrumentation only; no Korean name to add.",
+        "Op. 50": "English title with mixed-language description, not a Korean name.",
+        "Op. 52": "Original-language title with Korean instrumentation only.",
+        "Op. 89": "Original-language title with Korean instrumentation only.",
+        "Op. 104": "Original-language title with Korean instrumentation only.",
+        "Op. 109": "Original-language title with Korean instrumentation only.",
+        "Op. 116": "Source says six fantasies; the collection contains seven."
+      },
+      "titles": {
+        "Op. 13": "장송곡",
+        "Op. 36": "현악 6중주 2번 G장조",
+        "Op. 45": "독일 레퀴엠",
+        "Op. 53": "알토 랩소디",
+        "Op. 54": "운명의 노래",
+        "Op. 65": "새로운 사랑의 노래",
+        "Op. 82": "애도의 노래"
+      }
+    },
+    "1354386": {
+      "composer": "Jean Sibelius",
+      "exclude": {"Op. 49": "Uncorroborated transliteration 프흐욜라; do not promote a likely typo."}
+    },
+    "55959": {"composer": "Sergei Rachmaninoff"},
+    "87500": {
+      "composer": "Sergei Prokofiev",
+      "exclude": {"Op. 84": "Source key says B-flat minor; canonical work is in B-flat major."}
+    },
+    "262318": {"composer": "Camille Saint-Saëns"},
+    "110900": {"composer": "Antonin Dvorak"},
+    "28760": {
+      "composer": "Robert Schumann",
+      "exclude": {
+        "Op. 6": "Prefer the separately sourced concert/community name 다비드동맹무곡 in this release.",
+        "Op. 23": "Generic four pieces omits the actual Nachtstuecke title; not a useful work name."
+      }
+    },
+    "180900": {"composer": "Edvard Grieg"}
+  }
+}

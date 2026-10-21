@@ -1,0 +1,236 @@
+{
+  "version": "2026-10-21.concert-usage.2",
+  "origin": "reviewed-usage",
+  "language": "ko",
+  "checked_at": "2026-10-21",
+  "policy": "Observed program and community-notice spellings. No measured popularity ranking. Preferred titles only fill a blank or refine a title added in this same release; older display names are unchanged. No inferred shorthand or arrangement-to-original merging.",
+  "sources": {
+    "bucheon-2098": {
+      "url": "https://www.bucheonphil.or.kr/front/M0000030/event/view.do?eventId=EV002098",
+      "kind": "official_concert_program",
+      "publisher": "부천시립예술단"
+    },
+    "seoulphil-5855": {
+      "url": "https://www.seoulphil.or.kr/perf/view?langCd=ko&menuFlag=MFLG0001&perfNo=5855",
+      "kind": "official_concert_program",
+      "publisher": "서울시립교향악단"
+    },
+    "kbs-29290": {
+      "url": "https://www.kbssymphony.org/ko/concerts/concerts_view.php?number=29290",
+      "kind": "official_concert_program",
+      "publisher": "KBS교향악단"
+    },
+    "sac-47283": {
+      "url": "https://www.sac.or.kr/site/main/show/show_view?SN=47283",
+      "kind": "official_concert_program",
+      "publisher": "예술의전당"
+    },
+    "goclassic-14008": {
+      "url": "https://goclassic.co.kr/event/viewbody.html?code=event&number=14008",
+      "kind": "community_concert_notice",
+      "publisher": "GoClassic",
+      "evidence_method": "Search-indexed concert notice; direct fetch returned HTTP 403."
+    },
+    "credia-1351": {
+      "url": "https://www.credia.co.kr/board/?db=gallery_3&mari_mode=view%40view&no=1351",
+      "kind": "official_concert_notice",
+      "publisher": "크레디아",
+      "evidence_method": "Search-indexed program title; direct fetch returned HTTP 403."
+    }
+  },
+  "works": [
+    {
+      "qid": "Q777583",
+      "composer": "Edvard Grieg",
+      "expected_title": "Holberg Suite in G major",
+      "previous_title_ko": "홀베르크 모음곡",
+      "title_ko": "홀베르크 모음곡",
+      "display_title_origin": "existing",
+      "sources": [
+        "bucheon-2098"
+      ],
+      "aliases": [
+        {
+          "text": "홀베르그 모음곡",
+          "locale": "ko",
+          "kind": "title",
+          "sources": [
+            "bucheon-2098"
+          ]
+        },
+        {
+          "text": "홀베르크 모음곡",
+          "locale": "ko",
+          "kind": "title",
+          "sources": [
+            "bucheon-2098"
+          ]
+        },
+        {
+          "text": "Holberg Suite",
+          "locale": "en",
+          "kind": "title",
+          "sources": [
+            "bucheon-2098"
+          ]
+        }
+      ]
+    },
+    {
+      "qid": "Q668821",
+      "composer": "Robert Schumann",
+      "expected_title": "Davidsbündlertänze",
+      "previous_title_ko": null,
+      "title_ko": "다비드동맹무곡",
+      "display_title_origin": "credia-1351",
+      "sources": [
+        "credia-1351",
+        "goclassic-14008"
+      ],
+      "aliases": [
+        {
+          "text": "다비드동맹무곡",
+          "locale": "ko",
+          "kind": "title",
+          "sources": [
+            "goclassic-14008"
+          ]
+        },
+        {
+          "text": "다비드동맹 무곡",
+          "locale": "ko",
+          "kind": "title",
+          "sources": [
+            "goclassic-14008"
+          ]
+        },
+        {
+          "text": "다비드 동맹 무곡집",
+          "locale": "ko",
+          "kind": "title",
+          "sources": [
+            "credia-1351"
+          ]
+        }
+      ]
+    },
+    {
+      "qid": "Q4354192",
+      "composer": "Jean Sibelius",
+      "expected_title": "Pohjola's Daughter",
+      "previous_title_ko": null,
+      "title_ko": "포욜라의 딸",
+      "display_title_origin": "kbs-29290",
+      "sources": [
+        "kbs-29290",
+        "sac-47283"
+      ],
+      "aliases": [
+        {
+          "text": "포욜라의 딸",
+          "locale": "ko",
+          "kind": "title",
+          "sources": [
+            "kbs-29290",
+            "sac-47283"
+          ]
+        },
+        {
+          "text": "Pohjola's Daughter",
+          "locale": "en",
+          "kind": "title",
+          "sources": [
+            "sac-47283"
+          ]
+        }
+      ]
+    },
+    {
+      "qid": "Q1471875",
+      "composer": "Claude Debussy",
+      "expected_title": "Prélude à l'après-midi d'un faune",
+      "previous_title_ko": "목신의 오후에의 전주곡",
+      "title_ko": "목신의 오후에의 전주곡",
+      "display_title_origin": "existing",
+      "sources": [
+        "seoulphil-5855"
+      ],
+      "aliases": [
+        {
+          "text": "목신의 오후 전주곡",
+          "locale": "ko",
+          "kind": "title",
+          "sources": [
+            "seoulphil-5855"
+          ]
+        },
+        {
+          "text": "Prelude to the Afternoon of a Faun",
+          "locale": "en",
+          "kind": "title",
+          "sources": [
+            "seoulphil-5855"
+          ]
+        }
+      ]
+    },
+    {
+      "qid": "Q1179594",
+      "composer": "Wolfgang Amadeus Mozart",
+      "expected_title": "Violin Concerto No. 5 in A major",
+      "previous_title_ko": "바이올린 협주곡 5번 (모차르트)",
+      "title_ko": "바이올린 협주곡 5번 (모차르트)",
+      "display_title_origin": "existing",
+      "sources": [
+        "bucheon-2098"
+      ],
+      "aliases": [
+        {
+          "text": "바이올린 협주곡 제5번 터키풍",
+          "locale": "ko",
+          "kind": "title",
+          "sources": [
+            "bucheon-2098"
+          ]
+        },
+        {
+          "text": "터키풍",
+          "locale": "ko",
+          "kind": "title",
+          "sources": [
+            "bucheon-2098"
+          ]
+        },
+        {
+          "text": "Turkish",
+          "locale": "en",
+          "kind": "title",
+          "sources": [
+            "bucheon-2098"
+          ]
+        }
+      ]
+    },
+    {
+      "qid": "Q2410502",
+      "composer": "Sergei Prokofiev",
+      "expected_title": "Violin Concerto No. 1 in D major",
+      "previous_title_ko": "바이올린 협주곡 1번 D장조",
+      "title_ko": "바이올린 협주곡 1번 D장조",
+      "display_title_origin": "existing",
+      "sources": [
+        "seoulphil-5855"
+      ],
+      "aliases": [
+        {
+          "text": "바이올린 협주곡 제1번",
+          "locale": "ko",
+          "kind": "title",
+          "sources": [
+            "seoulphil-5855"
+          ]
+        }
+      ]
+    }
+  ]
+}

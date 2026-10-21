@@ -1,4 +1,4 @@
-"""Collect identity-bound Korean article names; never infer work IDs from titles."""
+"""Collect identity-bound article names; never infer work IDs from titles."""
 
 from __future__ import annotations
 
@@ -19,11 +19,13 @@ from .catalog_import import digest
 from .korean_title_forms import build_manifest as build_formal_manifest
 from .supabase import SupabaseRepository, SupabaseSettings
 
-ENDPOINT = "https://ko.wikipedia.org/w/api.php"
 LICENSE = "https://creativecommons.org/licenses/by-sa/4.0/"
 
 
-def fetch_pages(client, titles, directory, *, delay=1):
+def fetch_pages(client, titles, directory, *, delay=1, language="ko"):
+    if language not in {"ko", "en"}:
+        raise ValueError("Unsupported language")
+    endpoint = f"https://{language}.wikipedia.org/w/api.php"
     directory.mkdir(parents=True, exist_ok=True)
     merged = {}
     titles = sorted(set(titles))
@@ -42,11 +44,13 @@ def fetch_pages(client, titles, directory, *, delay=1):
                 "rvprop": "ids",
                 **continuation,
             }
-            cache = directory / f"{digest(params)}.json"
+            cache = (
+                directory / f"{digest({'endpoint': endpoint, 'params': params})}.json"
+            )
             if cache.exists():
                 payload = json.loads(cache.read_text())
             else:
-                response = client.get(ENDPOINT, params=params)
+                response = client.get(endpoint, params=params)
                 response.raise_for_status()
                 payload = response.json()
                 if "error" in payload:
@@ -68,7 +72,10 @@ def fetch_pages(client, titles, directory, *, delay=1):
     return list(merged.values())
 
 
-def build_manifest(pages, works, composers, links):
+def build_manifest(pages, works, composers, links, *, language="ko"):
+    if language not in {"ko", "en"}:
+        raise ValueError("Unsupported language")
+    name_pattern = "[가-힣]" if language == "ko" else "[A-Za-z]"
     work_index = {w["id"]: w for w in works}
     composer_index = {c["id"]: c for c in composers}
     link_index = {link["provider_id"]: link["payload"]["work_id"] for link in links}
@@ -85,14 +92,15 @@ def build_manifest(pages, works, composers, links):
             or "missing" in page
             or "disambiguation" in props
             or not page.get("revisions")
-            or not re.search("[가-힣]", page["title"])
+            or not re.search(name_pattern, page["title"])
         ):
             continue
         if qid in seen:
             raise ValueError(f"Multiple articles for {qid}")
         seen.add(qid)
         composer = composer_index[work["composer_id"]]
-        suffixes = {composer["name_ko"], composer["name_ko"].split()[-1]}
+        composer_name = composer["name_ko" if language == "ko" else "name"]
+        suffixes = {composer_name, composer_name.split()[-1]}
 
         def clean_title(value, suffixes=suffixes):
             value = unicodedata.normalize("NFC", value)
@@ -105,14 +113,16 @@ def build_manifest(pages, works, composers, links):
             if (
                 redirect.get("ns") == 0
                 and "fragment" not in redirect
-                and re.search("[가-힣]", redirect["title"])
+                and re.search(name_pattern, redirect["title"])
             ):
                 names.update({redirect["title"], clean_title(redirect["title"])})
-        source_id = f"kowiki-{page['pageid']}"
+        source_id = f"{language}wiki-{page['pageid']}"
         sources[source_id] = {
-            "url": f"https://ko.wikipedia.org/w/index.php?oldid={page['revisions'][0]['revid']}",
+            "url": f"https://{language}.wikipedia.org/w/index.php?oldid={page['revisions'][0]['revid']}",
             "kind": "encyclopedia_names",
-            "publisher": "한국어 위키백과 기여자",
+            "publisher": "한국어 위키백과 기여자"
+            if language == "ko"
+            else "English Wikipedia contributors",
             "license": LICENSE,
             "qid": qid,
             "page_id": page["pageid"],
@@ -127,17 +137,28 @@ def build_manifest(pages, works, composers, links):
                 "composer": composer["name"],
                 "expected_title": work["title"],
                 "previous_title_ko": work["title_ko"],
-                "title_ko": work["title_ko"] or clean_title(page["title"]),
-                "display_title_origin": "existing" if work["title_ko"] else source_id,
+                "title_ko": work["title_ko"]
+                or (clean_title(page["title"]) if language == "ko" else None),
+                "display_title_origin": "existing"
+                if work["title_ko"]
+                else source_id
+                if language == "ko"
+                else "unavailable",
                 "sources": [source_id],
                 "aliases": [
-                    {"text": name, "kind": "title", "sources": [source_id]}
+                    {
+                        "text": name,
+                        "kind": "title",
+                        "locale": language,
+                        "sources": [source_id],
+                    }
                     for name in sorted(names)
                 ],
             }
         )
     return {
-        "version": "2026-10-21.wikipedia.1",
+        "version": f"2026-10-21.wikipedia.{language}.2",
+        "language": language,
         "origin": "wikipedia-names",
         "checked_at": datetime.now(UTC).isoformat(),
         "policy": "Exact Wikidata identity only. Preserve existing display names. Exclude section redirects. Names are observed, not popularity-ranked or curator-verified.",
@@ -148,11 +169,12 @@ def build_manifest(pages, works, composers, links):
 
 def public_evidence(manifests):
     return {
-        "attribution": "한국어 위키백과 기여자 (CC BY-SA 4.0), Wikidata (CC0). Names only; no article prose. Formal renderings are editorial transformations, not observed nicknames.",
+        "attribution": "한국어·영어 위키백과 기여자 (CC BY-SA 4.0), Wikidata (CC0). Names only; no article prose. Formal renderings are editorial transformations, not observed nicknames.",
         "datasets": [
             {
                 "version": manifest["version"],
                 "origin": manifest["origin"],
+                "language": manifest.get("language", "ko"),
                 "sources": manifest["sources"],
                 "works": [
                     {
@@ -177,12 +199,15 @@ def public_evidence(manifests):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--sitelinks", type=Path, required=True)
+    parser.add_argument("--language", choices=("ko", "en"), default="ko")
     parser.add_argument("--cache", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--formal-output", type=Path)
     parser.add_argument("--public-output", type=Path)
     parser.add_argument("--env-file", type=Path, default=Path(".env"))
     args = parser.parse_args(argv)
+    if args.formal_output and args.language != "ko":
+        parser.error("Formal renderings are supported only for Korean")
     settings = SupabaseSettings.from_env({**dotenv_values(args.env_file), **os.environ})
     if settings.url != "https://klnfamtwxwrelrjeguqb.supabase.co":
         raise ValueError("Classic Hubble project required")
@@ -208,16 +233,18 @@ def main(argv=None):
         unquote(row["article"]["value"].split("/wiki/", 1)[1]).replace("_", " ")
         for row in bindings
         if row["work"]["value"].rsplit("/", 1)[-1] in qids
-        and row["article"]["value"].startswith("https://ko.wikipedia.org/wiki/")
+        and row["article"]["value"].startswith(
+            f"https://{args.language}.wikipedia.org/wiki/"
+        )
     }
     with httpx.Client(
         timeout=75,
         headers={
-            "User-Agent": "ClassicHubble/0.1 (https://classic-hubble.vercel.app; Korean work names)"
+            "User-Agent": "ClassicHubble/0.1 (https://classic-hubble.vercel.app; work names)"
         },
     ) as client:
-        pages = fetch_pages(client, titles, args.cache)
-    manifest = build_manifest(pages, works, composers, links)
+        pages = fetch_pages(client, titles, args.cache, language=args.language)
+    manifest = build_manifest(pages, works, composers, links, language=args.language)
     manifests = [manifest]
     args.output.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n")
     if args.formal_output:

@@ -64,6 +64,42 @@ def test_existing_reviewed_display_name_is_preserved():
     )
 
 
+def test_english_article_names_are_aliases_without_inventing_korean_names():
+    p = page()
+    p["title"] = "Piano Sonata No. 23 (Beethoven)"
+    p["redirects"] = [
+        {"ns": 0, "pageid": 9, "title": "Appassionata"},
+        {"ns": 0, "pageid": 10, "title": "Appassionata finale", "fragment": "Finale"},
+    ]
+    manifest = module.build_manifest([p], *catalog(), language="en")
+    entry = manifest["works"][0]
+    assert entry["title_ko"] is None
+    assert manifest["language"] == "en"
+    assert {a["text"] for a in entry["aliases"]} == {
+        "Piano Sonata No. 23 (Beethoven)",
+        "Piano Sonata No. 23",
+        "Appassionata",
+    }
+    assert all(a["locale"] == "en" for a in entry["aliases"])
+    assert all(
+        s["url"].startswith("https://en.wikipedia.org/")
+        for s in manifest["sources"].values()
+    )
+
+
+def test_english_fetch_uses_english_endpoint_and_separate_cache(tmp_path):
+    urls = []
+
+    def respond(request):
+        urls.append(request.url.host)
+        return httpx.Response(200, json={"query": {"pages": {"1": page()}}})
+
+    with httpx.Client(transport=httpx.MockTransport(respond)) as client:
+        module.fetch_pages(client, ["same"], tmp_path, delay=0)
+        module.fetch_pages(client, ["same"], tmp_path, delay=0, language="en")
+    assert urls == ["ko.wikipedia.org", "en.wikipedia.org"]
+
+
 @pytest.mark.parametrize(
     "change", ["unknown_qid", "missing", "disambiguation", "namespace", "no_revision"]
 )
@@ -140,3 +176,4 @@ def test_public_evidence_distinguishes_derivation_and_excludes_operational_field
     assert "expected_title" not in entry
     assert result["datasets"][0]["origin"] == "wikipedia-names"
     assert result["datasets"][0]["sources"] == manifest["sources"]
+    assert "한국어·영어 위키백과" in result["attribution"]

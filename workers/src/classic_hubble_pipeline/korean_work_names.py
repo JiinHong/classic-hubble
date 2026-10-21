@@ -1,4 +1,4 @@
-"""Apply reviewed Korean names without changing canonical identities or programs."""
+"""Apply sourced work names without changing canonical identities or programs."""
 
 from __future__ import annotations
 
@@ -17,9 +17,13 @@ from .work_catalog import QID
 def validate_manifest(manifest):
     if not manifest.get("version") or not manifest.get("works"):
         raise ValueError("Missing dictionary version or works")
+    language = manifest.get("language", "ko")
+    if language not in {"ko", "en"}:
+        raise ValueError("Invalid naming language")
     if manifest.get("origin", "reviewed-usage") not in {
         "reviewed-usage",
         "wikipedia-names",
+        "worklist-names",
         "formal-rendering",
     }:
         raise ValueError("Unknown naming origin")
@@ -32,10 +36,14 @@ def validate_manifest(manifest):
         if not QID.fullmatch(entry["qid"]) or entry["qid"] in seen:
             raise ValueError("Invalid or duplicate work identity")
         seen.add(entry["qid"])
-        if not all(entry.get(k) for k in ("composer", "expected_title", "title_ko")):
+        if not all(entry.get(k) for k in ("composer", "expected_title")):
             raise ValueError("Missing identity or display title")
+        if "title_ko" not in entry or (language == "ko" and not entry["title_ko"]):
+            raise ValueError("Missing display title")
         if "previous_title_ko" not in entry:
             raise ValueError("Missing old-title guard")
+        if language == "en" and entry["title_ko"] != entry["previous_title_ko"]:
+            raise ValueError("English names cannot change the Korean display title")
         for term in [entry, *entry["aliases"]]:
             if not term.get("sources") or not set(term["sources"]) <= sources.keys():
                 raise ValueError("Unknown or missing usage source")
@@ -45,6 +53,8 @@ def validate_manifest(manifest):
             for alias in entry["aliases"]
         ):
             raise ValueError("Invalid alias")
+        if any(a.get("locale", "ko") not in {"ko", "en"} for a in entry["aliases"]):
+            raise ValueError("Invalid alias locale")
 
 
 def build_plan(manifest, works, composers, links, aliases):
@@ -60,10 +70,12 @@ def build_plan(manifest, works, composers, links, aliases):
     existing = {(a["work_id"], a["alias"]) for a in aliases}
     fingerprint = digest(manifest)
     origin = manifest.get("origin", "reviewed-usage")
+    alias_only = manifest.get("language") == "en"
     prefix = {
-        "reviewed-usage": "ko-usage",
-        "wikipedia-names": "ko-wikipedia",
-        "formal-rendering": "ko-form",
+        "reviewed-usage": "usage",
+        "wikipedia-names": "wikipedia",
+        "worklist-names": "worklist",
+        "formal-rendering": "form",
     }[origin]
     plan = {"titles": [], "aliases": [], "provenance": []}
     seen_work_ids = set()
@@ -77,9 +89,12 @@ def build_plan(manifest, works, composers, links, aliases):
         ):
             raise ValueError(f"Work identity conflict: {entry['qid']}")
         seen_work_ids.add(work["id"])
-        if work["title_ko"] not in (entry["previous_title_ko"], entry["title_ko"]):
+        if not alias_only and work["title_ko"] not in (
+            entry["previous_title_ko"],
+            entry["title_ko"],
+        ):
             raise ValueError(f"Korean title conflict: {entry['qid']}")
-        if work["title_ko"] != entry["title_ko"]:
+        if not alias_only and work["title_ko"] != entry["title_ko"]:
             plan["titles"].append(
                 {
                     "id": work["id"],
@@ -89,20 +104,20 @@ def build_plan(manifest, works, composers, links, aliases):
                     "new": entry["title_ko"],
                 }
             )
-        names = [
-            entry["title_ko"],
-            entry["previous_title_ko"],
-            *(a["text"] for a in entry["aliases"]),
-        ]
-        for name in names:
+        names = [(a["text"], a.get("locale", "ko")) for a in entry["aliases"]]
+        if not alias_only:
+            names.extend(
+                [(entry["title_ko"], "ko"), (entry["previous_title_ko"], "ko")]
+            )
+        for name, locale in names:
             if not name or (work["id"], name) in existing:
                 continue
             plan["aliases"].append(
                 {
                     "work_id": work["id"],
                     "alias": name,
-                    "locale": "ko",
-                    "source": f"{prefix}:{fingerprint}",
+                    "locale": locale,
+                    "source": f"{locale}-{prefix}:{fingerprint}",
                 }
             )
             existing.add((work["id"], name))
@@ -120,6 +135,8 @@ def build_plan(manifest, works, composers, links, aliases):
                     "version": manifest["version"],
                     "verification": "formal_rendering_only"
                     if origin == "formal-rendering"
+                    else "source_names_only"
+                    if manifest.get("language") == "en" or origin == "worklist-names"
                     else "korean_names_only",
                     "origin": origin,
                     "entry": entry,
