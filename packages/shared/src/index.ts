@@ -314,6 +314,7 @@ export const reviewQueue: ReviewItem[] = [
 
 const normalize = (value: string) =>
   value
+    .normalize("NFC")
     .toLowerCase()
     .replace(/[.,:;'"“”‘’〈〉<>()\[\]\-]/g, " ")
     .replace(/\s+/g, " ")
@@ -335,12 +336,29 @@ const scoreWork = (work: Work, query: string) => {
     .filter(Boolean);
 
   let score = 0;
+  const compactQuery = normalizedQuery.replace(/\s/g, "");
+  const queryTokens = normalizedQuery.split(" ");
+  if (
+    queryTokens.length > 1 &&
+    queryTokens.every((token) =>
+      candidates.some((candidate) => candidate.includes(token)),
+    )
+  ) {
+    score = 95;
+  }
   for (const candidate of candidates) {
+    // Korean shorthand often changes spacing; keep numeric/Latin identifiers untouched.
+    if (
+      /[가-힣]/.test(normalizedQuery) &&
+      /[가-힣]/.test(candidate) &&
+      candidate.replace(/\s/g, "") === compactQuery
+    ) {
+      score = Math.max(score, 100);
+    }
     if (candidate === normalizedQuery) score = Math.max(score, 100);
     if (candidate.includes(normalizedQuery)) score = Math.max(score, 80);
     if (normalizedQuery.includes(candidate)) score = Math.max(score, 60);
 
-    const queryTokens = normalizedQuery.split(" ");
     const tokenHits = queryTokens.filter((token) =>
       candidate.includes(token),
     ).length;
