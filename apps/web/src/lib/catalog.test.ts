@@ -154,6 +154,7 @@ describe("getComposerDirectory", () => {
 
 describe("getCatalogSnapshot", () => {
   afterEach(() => {
+    vi.useRealTimers();
     mocks.configured.value = true;
     mocks.createSupabaseClient.mockReset();
     vi.resetModules();
@@ -179,6 +180,31 @@ describe("getCatalogSnapshot", () => {
     starts_at: "2026-12-01T10:00:00Z",
     status: "upcoming",
     program_items: [],
+  });
+
+  it("reuses public catalog reads for one minute and coalesces simultaneous loads", async () => {
+    vi.useFakeTimers();
+    const ranges = database({ performances: [[performance("p")]] });
+    const { getCatalogSnapshot } = await import("./catalog");
+    const [first, second] = await Promise.all([
+      getCatalogSnapshot(),
+      getCatalogSnapshot(),
+    ]);
+    expect(first).toEqual(second);
+    await getCatalogSnapshot();
+    expect(ranges.works).toHaveBeenCalledTimes(1);
+    expect(ranges.performances).toHaveBeenCalledTimes(1);
+    vi.advanceTimersByTime(60_001);
+    await getCatalogSnapshot();
+    expect(ranges.works).toHaveBeenCalledTimes(2);
+  });
+
+  it("retries unavailable catalog reads instead of caching an outage", async () => {
+    database({}, "works");
+    const { getCatalogSnapshot } = await import("./catalog");
+    expect((await getCatalogSnapshot()).source).toBe("unavailable");
+    database({ performances: [[performance("recovered")]] });
+    expect((await getCatalogSnapshot()).performances[0].id).toBe("recovered");
   });
 
   it("never replaces a missing configuration with fictional performances", async () => {
@@ -221,12 +247,27 @@ describe("getCatalogSnapshot", () => {
   });
 
   it("preserves unranked works and their source links past the API page boundary", async () => {
-    const row = { slug: "wikidata-q11980", title: "Für Elise", title_ko: null, catalogue: "WoO 59", popularity_rank: null, composers: { id: "beethoven", name: "Beethoven" } };
-    database({ works: [Array.from({ length: 1000 }, (_, i) => ({ ...row, slug: `work-${i}` })), [row]] });
+    const row = {
+      slug: "wikidata-q11980",
+      title: "Für Elise",
+      title_ko: null,
+      catalogue: "WoO 59",
+      popularity_rank: null,
+      composers: { id: "beethoven", name: "Beethoven" },
+    };
+    database({
+      works: [
+        Array.from({ length: 1000 }, (_, i) => ({ ...row, slug: `work-${i}` })),
+        [row],
+      ],
+    });
     const { getCatalogSnapshot } = await import("./catalog");
     const result = await getCatalogSnapshot();
     expect(result.works).toHaveLength(1001);
-    expect(result.works.at(-1)).toMatchObject({ popularityRank: null, referenceUrl: "https://www.wikidata.org/wiki/Q11980" });
+    expect(result.works.at(-1)).toMatchObject({
+      popularityRank: null,
+      referenceUrl: "https://www.wikidata.org/wiki/Q11980",
+    });
   });
 
   it("loads subsequent large-catalog pages with bounded concurrency", async () => {
@@ -242,7 +283,16 @@ describe("getCatalogSnapshot", () => {
             maximum = Math.max(maximum, active);
             await new Promise((resolve) => setTimeout(resolve, 1));
             active -= 1;
-            return { data: start < 3000 ? Array.from({ length: 1000 }, (_, i) => ({ slug: `w-${start + i}`, title: "Work" })) : [], error: null };
+            return {
+              data:
+                start < 3000
+                  ? Array.from({ length: 1000 }, (_, i) => ({
+                      slug: `w-${start + i}`,
+                      title: "Work",
+                    }))
+                  : [],
+              error: null,
+            };
           },
         };
         return { select: () => query };

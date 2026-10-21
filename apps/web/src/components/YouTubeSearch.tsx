@@ -1,18 +1,19 @@
 "use client";
 
-import type { Work } from "@classic-hubble/shared";
 import { ArrowUpRight, Link2, LoaderCircle, Search } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 
 import { parseYouTubeUrl, type YouTubeVideo } from "@/lib/youtube";
 import {
-  identifyYouTubeWorks,
+  type YouTubeWorkEntry,
   type YouTubeMatchReason,
 } from "@/lib/youtube-matching";
 import { WorkCard } from "./WorkCard";
 
 const errors: Record<string, string> = {
+  catalog_unavailable:
+    "작품 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.",
   invalid_url: "올바른 유튜브 영상 링크를 입력해 주세요.",
   invalid_request: "영상 링크를 확인해 주세요.",
   video_unavailable:
@@ -31,23 +32,23 @@ const reasons: Record<YouTubeMatchReason, string> = {
   distinctive_title: "작품명·별칭 일치",
 };
 
-export function YouTubeSearch({ works }: { works: Work[] }) {
+export function YouTubeSearch() {
   const [input, setInput] = useState("");
   const [video, setVideo] = useState<YouTubeVideo | null>(null);
+  const [result, setResult] = useState<{ entries: YouTubeWorkEntry[] } | null>(
+    null,
+  );
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const pending = useRef<AbortController | null>(null);
   useEffect(() => () => pending.current?.abort(), []);
-  const result = useMemo(
-    () => (video ? identifyYouTubeWorks(video, works) : null),
-    [video, works],
-  );
 
   function changeInput(value: string) {
     pending.current?.abort();
     pending.current = null;
     setInput(value);
     setVideo(null);
+    setResult(null);
     setError(null);
     setLoading(false);
   }
@@ -63,6 +64,7 @@ export function YouTubeSearch({ works }: { works: Work[] }) {
     const controller = new AbortController();
     pending.current = controller;
     setVideo(null);
+    setResult(null);
     setError(null);
     setLoading(true);
     try {
@@ -74,11 +76,12 @@ export function YouTubeSearch({ works }: { works: Work[] }) {
       });
       const body = await response.json();
       if (controller.signal.aborted || pending.current !== controller) return;
-      if (!response.ok || !body.video) {
+      if (!response.ok || !body.video || !body.result) {
         setError(errors[body.error] ?? errors.upstream_error);
         return;
       }
       setVideo(body.video);
+      setResult(body.result);
     } catch {
       if (!controller.signal.aborted && pending.current === controller)
         setError(errors.upstream_error);

@@ -1,98 +1,145 @@
 import { performances, works } from "@classic-hubble/shared";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-
+import { searchCatalog } from "@/lib/catalog-search";
 import { SearchExperience } from "./SearchExperience";
 
-describe("SearchExperience composer deep link", () => {
-  beforeEach(() => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date("2026-07-01T00:00:00Z"));
+const catalog = { performances, works };
+const input = () => screen.getByLabelText("곡명, 작곡가, 공연장 검색");
+beforeEach(() => {
+  vi.useFakeTimers();
+  vi.setSystemTime(new Date("2026-07-01T00:00:00Z"));
+});
+afterEach(() => {
+  vi.useRealTimers();
+  vi.unstubAllGlobals();
+});
+async function settle() {
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(300);
   });
-  afterEach(() => vi.useRealTimers());
-  it("starts with the composer query and filters matching works", () => {
+}
+function serve(data = catalog) {
+  const fetcher = vi.fn(async (url: string) => {
+    const params = new URL(url, "https://example.com").searchParams;
+    return Response.json(
+      searchCatalog(data, {
+        query: params.get("q") ?? "",
+        mode: params.get("mode") === "performances" ? "performances" : "works",
+        city: params.get("city") ?? "전체",
+        offset: Number(params.get("offset") ?? 0),
+      }),
+    );
+  });
+  vi.stubGlobal("fetch", fetcher);
+  return fetcher;
+}
+
+describe("paginated catalog search", () => {
+  it("recovers when clearing a failed query back to the initial search", async () => {
+    vi.stubGlobal("fetch", vi.fn()
+      .mockResolvedValueOnce(Response.json({error:"unavailable"},{status:503}))
+      .mockImplementation(async () => Response.json(searchCatalog(catalog,{}))));
+    render(<SearchExperience initialResult={searchCatalog(catalog,{})} />);
+    fireEvent.change(input(),{target:{value:"failed query"}});
+    await settle();
+    expect(screen.getByRole("alert")).toBeTruthy();
+    fireEvent.change(input(),{target:{value:""}});
+    await settle();
+    expect(screen.getByText(`${works.length}개 작품 매칭`)).toBeTruthy();
+  });
+  it("starts with server-rendered composer results without repeating the request", async () => {
+    const fetcher = serve();
     render(
       <SearchExperience
         initialQuery="세르게이 라흐마니노프"
-        performances={performances}
-        works={works}
+        initialResult={searchCatalog(catalog, {
+          query: "세르게이 라흐마니노프",
+        })}
       />,
     );
-
-    expect(
-      (screen.getByLabelText("곡명, 작곡가, 공연장 검색") as HTMLInputElement)
-        .value,
-    ).toBe("세르게이 라흐마니노프");
+    expect((input() as HTMLInputElement).value).toBe("세르게이 라흐마니노프");
     expect(screen.getByText("1개 작품 매칭")).toBeTruthy();
-  });
-
-  it("shows every performance linked to a work matching a Korean composer query", () => {
-    render(
-      <SearchExperience
-        initialQuery="세르게이 라흐마니노프"
-        performances={performances}
-        works={works}
-      />,
-    );
-
-    fireEvent.click(screen.getByRole("button", { name: "공연" }));
-
+    await settle();
+    expect(fetcher).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "공연", exact: true }));
+    await settle();
     expect(screen.getByText("2개 공연 매칭")).toBeTruthy();
     expect(screen.getByText("김정원과 친구들 - 저먼 로맨틱스")).toBeTruthy();
-    expect(
-      screen.getByText("2026 서초국제예술단 피아노 갈라 콘서트"),
-    ).toBeTruthy();
   });
-
-  it("shows performances in batches and resets the batch when searching", () => {
-    const manyPerformances = Array.from({ length: 30 }, (_, index) => ({
-      ...performances[0],
-      id: `performance-${index}`,
-      title: `Concert ${index + 1}`,
-    }));
-    render(<SearchExperience performances={manyPerformances} works={works} />);
-    fireEvent.click(screen.getByRole("button", { name: "공연", exact: true }));
-    expect(screen.getByText("30개 공연 매칭")).toBeTruthy();
-    expect(screen.getByText("Concert 24")).toBeTruthy();
-    expect(screen.queryByText("Concert 25")).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "공연 더 보기" }));
-    expect(screen.getByText("Concert 30")).toBeTruthy();
-    expect(screen.queryByRole("button", { name: "공연 더 보기" })).toBeNull();
-    fireEvent.change(screen.getByLabelText("곡명, 작곡가, 공연장 검색"), {
-      target: { value: "Concert" },
-    });
-    expect(screen.queryByText("Concert 25")).toBeNull();
-  });
-
-  it("explicitly shows an empty search instead of a blank result area", () => {
-    render(
-      <SearchExperience initialQuery="없는곡" performances={[]} works={[]} />,
-    );
-    expect(screen.getByText("검색 결과가 없습니다.")).toBeTruthy();
-    fireEvent.click(screen.getByRole("button", { name: "공연", exact: true }));
-    expect(screen.getByText("검색 결과가 없습니다.")).toBeTruthy();
-  });
-
-  it("paginates works without excluding later works from search", () => {
-    const manyWorks = Array.from({ length: 30 }, (_, index) => ({
+  it("loads the next page and searches works not present in the browser", async () => {
+    const many = Array.from({ length: 30 }, (_, i) => ({
       ...works[0],
-      id: `work-${index}`,
-      slug: `work-${index}`,
-      title: `Composition ${index + 1}`,
-      titleKo: `Composition ${index + 1}`,
+      slug: `w${i}`,
+      titleKo: `Composition ${i + 1}`,
+      title: `Composition ${i + 1}`,
     }));
-    render(<SearchExperience performances={[]} works={manyWorks} />);
-    expect(screen.getByText("30개 작품 매칭")).toBeTruthy();
-    expect(screen.queryByRole("link", { name: /Composition 25$/ })).toBeNull();
+    serve({ works: many, performances: [] });
+    render(
+      <SearchExperience
+        initialResult={searchCatalog({ works: many, performances: [] }, {})}
+      />,
+    );
+    expect(screen.queryByRole("link", { name: /Composition 30$/ })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "작품 더 보기" }));
+    await settle();
     expect(screen.getByRole("link", { name: /Composition 30$/ })).toBeTruthy();
-    fireEvent.change(screen.getByLabelText("곡명, 작곡가, 공연장 검색"), {
-      target: { value: "Composition" },
-    });
-    expect(screen.queryByRole("link", { name: /Composition 25$/ })).toBeNull();
-    fireEvent.change(screen.getByLabelText("곡명, 작곡가, 공연장 검색"), {
-      target: { value: "Composition 30" },
-    });
+    fireEvent.change(input(), { target: { value: "Composition 30" } });
+    await settle();
+    expect(screen.getByText("1개 작품 매칭")).toBeTruthy();
     expect(screen.getByRole("link", { name: /Composition 30$/ })).toBeTruthy();
+  });
+  it("debounces typing and prevents an older response replacing a newer search", async () => {
+    let resolve!: (response: Response) => void;
+    const fetcher = vi
+      .fn()
+      .mockImplementationOnce(
+        () =>
+          new Promise<Response>((done) => {
+            resolve = done;
+          }),
+      )
+      .mockResolvedValue(
+        Response.json({
+          works: [],
+          performances: [],
+          total: 0,
+          hasMore: false,
+        }),
+      );
+    vi.stubGlobal("fetch", fetcher);
+    render(<SearchExperience initialResult={searchCatalog(catalog, {})} />);
+    fireEvent.change(input(), { target: { value: "old" } });
+    await settle();
+    fireEvent.change(input(), { target: { value: "n" } });
+    fireEvent.change(input(), { target: { value: "new" } });
+    await settle();
+    expect(fetcher).toHaveBeenCalledTimes(2);
+    await act(async () => resolve(Response.json(searchCatalog(catalog, {}))));
+    expect(screen.getByText("검색 결과가 없습니다.")).toBeTruthy();
+  });
+  it("distinguishes a failed request from no matches and supports retry", async () => {
+    const fetcher = vi
+      .fn()
+      .mockResolvedValueOnce(
+        Response.json({ error: "unavailable" }, { status: 503 }),
+      )
+      .mockResolvedValue(
+        Response.json({
+          works: [],
+          performances: [],
+          total: 0,
+          hasMore: false,
+        }),
+      );
+    vi.stubGlobal("fetch", fetcher);
+    render(<SearchExperience initialResult={searchCatalog(catalog, {})} />);
+    fireEvent.change(input(), { target: { value: "unknown" } });
+    await settle();
+    expect(screen.getByRole("alert")).toBeTruthy();
+    expect(screen.queryByText("검색 결과가 없습니다.")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "다시 시도" }));
+    await settle();
+    expect(screen.getByText("검색 결과가 없습니다.")).toBeTruthy();
   });
 });

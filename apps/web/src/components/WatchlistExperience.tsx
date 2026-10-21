@@ -12,22 +12,14 @@ import {
   Smartphone,
 } from "lucide-react";
 import Link from "next/link";
-import { useMemo } from "react";
+import { useEffect, useState } from "react";
 
 import { useAuth } from "./AuthProvider";
 import { PerformanceCard } from "./PerformanceCard";
 import { useUserLibrary } from "./UserLibraryProvider";
 import { WorkCard } from "./WorkCard";
 
-type WatchlistExperienceProps = {
-  performances: Performance[];
-  works: Work[];
-};
-
-export function WatchlistExperience({
-  performances,
-  works,
-}: WatchlistExperienceProps) {
+export function WatchlistExperience() {
   const { loading: authLoading, openAuth, user } = useAuth();
   const {
     error,
@@ -39,19 +31,64 @@ export function WatchlistExperience({
     watchedSlugs,
   } = useUserLibrary();
 
-  const watchedWorks = useMemo(() => {
-    const watched = new Set(watchedSlugs);
-    return works.filter((work) => watched.has(work.slug));
-  }, [watchedSlugs, works]);
-
-  const nextAlerts = useMemo(() => {
-    const watched = new Set(watchedSlugs);
-    return performances.filter((performance) =>
-      performance.program.some((item) => watched.has(item.workSlug)),
-    );
-  }, [performances, watchedSlugs]);
-
-  const loading = authLoading || libraryLoading;
+  const [retry, setRetry] = useState(0);
+  const selectionKey = JSON.stringify([user?.id, watchedSlugs, retry]);
+  const [selection, setSelection] = useState<{
+    key: string;
+    works: Work[];
+    performances: Performance[];
+    error: boolean;
+  }>({ key: "", works: [], performances: [], error: false });
+  const hasSelection = Boolean(user && !libraryLoading && watchedSlugs.length);
+  useEffect(() => {
+    if (!hasSelection) return;
+    const controller = new AbortController();
+    const slugs: string[] = JSON.parse(selectionKey)[1];
+    void (async () => {
+      try {
+        const works: Work[] = [],
+          performances = new Map<string, Performance>();
+        for (let offset = 0; offset < slugs.length; offset += 100) {
+          const params = new URLSearchParams(
+            slugs.slice(offset, offset + 100).map((slug) => ["slug", slug]),
+          );
+          const response = await fetch(`/api/catalog/selection?${params}`, {
+            signal: controller.signal,
+          });
+          if (!response.ok) throw new Error("Catalog unavailable");
+          const data: { works: Work[]; performances: Performance[] } =
+            await response.json();
+          if (controller.signal.aborted) return;
+          works.push(...data.works);
+          data.performances.forEach((performance) =>
+            performances.set(performance.id, performance),
+          );
+        }
+        setSelection({
+          key: selectionKey,
+          works,
+          performances: [...performances.values()].sort((a, b) =>
+            a.date.localeCompare(b.date),
+          ),
+          error: false,
+        });
+      } catch {
+        if (!controller.signal.aborted)
+          setSelection({
+            key: selectionKey,
+            works: [],
+            performances: [],
+            error: true,
+          });
+      }
+    })();
+    return () => controller.abort();
+  }, [selectionKey, hasSelection]);
+  const current = hasSelection && selection.key === selectionKey;
+  const watchedWorks = current ? selection.works : [];
+  const nextAlerts = current ? selection.performances : [];
+  const catalogError = current && selection.error;
+  const loading = authLoading || libraryLoading || (hasSelection && !current);
 
   return (
     <>
@@ -76,7 +113,10 @@ export function WatchlistExperience({
 
           {loading ? (
             <div className="mt-6 flex min-h-48 items-center justify-center border-y border-stone-200 text-stone-500">
-              <LoaderCircle aria-hidden="true" className="mr-2 size-5 animate-spin" />
+              <LoaderCircle
+                aria-hidden="true"
+                className="mr-2 size-5 animate-spin"
+              />
               <span className="text-sm font-bold">불러오는 중</span>
             </div>
           ) : !user ? (
@@ -94,6 +134,17 @@ export function WatchlistExperience({
                 로그인
               </button>
             </div>
+          ) : catalogError ? (
+            <div role="alert" className="mt-6 py-8 text-sm text-stone-600">
+              관심곡 정보를 불러오지 못했습니다.
+              <button
+                type="button"
+                onClick={() => setRetry((value) => value + 1)}
+                className="ml-3 font-bold text-emerald-800"
+              >
+                다시 시도
+              </button>
+            </div>
           ) : watchedWorks.length > 0 ? (
             <div className="mt-6 grid gap-4 md:grid-cols-2">
               {watchedWorks.map((work) => (
@@ -108,7 +159,10 @@ export function WatchlistExperience({
                       type="button"
                     >
                       {isPending(work.slug) ? (
-                        <LoaderCircle aria-hidden="true" className="size-4 animate-spin" />
+                        <LoaderCircle
+                          aria-hidden="true"
+                          className="size-4 animate-spin"
+                        />
                       ) : (
                         <BellOff aria-hidden="true" className="size-4" />
                       )}
@@ -141,7 +195,9 @@ export function WatchlistExperience({
             <div className="rounded-lg border border-stone-200 bg-white p-5 shadow-sm">
               <div className="flex items-center gap-2">
                 <BellRing aria-hidden="true" className="size-5 text-rose-700" />
-                <h2 className="text-base font-black text-stone-950">알림 채널</h2>
+                <h2 className="text-base font-black text-stone-950">
+                  알림 채널
+                </h2>
               </div>
               <div className="mt-4 grid gap-3">
                 <label className="flex items-center justify-between rounded-lg border border-stone-200 p-3">

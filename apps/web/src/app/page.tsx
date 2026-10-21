@@ -11,6 +11,7 @@ import {
 import { PerformanceCard } from "@/components/PerformanceCard";
 import { SearchExperience } from "@/components/SearchExperience";
 import { getCatalogSnapshot } from "@/lib/catalog";
+import { searchCatalog } from "@/lib/catalog-search";
 
 export const dynamic = "force-dynamic";
 
@@ -59,8 +60,8 @@ export default async function Home({ searchParams }: HomeProps) {
         <div className="mx-auto grid max-w-7xl gap-8 px-4 py-6 sm:px-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:px-8">
           <SearchExperience
             initialQuery={initialComposerQuery}
-            performances={upcomingPerformances}
-            works={catalog.works}
+            key={initialComposerQuery}
+            initialResult={searchCatalog(catalog, { query: initialComposerQuery })}
           />
 
           <aside className="space-y-4">

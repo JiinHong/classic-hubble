@@ -20,7 +20,7 @@ import { createSupabaseClient, isSupabaseConfigured } from "./supabase/client";
 
 type SourceType = "supabase" | "unavailable";
 
-type CatalogSnapshot = {
+export type CatalogSnapshot = {
   performances: Performance[];
   reviewQueue: ReviewItem[];
   source: SourceType;
@@ -313,7 +313,28 @@ async function readCatalogPages<T>(
   }
 }
 
+let cachedCatalog: { expires: number; value: CatalogSnapshot } | undefined;
+let pendingCatalog: Promise<CatalogSnapshot> | undefined;
+
+// Only anonymous, public catalog data is shared; user libraries never enter this cache.
 export async function getCatalogSnapshot(): Promise<CatalogSnapshot> {
+  if (!isSupabaseConfigured) return unavailableSnapshot();
+  if (cachedCatalog && cachedCatalog.expires > Date.now())
+    return cachedCatalog.value;
+  if (pendingCatalog) return pendingCatalog;
+  pendingCatalog = readCatalogSnapshot()
+    .then((value) => {
+      if (value.source === "supabase")
+        cachedCatalog = { expires: Date.now() + 60_000, value };
+      return value;
+    })
+    .finally(() => {
+      pendingCatalog = undefined;
+    });
+  return pendingCatalog;
+}
+
+async function readCatalogSnapshot(): Promise<CatalogSnapshot> {
   if (!isSupabaseConfigured) return unavailableSnapshot();
 
   try {
@@ -372,7 +393,10 @@ export async function getCatalogSnapshot(): Promise<CatalogSnapshot> {
       performances,
       reviewQueue: [],
       source: "supabase",
-      works: attachWorkComponents(mapWorks(workRows, performances), workComponents),
+      works: attachWorkComponents(
+        mapWorks(workRows, performances),
+        workComponents,
+      ),
     };
   } catch {
     return unavailableSnapshot();

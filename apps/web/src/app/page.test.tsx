@@ -23,6 +23,27 @@ afterEach(() => {
 });
 
 describe("Home composer search params", () => {
+  it("serializes only the first result page, never the whole catalog", async () => {
+    const manyWorks = Array.from({ length: 1000 }, (_, i) => ({
+      ...works[0],
+      slug: `work-${i}`,
+    }));
+    mocks.getCatalogSnapshot.mockResolvedValue({
+      works: manyWorks,
+      performances: [],
+      reviewQueue: [],
+      source: "supabase",
+    });
+    render(await Home({ searchParams: Promise.resolve({}) }));
+    const props = mocks.SearchExperience.mock.calls[0][0];
+    expect(JSON.stringify(props).length).toBeLessThan(30_000);
+    expect(props).toMatchObject({
+      initialResult: { total: 1000, works: expect.any(Array) },
+    });
+    expect(
+      (props as { initialResult: { works: unknown[] } }).initialResult.works,
+    ).toHaveLength(24);
+  });
   it("shows an outage instead of an empty search or sample claims", async () => {
     mocks.getCatalogSnapshot.mockResolvedValue({
       performances: [],
