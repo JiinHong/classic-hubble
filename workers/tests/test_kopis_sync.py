@@ -11,6 +11,7 @@ from classic_hubble_pipeline.kopis import (
     KopisHallDetail,
     KopisPerformanceDetail,
     KopisPerformanceSummary,
+    KopisTransportError,
 )
 from classic_hubble_pipeline.kopis_sync import (
     KopisSyncService,
@@ -128,6 +129,86 @@ def test_split_sync_windows_never_exceeds_31_calendar_days():
         (date(2026, 8, 1), date(2026, 8, 31)),
         (date(2026, 9, 1), date(2026, 9, 2)),
     ]
+
+
+@pytest.mark.parametrize("stage", ["performance_detail", "facility_detail"])
+def test_full_sweep_records_source_failure_and_continues_without_marking_complete(stage):
+    saved, failures, completed = [], [], []
+
+    class Client:
+        def iter_performances(self, window, *, rows):
+            return iter((performance_summary(), performance_summary("PF300002")))
+
+        def get_performance_detail(self, performance_id):
+            if performance_id == "PF300001" and stage == "performance_detail":
+                raise KopisTransportError("KOPIS remained unavailable with HTTP 400")
+            return replace(
+                performance_detail(performance_id), intro_image_urls=(),
+                facility_id="FC000001" if performance_id == "PF300001" else None,
+            )
+
+        def get_facility_detail(self, facility_id):
+            raise KopisTransportError("KOPIS remained unavailable with HTTP 400")
+
+    class Repository:
+        def start_ingestion_run(self, provider):
+            return "run-1"
+
+        def upsert_provider_record(self, **kwargs):
+            if kwargs["entity_type"] == "collection_error":
+                failures.append(kwargs)
+
+        def upsert_performance(self, payload):
+            saved.append(payload["kopis_performance_id"])
+            return "db-2"
+
+        def finish_ingestion_run(self, run_id, **kwargs):
+            assert kwargs["status"] == "failed"
+            assert "1 source request" in kwargs["error"]
+
+    result = KopisSyncService(Client(), Repository()).run(
+        start_date=date(2026, 7, 1), end_date=date(2026, 7, 31),
+        continue_on_source_error=True, on_performance_complete=completed.append,
+    )
+    assert result.status == "failed"
+    assert result.counters["source_errors"] == 1
+    assert saved == completed == ["PF300002"]
+    assert len(failures) == 1
+    assert failures[0]["payload"]["performance_id"] == "PF300001"
+    assert failures[0]["payload"]["stage"] == stage
+
+
+@pytest.mark.parametrize("status, expected_requests", [(401, 1), (403, 1), (429, 1), (400, 5)])
+def test_full_sweep_stops_on_access_limits_or_repeated_source_failure(status, expected_requests):
+    requests, failures, finished = [], [], []
+
+    class Client:
+        def iter_performances(self, window, *, rows):
+            return (performance_summary(f"PF{i}") for i in range(10))
+
+        def get_performance_detail(self, performance_id):
+            requests.append(performance_id)
+            raise KopisTransportError("source unavailable", status_code=status)
+
+    class Repository:
+        def start_ingestion_run(self, provider):
+            return "run-1"
+
+        def upsert_provider_record(self, **kwargs):
+            if kwargs["entity_type"] == "collection_error":
+                failures.append(kwargs)
+
+        def finish_ingestion_run(self, run_id, **kwargs):
+            finished.append(kwargs["status"])
+
+    with pytest.raises(KopisTransportError):
+        KopisSyncService(Client(), Repository()).run(
+            start_date=date(2026, 7, 1), end_date=date(2026, 7, 31),
+            continue_on_source_error=True,
+        )
+    assert len(requests) == expected_requests
+    assert len(failures) == (5 if status == 400 else 0)
+    assert finished == ["failed"]
 
 
 def test_performance_mapping_preserves_provider_detail_and_korean_time():
@@ -258,6 +339,30 @@ def test_sync_writes_raw_records_before_normalized_rows_and_deduplicates_facilit
         "nol_errors": 0,
     }
     assert events[-1][0:3] == ("finish", "run-1", "completed")
+
+    events.clear()
+    completed = []
+    resumed = KopisSyncService(client, FakeRepository()).run(
+        start_date=date(2026, 7, 1),
+        end_date=date(2026, 7, 31),
+        completed_ids=frozenset({"PF300001"}),
+        on_performance_complete=completed.append,
+    )
+    assert resumed.counters["performances"] == 1
+    assert completed == ["PF300002"]
+    assert ("performance", "PF300001") not in events
+
+    class FailingRepository(FakeRepository):
+        def upsert_poster_review_item(self, payload):
+            raise RuntimeError("image row failed")
+
+    completed.clear()
+    with pytest.raises(RuntimeError, match="image row failed"):
+        KopisSyncService(client, FailingRepository()).run(
+            start_date=date(2026, 7, 1), end_date=date(2026, 7, 31),
+            on_performance_complete=completed.append,
+        )
+    assert completed == []
 
 
 def test_sync_marks_the_ingestion_run_failed_before_reraising():
@@ -466,9 +571,13 @@ def test_nol_failure_is_counted_without_discarding_the_kopis_performance():
         def finish_ingestion_run(self, run_id, *, status, counters, error=None):
             events.append(("finish", status, counters, error))
 
+    completed: list[str] = []
     result = KopisSyncService(
         FakeKopisClient(), FakeRepository(), nol_client=FailingNolClient()
-    ).run(start_date=date(2026, 7, 1), end_date=date(2026, 7, 31))
+    ).run(
+        start_date=date(2026, 7, 1), end_date=date(2026, 7, 31),
+        on_performance_complete=completed.append,
+    )
 
     assert ("performance", "PF300001") in events
     assert result.status == "failed"
@@ -476,3 +585,4 @@ def test_nol_failure_is_counted_without_discarding_the_kopis_performance():
     assert result.counters["program_items"] == 0
     assert result.counters["nol_errors"] == 1
     assert "NolTransportError" in events[-1][-1]
+    assert completed == []

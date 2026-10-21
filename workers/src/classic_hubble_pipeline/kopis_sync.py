@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence, Set
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
 from typing import Protocol
@@ -15,6 +15,7 @@ from .kopis import (
     KopisPerformanceDetail,
     KopisPerformanceSummary,
     KopisSyncWindow,
+    KopisTransportError,
 )
 from .nol import NolError, NolPerformanceData, extract_nol_goods_code
 from .work_matching import CanonicalWork, match_work
@@ -232,6 +233,9 @@ class KopisSyncService:
         end_date: date,
         rows: int = 100,
         limit: int | None = None,
+        completed_ids: Set[str] = frozenset(),
+        on_performance_complete: Callable[[str], None] | None = None,
+        continue_on_source_error: bool = False,
     ) -> KopisSyncResult:
         if not 1 <= rows <= 100:
             raise ValueError("KOPIS rows must be between 1 and 100")
@@ -255,11 +259,37 @@ class KopisSyncService:
         seen_performances: set[str] = set()
         work_catalog: list[CanonicalWork] | None = None
         first_nol_error: str | None = None
+        consecutive_source_errors = 0
+
+        def record_source_error(
+            performance_id: str, stage: str, error: KopisTransportError
+        ) -> None:
+            nonlocal consecutive_source_errors
+            # Authentication, access and rate-limit failures need operator action,
+            # not requests for every remaining performance.
+            if not continue_on_source_error or error.status_code in {401, 403, 429}:
+                raise error
+            counters["source_errors"] = counters.get("source_errors", 0) + 1
+            consecutive_source_errors += 1
+            self._repository.upsert_provider_record(
+                entity_type="collection_error",
+                provider_id=f"{run_id}:{performance_id}:{stage}",
+                payload={
+                    "performance_id": performance_id, "stage": stage,
+                    "error": str(error)[:500], "http_status": error.status_code,
+                },
+                ingestion_run_id=run_id,
+            )
+            if consecutive_source_errors >= 5:
+                raise error
 
         try:
             for window in windows:
                 for summary in self._client.iter_performances(window, rows=rows):
-                    if summary.performance_id in seen_performances:
+                    if (
+                        summary.performance_id in seen_performances
+                        or summary.performance_id in completed_ids
+                    ):
                         continue
                     if limit is not None and len(seen_performances) >= limit:
                         break
@@ -273,7 +303,11 @@ class KopisSyncService:
                     )
                     counters["performance_summaries"] += 1
 
-                    detail = self._client.get_performance_detail(summary.performance_id)
+                    try:
+                        detail = self._client.get_performance_detail(summary.performance_id)
+                    except KopisTransportError as error:
+                        record_source_error(summary.performance_id, "performance_detail", error)
+                        continue
                     self._repository.upsert_provider_record(
                         entity_type="performance_detail",
                         provider_id=detail.performance_id,
@@ -286,9 +320,11 @@ class KopisSyncService:
                     hall_id: str | None = None
                     if detail.facility_id is not None:
                         if detail.facility_id not in facility_cache:
-                            facility = self._client.get_facility_detail(
-                                detail.facility_id
-                            )
+                            try:
+                                facility = self._client.get_facility_detail(detail.facility_id)
+                            except KopisTransportError as error:
+                                record_source_error(summary.performance_id, "facility_detail", error)
+                                continue
                             self._repository.upsert_provider_record(
                                 entity_type="facility_detail",
                                 provider_id=facility.facility_id,
@@ -334,6 +370,7 @@ class KopisSyncService:
                         )
                     )
                     counters["performances"] += 1
+                    performance_complete = True
 
                     if (
                         self._nol_client is not None
@@ -343,6 +380,7 @@ class KopisSyncService:
                         try:
                             nol_data = self._nol_client.fetch(nol_url)
                         except NolError as error:
+                            performance_complete = False
                             counters["nol_errors"] += 1
                             if first_nol_error is None:
                                 first_nol_error = f"{type(error).__name__}: {error}"[
@@ -389,6 +427,10 @@ class KopisSyncService:
                         )
                         counters["review_items"] += 1
 
+                    if performance_complete and on_performance_complete is not None:
+                        on_performance_complete(summary.performance_id)
+                    consecutive_source_errors = 0
+
                 if limit is not None and len(seen_performances) >= limit:
                     break
         except Exception as error:
@@ -400,16 +442,17 @@ class KopisSyncService:
             )
             raise
 
-        status = "failed" if counters["nol_errors"] else "completed"
+        status = "failed" if counters["nol_errors"] or counters.get("source_errors") else "completed"
+        errors = []
+        if counters.get("source_errors"):
+            errors.append(f"KOPIS: {counters['source_errors']} source request(s) failed; see collection_error records")
+        if first_nol_error:
+            errors.append(f"NOL: {counters['nol_errors']} failed, {counters['nol_records']} succeeded. First error: {first_nol_error}")
         self._repository.finish_ingestion_run(
             run_id,
             status=status,
             counters=counters,
-            error=(
-                f"NOL: {counters['nol_errors']} failed, {counters['nol_records']} succeeded. First error: {first_nol_error}"
-                if first_nol_error
-                else None
-            ),
+            error="; ".join(errors) or None,
         )
         return KopisSyncResult(
             run_id=run_id,

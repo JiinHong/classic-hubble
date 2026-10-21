@@ -30,6 +30,10 @@ class KopisResponseError(KopisError):
 class KopisTransportError(KopisError):
     """Raised when KOPIS cannot be reached after retrying."""
 
+    def __init__(self, message: str, *, status_code: int | None = None):
+        self.status_code = status_code
+        super().__init__(message)
+
 
 class KopisApiError(KopisResponseError):
     def __init__(self, code: str, message: str, response_time: str | None = None):
@@ -607,13 +611,15 @@ class KopisClient:
                         response.raise_for_status()
                     except httpx.HTTPStatusError:
                         raise KopisTransportError(
-                            f"KOPIS returned HTTP {response.status_code}"
+                            f"KOPIS returned HTTP {response.status_code}",
+                            status_code=response.status_code,
                         ) from None
                     return response.text
 
                 if attempt == self._settings.max_retries:
                     raise KopisTransportError(
-                        f"KOPIS remained unavailable with HTTP {response.status_code}"
+                        f"KOPIS remained unavailable with HTTP {response.status_code}",
+                        status_code=response.status_code,
                     )
 
             if attempt < self._settings.max_retries:

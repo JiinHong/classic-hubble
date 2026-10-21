@@ -12,6 +12,31 @@ from classic_hubble_pipeline.supabase import (
 )
 
 
+def test_collection_checkpoint_is_private_provider_metadata():
+    requests = []
+    checkpoint = {"completed_ids": ["PF1"], "complete": False}
+
+    def handler(request):
+        requests.append(request)
+        if request.method == "GET":
+            return httpx.Response(200, json=[{"payload": checkpoint}])
+        return httpx.Response(201)
+
+    with httpx.Client(transport=httpx.MockTransport(handler)) as client:
+        repo = SupabaseRepository(
+            SupabaseSettings("https://example.supabase.co", "sb_secret_test"),
+            http_client=client,
+        )
+        assert repo.load_collection_checkpoint("2026-10-21") == checkpoint
+        repo.save_collection_checkpoint("2026-10-21", checkpoint)
+    assert requests[0].url.params["entity_type"] == "eq.collection_checkpoint"
+    assert requests[0].url.params["provider_id"] == "eq.2026-10-21"
+    assert requests[0].url.params["provider"] == "eq.kopis"
+    assert requests[1].url.params["on_conflict"] == "provider,entity_type,provider_id"
+    assert json.loads(requests[1].content)["payload"] == checkpoint
+    assert requests[1].headers["prefer"] == "resolution=merge-duplicates,return=minimal"
+
+
 def test_load_work_catalog_uses_database_ids_and_stable_pagination():
     requests = []
     row = {
