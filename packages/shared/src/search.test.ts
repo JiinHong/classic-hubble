@@ -25,3 +25,16 @@ describe("Classic Hubble shared search helpers", () => {
     expect(performance?.program[0]?.source.confidence).toBeGreaterThan(0.8);
   });
 });
+import { findWorksByQueryInList, works } from "./index";
+
+describe("reference catalog search", () => {
+  it("does not hide a matching work with no popularity measurement", () => {
+    const work = { ...works[0], popularityRank: 999 };
+    expect(findWorksByQueryInList([work], work.title)).toEqual([work]);
+  });
+
+  it("does not treat missing metadata as a match for an unrelated query", () => {
+    const work = { ...works[0], catalogue: "", aliases: [], popularityRank: 1 };
+    expect(findWorksByQueryInList([work], "zzzzzzzz")).toEqual([]);
+  });
+});

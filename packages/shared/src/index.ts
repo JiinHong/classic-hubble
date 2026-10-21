@@ -28,7 +28,8 @@ export type Work = {
   catalogue: string;
   aliases: string[];
   instrumentation: string;
-  popularityRank: number;
+  popularityRank: number | null;
+  referenceUrl?: string;
   upcomingPerformanceIds: string[];
 };
 
@@ -329,7 +330,9 @@ const scoreWork = (work: Work, query: string) => {
     work.composer.name,
     work.composer.nameKo,
     ...work.aliases,
-  ].map(normalize);
+  ]
+    .map(normalize)
+    .filter(Boolean);
 
   let score = 0;
   for (const candidate of candidates) {
@@ -349,17 +352,23 @@ const scoreWork = (work: Work, query: string) => {
   const shorthandHits = work.aliases
     .map(normalize)
     .filter(
-      (alias) => alias.length <= 12 && normalizedQuery.includes(alias),
+      (alias) =>
+        alias.length > 0 && alias.length <= 12 && normalizedQuery.includes(alias),
     ).length;
 
-  return score + shorthandHits * 10 - work.popularityRank;
+  return score + shorthandHits * 10;
 };
 
 export const findWorksByQueryInList = (items: Work[], query: string) =>
   items
     .map((work) => ({ work, score: scoreWork(work, query) }))
     .filter(({ score }) => score > 0)
-    .sort((a, b) => b.score - a.score)
+    .sort(
+      (a, b) =>
+        b.score - a.score ||
+        (a.work.popularityRank ?? Number.MAX_SAFE_INTEGER) -
+          (b.work.popularityRank ?? Number.MAX_SAFE_INTEGER),
+    )
     .map(({ work }) => work);
 
 export const findWorksByQuery = (query: string) =>

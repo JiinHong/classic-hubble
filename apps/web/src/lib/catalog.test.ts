@@ -220,6 +220,40 @@ describe("getCatalogSnapshot", () => {
     });
   });
 
+  it("preserves unranked works and their source links past the API page boundary", async () => {
+    const row = { slug: "wikidata-q11980", title: "Für Elise", title_ko: null, catalogue: "WoO 59", popularity_rank: null, composers: { id: "beethoven", name: "Beethoven" } };
+    database({ works: [Array.from({ length: 1000 }, (_, i) => ({ ...row, slug: `work-${i}` })), [row]] });
+    const { getCatalogSnapshot } = await import("./catalog");
+    const result = await getCatalogSnapshot();
+    expect(result.works).toHaveLength(1001);
+    expect(result.works.at(-1)).toMatchObject({ popularityRank: null, referenceUrl: "https://www.wikidata.org/wiki/Q11980" });
+  });
+
+  it("loads subsequent large-catalog pages with bounded concurrency", async () => {
+    let active = 0;
+    let maximum = 0;
+    mocks.createSupabaseClient.mockReturnValue({
+      from: (table: string) => {
+        const query = {
+          order: () => query,
+          range: async (start: number) => {
+            if (table !== "works") return { data: [], error: null };
+            active += 1;
+            maximum = Math.max(maximum, active);
+            await new Promise((resolve) => setTimeout(resolve, 1));
+            active -= 1;
+            return { data: start < 3000 ? Array.from({ length: 1000 }, (_, i) => ({ slug: `w-${start + i}`, title: "Work" })) : [], error: null };
+          },
+        };
+        return { select: () => query };
+      },
+    });
+    const { getCatalogSnapshot } = await import("./catalog");
+    expect((await getCatalogSnapshot()).works).toHaveLength(3000);
+    expect(maximum).toBeGreaterThan(1);
+    expect(maximum).toBeLessThanOrEqual(4);
+  });
+
   it("excludes legacy demo performances and keeps closed distinct from sold out", async () => {
     database({
       performances: [

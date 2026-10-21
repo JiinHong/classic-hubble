@@ -50,11 +50,13 @@ export default async function WorkPage({ params }: WorkPageProps) {
           <dl className="mt-6 grid gap-4 sm:grid-cols-3">
             <div className="rounded-lg bg-stone-50 p-4">
               <dt className="text-xs font-black text-stone-500">편성</dt>
-              <dd className="mt-1 text-sm font-bold text-stone-950">{work.instrumentation}</dd>
+              <dd className="mt-1 text-sm font-bold text-stone-950">{work.instrumentation || "미확인"}</dd>
             </div>
             <div className="rounded-lg bg-stone-50 p-4">
-              <dt className="text-xs font-black text-stone-500">인기 순위</dt>
-              <dd className="mt-1 text-sm font-bold text-stone-950">#{work.popularityRank}</dd>
+              <dt className="text-xs font-black text-stone-500">작품 정보 출처</dt>
+              <dd className="mt-1 text-sm font-bold text-stone-950">
+                {work.referenceUrl ? <a className="underline" href={work.referenceUrl} target="_blank" rel="noreferrer">Wikidata</a> : "자체 정리"}
+              </dd>
             </div>
             <div className="rounded-lg bg-stone-50 p-4">
               <dt className="text-xs font-black text-stone-500">예정 공연</dt>

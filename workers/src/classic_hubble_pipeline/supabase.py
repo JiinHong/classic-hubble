@@ -328,7 +328,7 @@ class SupabaseRepository:
         rows = self._read_pages(
             "works",
             {
-                "select": "id,slug,title,title_ko,catalogue,composers(name,name_ko),work_aliases(alias)",
+                "select": "id,slug,title,title_ko,catalogue,composers(name,name_ko),work_aliases(alias,source)",
             },
             page_size=page_size,
         )
@@ -349,6 +349,16 @@ class SupabaseRepository:
                 ),
                 catalogue=row.get("catalogue"),
                 aliases=tuple(alias["alias"] for alias in row.get("work_aliases", [])),
+                requires_review=row["slug"].startswith("wikidata-") or (
+                    any(
+                        (a.get("source") or "").startswith("wikidata:")
+                        for a in row.get("work_aliases", [])
+                    )
+                    and not any(
+                        a.get("source") == "curated"
+                        for a in row.get("work_aliases", [])
+                    )
+                ),
             )
             for row in rows
         ]

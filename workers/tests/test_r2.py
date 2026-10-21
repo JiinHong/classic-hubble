@@ -173,11 +173,18 @@ def test_ocr_json_is_content_addressed_separately_and_readable():
         assert json.loads(store.read(key)) == result
 
 
-def test_extraction_json_uses_private_content_addressed_namespace():
+@pytest.mark.parametrize(
+    ("method", "prefix"),
+    [
+        ("archive_extraction_result", "extractions"),
+        ("archive_catalog_snapshot", "catalogs"),
+    ],
+)
+def test_reference_json_uses_private_content_addressed_namespace(method, prefix):
     result = {"items": [], "publishable": False}
     data = json.dumps(result, sort_keys=True, separators=(",", ":")).encode()
     sha = hashlib.sha256(data).hexdigest()
-    key = f"extractions/sha256/{sha[:2]}/{sha}"
+    key = f"{prefix}/sha256/{sha[:2]}/{sha}"
     s3 = client()
     with Stubber(s3) as stub:
         stub.add_client_error("head_object", "404", http_status_code=404)
@@ -194,9 +201,6 @@ def test_extraction_json_uses_private_content_addressed_namespace():
         )
         stub.add_response("get_object", {"Body": io.BytesIO(data)})
         store = module().R2Store(settings(), client=s3)
-        assert hasattr(store, "archive_extraction_result"), (
-            "Extraction storage is missing"
-        )
-        saved = store.archive_extraction_result(result)
+        saved = getattr(store, method)(result)
         assert saved.key == key
         assert json.loads(store.read(key)) == result

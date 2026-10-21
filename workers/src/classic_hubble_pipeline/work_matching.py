@@ -6,8 +6,8 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 
 CATALOGUE = re.compile(
-    r"\b(?:op|bwv|hwv|kv|k|rv|d|s|l)\.?\s*\d+[a-z]?"
-    r"(?:\s*[,/]?\s*(?:no|nr)\.?\s*\d+[a-z]?)?\b",
+    r"\b(?:op|bwv|hwv|kv|k|rv|d|s|l|woo)\.?\s*\d+[a-z]?"
+    r"(?:\s*(?:/|,?\s*(?:no|nr)\.?)\s*\d+[a-z]?)?\b",
     re.IGNORECASE,
 )
 MOVEMENT = re.compile(r"^(?:[IVXLCDM]+|\d+)[.)]\s+", re.IGNORECASE)
@@ -29,6 +29,7 @@ class CanonicalWork:
     composers: tuple[str, ...]
     catalogue: str | None
     aliases: tuple[str, ...] = ()
+    requires_review: bool = False
 
 
 @dataclass(frozen=True)
@@ -64,6 +65,9 @@ def _composer_matches(value: str, names: Sequence[str]) -> bool:
 
 
 def _catalogue_key(value: str) -> str:
+    value = re.sub(r"\bkv\b", "k", value, flags=re.IGNORECASE)
+    value = re.sub(r"/\s*(\d+)", r" No. \1", value)
+    value = re.sub(r"\bnr\b", "no", value, flags=re.IGNORECASE)
     return _normalize(value).replace(" ", "")
 
 
@@ -96,9 +100,13 @@ def match_work(
         return WorkMatch(None, (), "complex_program")
 
     normalized = _normalize(lines[0])
-    catalogues = {
-        _catalogue_key(match.group()) for match in CATALOGUE.finditer(lines[0])
-    }
+    catalogue_matches = list(CATALOGUE.finditer(lines[0]))
+    if any(
+        re.match(r"\s*[-–—/,]\s*\d", lines[0][match.end():])
+        for match in catalogue_matches
+    ):
+        return WorkMatch(None, (), "complex_catalogue")
+    catalogues = {_catalogue_key(match.group()) for match in catalogue_matches}
     candidates: list[tuple[CanonicalWork, str]] = []
     for work in works:
         expected = _catalogue_key(work.catalogue or "")
@@ -133,6 +141,8 @@ def match_work(
         )
     if len(supported) == 1:
         work, reason = supported[0]
+        if work.requires_review:
+            return WorkMatch(None, (work.id,), "catalog_review_required")
         return WorkMatch(work.id, (work.id,), reason)
     if len(supported) > 1:
         return WorkMatch(None, tuple(work.id for work, _ in supported)[:3], "ambiguous")
