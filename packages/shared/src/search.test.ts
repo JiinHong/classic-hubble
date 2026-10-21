@@ -28,6 +28,57 @@ describe("Classic Hubble shared search helpers", () => {
 import { findWorksByQueryInList, works } from "./index";
 
 describe("reference catalog search", () => {
+  it("separates a Korean composer prefix from a joined nickname without partial fallback", () => {
+    const work = { ...works[0], slug: "turkish-concerto", title: "Violin Concerto No. 5",
+      titleKo: "바이올린 협주곡 5번", catalogue: "K. 219", aliases: ["터키풍"],
+      composer: { ...works[0].composer, name: "Wolfgang Amadeus Mozart", nameKo: "볼프강 아마데우스 모차르트" } };
+    expect(findWorksByQueryInList([work], "모차르트터키풍")).toEqual([work]);
+    expect(findWorksByQueryInList([work], "모차르트없는터키풍")).toEqual([]);
+    expect(findWorksByQueryInList([work], "슈만터키풍")).toEqual([]);
+  });
+  it("reflects edited aliases and parent metadata on repeated searches", () => {
+    const work = { ...works[0], aliases: ["처음 별칭"],
+      partOf: [{ slug: "parent", title: "Parent", titleKo: "처음 부모", catalogue: "", position: 1 }] };
+    expect(findWorksByQueryInList([work], "처음 별칭")).toEqual([work]);
+    work.aliases[0] = "변경 별칭";
+    work.partOf[0].titleKo = "변경 부모";
+    expect(findWorksByQueryInList([work], "처음 별칭")).toEqual([]);
+    expect(findWorksByQueryInList([work], "변경 별칭")).toEqual([work]);
+    expect(findWorksByQueryInList([work], "변경 부모 1번")).toEqual([work]);
+  });
+  it("identifies a named component with its parent and explicit number", () => {
+    const parent = {
+      ...works[0], slug: "waldszenen", title: "Waldszenen", titleKo: "숲의 정경",
+      catalogue: "Op. 82", aliases: [],
+      composer: { ...works[0].composer, name: "Robert Schumann", nameKo: "로베르트 슈만" },
+    };
+    const child = {
+      ...parent, slug: "einsame-blumen", title: "Einsame Blumen", titleKo: "고독한 꽃",
+      catalogue: "Op. 82 No. 3", aliases: ["Lonely Flowers"],
+      partOf: [{ slug: parent.slug, title: parent.title, titleKo: parent.titleKo,
+        catalogue: parent.catalogue, aliases: ["Forest Scenes", "숲 속의 정경"], position: 3 }],
+    };
+    for (const query of ["고독한 꽃", "Einsame Blumen", "Lonely Flowers", "슈만 숲의 정경 3번", "슈만 숲의 정경 제3곡", "Schumann Waldszenen No. 3"]) {
+      expect(findWorksByQueryInList([parent, child], query)).toEqual([child]);
+    }
+    expect(findWorksByQueryInList([parent, child], "슈만 숲의 정경 4번")).toEqual([]);
+    expect(findWorksByQueryInList([child, parent], "Waldszenen")[0]).toEqual(parent);
+    expect(findWorksByQueryInList([parent, child], "슈만 숲 속의 정경 3번")).toEqual([child]);
+  });
+
+  it("does not substitute a partial word match for a missing named piece", () => {
+    const flower = {
+      ...works[0], slug: "blumenstuck", title: "Blumenstuck", titleKo: "꽃의 곡",
+      aliases: [], catalogue: "Op. 19",
+    };
+    const fireworks = {
+      ...flower, slug: "fireworks", title: "Fireworks", titleKo: "왕궁의 불꽃놀이 음악",
+    };
+    expect(findWorksByQueryInList([flower, fireworks], "고독한 꽃")).toEqual([]);
+    expect(findWorksByQueryInList([flower, fireworks], "존재하지않는 꽃")).toEqual([]);
+    expect(findWorksByQueryInList([flower], "꽃")).toEqual([flower]);
+  });
+
   it("expands observed genre shorthand without a per-work nickname entry", () => {
     const work = {
       ...works[0],

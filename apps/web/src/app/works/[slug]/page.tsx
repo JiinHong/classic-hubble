@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 
 import { PerformanceCard } from "@/components/PerformanceCard";
 import { WatchlistButton } from "@/components/WatchlistButton";
+import { WorkRelations } from "@/components/WorkRelations";
 import { getCatalogWorkBySlug } from "@/lib/catalog";
 
 export const dynamic = "force-dynamic";
@@ -55,7 +56,7 @@ export default async function WorkPage({ params }: WorkPageProps) {
             <div className="rounded-lg bg-stone-50 p-4">
               <dt className="text-xs font-black text-stone-500">작품 정보 출처</dt>
               <dd className="mt-1 text-sm font-bold text-stone-950">
-                {work.referenceUrl ? <a className="underline" href={work.referenceUrl} target="_blank" rel="noreferrer">Wikidata</a> : "자체 정리"}
+                {work.referenceUrl ? <a className="underline" href={work.referenceUrl} target="_blank" rel="noreferrer">{work.referenceUrl.startsWith("https://www.wikidata.org/") ? "Wikidata" : "원문 보기"}</a> : "자체 정리"}
               </dd>
             </div>
             <div className="rounded-lg bg-stone-50 p-4">
@@ -81,12 +82,12 @@ export default async function WorkPage({ params }: WorkPageProps) {
         </aside>
       </section>
 
+      <WorkRelations work={work} />
+
       <section className="mt-8">
         <div className="mb-4">
           <h2 className="text-2xl font-black tracking-normal text-stone-950">예정 공연</h2>
-          <p className="mt-1 text-sm font-semibold text-stone-500">
-            프로그램 매칭 신뢰도를 함께 확인할 수 있습니다.
-          </p>
+          {!performances.length && <p className="mt-2 text-sm text-stone-500">현재 확인된 예정 공연이 없습니다.</p>}
         </div>
         <div className="grid gap-4 lg:grid-cols-2">
           {performances.map((performance, index) => (

@@ -8,6 +8,8 @@ import {
 } from "@classic-hubble/shared";
 
 import openOpusComposers from "@/data/openopus-composers.json";
+import workComponents from "@/data/work-components.json";
+import { attachWorkComponents } from "./work-components";
 
 import {
   composerIdentityKey,
@@ -370,7 +372,7 @@ export async function getCatalogSnapshot(): Promise<CatalogSnapshot> {
       performances,
       reviewQueue: [],
       source: "supabase",
-      works: mapWorks(workRows, performances),
+      works: attachWorkComponents(mapWorks(workRows, performances), workComponents),
     };
   } catch {
     return unavailableSnapshot();
