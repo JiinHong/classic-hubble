@@ -58,7 +58,9 @@ describe("AppHeader authentication", () => {
       </AuthProvider>,
     );
 
-    fireEvent.click(await screen.findByRole("button", { name: "로그인" }));
+    const loginButton = await screen.findByRole("button", { name: "로그인" });
+    await waitFor(() => expect(loginButton.hasAttribute("disabled")).toBe(false));
+    fireEvent.click(loginButton);
 
     expect(await screen.findByRole("dialog")).toBeTruthy();
     expect(screen.getByLabelText("이메일")).toBeTruthy();

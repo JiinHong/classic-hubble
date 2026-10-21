@@ -1,0 +1,876 @@
+{
+  "version": "2026-10-21.1",
+  "checked_at": "2026-10-21",
+  "policy": "Display titles use Korean program usage. Shorthand is search-only, not a unique identity or a popularity measurement. Whitespace and 제 are editorially normalized. Earlier DB labels are retained separately, not asserted as reviewed usage.",
+  "sources": {
+    "sac-sonatas": {
+      "url": "https://www.sac.or.kr/site/main/show/show_view?SN=42166",
+      "title": "루돌프 부흐빈더 베토벤 소나타 프로그램",
+      "kind": "official"
+    },
+    "kbs-rhapsody": {
+      "url": "https://kbssymphony.org/board/upload/KBSSPN_20231221111257.pdf",
+      "title": "KBS교향악단 파가니니 주제에 의한 광시곡 작품43",
+      "kind": "official"
+    },
+    "sac-hero-choral": {
+      "url": "https://www.sac.or.kr/site/main/board/pressrelease/317233",
+      "title": "토요콘서트 영웅과 합창",
+      "kind": "official"
+    },
+    "sac-emperor": {
+      "url": "https://www.sac.or.kr/site/main/board/pressrelease/306111",
+      "title": "디지털 스테이지 황제와 운명",
+      "kind": "official"
+    },
+    "textbook-beethoven": {
+      "url": "https://achimnara.kr/upload/2021/07/03/8c67f813bfe049db8c0ed7e097eb6f90.pdf",
+      "title": "아침나라 교향곡 제5번 운명 감상 교재",
+      "kind": "publisher"
+    },
+    "sac-bpc1": {
+      "url": "https://www.sac.or.kr/site/main/show/show_view?SN=74078",
+      "title": "베토벤 피아노 협주곡 1번 프로그램",
+      "kind": "official"
+    },
+    "sac-bpc2": {
+      "url": "https://www.sac.or.kr/site/main/show/show_view?SN=80176",
+      "title": "프리뷰 베토벤 피아노 협주곡 2번",
+      "kind": "official"
+    },
+    "sac-bpc3": {
+      "url": "https://www.sac.or.kr/site/main/show/show_view?SN=80191",
+      "title": "프리뷰 베토벤 피아노 협주곡 3번",
+      "kind": "official"
+    },
+    "dc-beethoven": {
+      "url": "https://gall.dcinside.com/mgallery/board/view/?id=sungjincho&no=124371",
+      "title": "갤주 연주로 직관했던 베피협 모음",
+      "kind": "community"
+    },
+    "dc-usage": {
+      "url": "https://gall.dcinside.com/board/view/?id=classic&no=92409",
+      "title": "클갤에서 가장 자주 언급되는 곡은?",
+      "kind": "community",
+      "note": "Usage evidence only. The author's informal count is not used as popularity data."
+    },
+    "sac-rach23": {
+      "url": "https://www.sac.or.kr/site/main/show/show_view?SN=76517",
+      "title": "라흐마니노프 보칼리제 및 피아노 협주곡 2·3번",
+      "kind": "official"
+    },
+    "sac-rach34": {
+      "url": "https://www.sac.or.kr/site/main/show/show_view?SN=69320",
+      "title": "플레트네프 라흐마니노프 피아노 협주곡 3·4번",
+      "kind": "official"
+    },
+    "sac-rhapsody": {
+      "url": "https://www.sac.or.kr/site/main/show/show_view?SN=40614",
+      "title": "라흐마니노프 파가니니 주제에 의한 랩소디",
+      "kind": "official"
+    },
+    "dc-rach3": {
+      "url": "https://gall.dcinside.com/mgallery/board/view/?id=grdpiano&no=71875",
+      "title": "라흐 피협 3번 추천좀",
+      "kind": "community"
+    },
+    "goclassic-rach2": {
+      "url": "https://www.goclassic.co.kr/club/board/viewbody.html?code=concert&go=&group=1530&number=2241",
+      "title": "공연 후기의 라흐 피협2번 용례",
+      "kind": "community"
+    },
+    "dc-concert": {
+      "url": "https://gall.dcinside.com/board/view/?id=classic&no=485424&page=1",
+      "title": "9.6 대전예당 밀레니엄오케스트라 공구",
+      "kind": "community"
+    },
+    "spo-dances": {
+      "url": "https://www.seoulphil.or.kr/perf/view?langCd=ko&menuFlag=MFLG0001&perfNo=6399",
+      "title": "롱 유의 라흐마니노프 교향적 무곡",
+      "kind": "official"
+    },
+    "spo-brahms1": {
+      "url": "https://www.seoulphil.or.kr/perf/view?perfNo=4698",
+      "title": "브람스 피아노 협주곡 1번 프로그램",
+      "kind": "official"
+    },
+    "spo-brahms2": {
+      "url": "https://www.seoulphil.or.kr/srvc/bbs/2/detail?dynmPstNo=2258",
+      "title": "게르스타인의 브람스 피아노 협주곡 2번",
+      "kind": "official"
+    },
+    "dc-brahms2": {
+      "url": "https://gall.dcinside.com/mgallery/board/view/?id=deutschegrammophon&no=20282",
+      "title": "손민수 최수열 인천시향 후기",
+      "kind": "community"
+    },
+    "spo-brahms-vc": {
+      "url": "https://www.seoulphil.or.kr/perf/view?perfNo=5821",
+      "title": "브람스 바이올린 협주곡 Op.77",
+      "kind": "official"
+    },
+    "news-tchaik1": {
+      "url": "https://www.news1.kr/life-culture/performance-exhibition/6134809",
+      "title": "김세현 차피협 연주 기사",
+      "kind": "press"
+    },
+    "ggac-pathetique": {
+      "url": "https://www.ggac.or.kr/com/ebook/pdf/2011/ebook_201109r.pdf",
+      "title": "경기필하모닉 차이콥스키 교향곡 6번 비창",
+      "kind": "official"
+    },
+    "spo-tchaik-vc": {
+      "url": "https://www.seoulphil.or.kr/perf/view?calendarDate=&langCd=ko&menuFlag=MFLG0001&perfNo=3603",
+      "title": "차이콥스키 바이올린 협주곡 Op.35",
+      "kind": "official"
+    },
+    "review-tchaik-vc": {
+      "url": "https://nightwithstar.tistory.com/32",
+      "title": "레이 첸 공연 후기의 차바협 용례",
+      "kind": "community"
+    },
+    "news-violin": {
+      "url": "https://www.hankyung.com/article/202406208837i",
+      "title": "레이 첸의 차바협과 멘바협",
+      "kind": "press"
+    },
+    "spo-mendel-vc": {
+      "url": "https://www.seoulphil.or.kr/perf/view?langCd=ko&menuFlag=MFLG0001&perfNo=5830",
+      "title": "멘델스존 바이올린 협주곡 프로그램",
+      "kind": "official"
+    },
+    "spo-new-world": {
+      "url": "https://www.seoulphil.or.kr/perf/view?langCd=ko&menuFlag=MFLG0001&perfNo=4852",
+      "title": "드보르자크 신세계 교향곡 프로그램 노트",
+      "kind": "official"
+    },
+    "spo-dvorak7": {
+      "url": "https://www.seoulphil.or.kr/perf/view?perfNo=4457",
+      "title": "드보르자크 교향곡 7번",
+      "kind": "official"
+    },
+    "spo-dvorak-vc": {
+      "url": "https://www.seoulphil.or.kr/perf/view?perfNo=7135",
+      "title": "이지윤의 드보르자크 바이올린 협주곡",
+      "kind": "official"
+    },
+    "piano-fantaisie": {
+      "url": "https://www.mapianist.com/sheet/76672?query=%EC%BD%9C%EB%93%9C%ED%94%8C%EB%A0%88%EC%9D%B4&term=week",
+      "title": "쇼팽 Op.66 즉흥환상곡 악보 등록명",
+      "kind": "community"
+    },
+    "tomplay-fantaisie": {
+      "url": "https://tomplay.com/kr/sheet-music/chopin/fantaisie-impromptu-opus-66",
+      "title": "쇼팽 환상 즉흥곡 Op.66 악보",
+      "kind": "publisher"
+    },
+    "sac-campanella": {
+      "url": "https://www.sac.or.kr/site/main/show/show_view?SN=24397",
+      "title": "리스트 파가니니 대연습곡 3번 라 캄파넬라",
+      "kind": "official"
+    },
+    "sac-goldberg": {
+      "url": "https://www.sac.or.kr/site/main/show/show_view?SN=31997",
+      "title": "골드베르크 변주곡 BWV988",
+      "kind": "official"
+    },
+    "yes24-goldberg": {
+      "url": "https://m.yes24.com/Goods/Detail/3249841",
+      "title": "바흐 골드버그 변주곡 BWV988",
+      "kind": "retailer"
+    },
+    "sac-nachtmusik": {
+      "url": "https://www.sac.or.kr/site/main/show/show_view?SN=30351",
+      "title": "아이네 클라이네 나흐트 무지크 K.525",
+      "kind": "official"
+    }
+  },
+  "works": [
+    {
+      "qid": "Q188709",
+      "title_ko": "교향곡 5번 '운명'",
+      "sources": [
+        "sac-emperor"
+      ],
+      "aliases": [
+        {
+          "text": "운명",
+          "kind": "nickname",
+          "sources": [
+            "sac-emperor"
+          ]
+        },
+        {
+          "text": "운명 교향곡",
+          "kind": "nickname",
+          "sources": [
+            "textbook-beethoven"
+          ]
+        }
+      ],
+      "composer": "Ludwig van Beethoven",
+      "expected_title": "Symphony No. 5 in C minor",
+      "previous_title_ko": "교향곡 5번"
+    },
+    {
+      "qid": "Q11989",
+      "title_ko": "교향곡 9번 '합창'",
+      "sources": [
+        "sac-hero-choral"
+      ],
+      "aliases": [
+        {
+          "text": "합창",
+          "kind": "nickname",
+          "sources": [
+            "sac-hero-choral"
+          ]
+        },
+        {
+          "text": "합창 교향곡",
+          "kind": "nickname",
+          "sources": [
+            "textbook-beethoven"
+          ]
+        }
+      ],
+      "composer": "Ludwig van Beethoven",
+      "expected_title": "Symphony No. 9 in D minor",
+      "previous_title_ko": "교향곡 9번(베토벤)"
+    },
+    {
+      "qid": "Q157489",
+      "title_ko": "교향곡 3번 '영웅'",
+      "sources": [
+        "sac-hero-choral"
+      ],
+      "aliases": [
+        {
+          "text": "영웅",
+          "kind": "nickname",
+          "sources": [
+            "sac-hero-choral"
+          ]
+        },
+        {
+          "text": "에로이카",
+          "kind": "spelling",
+          "sources": [
+            "dc-usage"
+          ]
+        }
+      ],
+      "composer": "Ludwig van Beethoven",
+      "expected_title": "Symphony No. 3 in E-flat major",
+      "previous_title_ko": "교향곡 3번"
+    },
+    {
+      "qid": "Q246433",
+      "title_ko": "교향곡 6번 '전원'",
+      "sources": [
+        "textbook-beethoven"
+      ],
+      "aliases": [
+        {
+          "text": "전원",
+          "kind": "nickname",
+          "sources": [
+            "textbook-beethoven"
+          ]
+        }
+      ],
+      "composer": "Ludwig van Beethoven",
+      "expected_title": "Symphony No. 6 in F major",
+      "previous_title_ko": "교향곡 6번 (베토벤)"
+    },
+    {
+      "qid": "Q12008",
+      "title_ko": "피아노 소나타 14번 '월광'",
+      "sources": [
+        "sac-sonatas"
+      ],
+      "aliases": [
+        {
+          "text": "월광",
+          "kind": "nickname",
+          "sources": [
+            "sac-sonatas"
+          ]
+        },
+        {
+          "text": "월광 소나타",
+          "kind": "nickname",
+          "sources": [
+            "dc-usage"
+          ]
+        }
+      ],
+      "composer": "Ludwig van Beethoven",
+      "expected_title": "Piano Sonata No. 14 in C-sharp minor",
+      "previous_title_ko": "피아노 소나타 14번"
+    },
+    {
+      "qid": "Q146113",
+      "title_ko": "피아노 소나타 8번 '비창'",
+      "sources": [
+        "sac-sonatas"
+      ],
+      "aliases": [
+        {
+          "text": "비창",
+          "kind": "nickname",
+          "sources": [
+            "sac-sonatas"
+          ]
+        }
+      ],
+      "composer": "Ludwig van Beethoven",
+      "expected_title": "Piano Sonata No. 8 in C minor",
+      "previous_title_ko": "피아노 소나타 8번"
+    },
+    {
+      "qid": "Q146148",
+      "title_ko": "피아노 소나타 10번",
+      "sources": [
+        "sac-sonatas"
+      ],
+      "aliases": [],
+      "composer": "Ludwig van Beethoven",
+      "expected_title": "Piano Sonata No. 10 in G major",
+      "previous_title_ko": "피아노 소나타 10번"
+    },
+    {
+      "qid": "Q146423",
+      "title_ko": "피아노 소나타 20번",
+      "sources": [
+        "sac-sonatas"
+      ],
+      "aliases": [],
+      "composer": "Ludwig van Beethoven",
+      "expected_title": "Piano Sonata No. 20 in G major",
+      "previous_title_ko": "피아노 소나타 20번"
+    },
+    {
+      "qid": "Q146535",
+      "title_ko": "피아노 소나타 21번 '발트슈타인'",
+      "sources": [
+        "sac-sonatas"
+      ],
+      "aliases": [
+        {
+          "text": "발트슈타인",
+          "kind": "nickname",
+          "sources": [
+            "sac-sonatas"
+          ]
+        }
+      ],
+      "composer": "Ludwig van Beethoven",
+      "expected_title": "Piano Sonata No. 21 in C major",
+      "previous_title_ko": "피아노 소나타 21번"
+    },
+    {
+      "qid": "Q162868",
+      "title_ko": "피아노 협주곡 1번",
+      "sources": [
+        "sac-bpc1"
+      ],
+      "aliases": [
+        {
+          "text": "베피협1",
+          "kind": "shorthand",
+          "sources": [
+            "dc-usage"
+          ]
+        }
+      ],
+      "composer": "Ludwig van Beethoven",
+      "expected_title": "Piano Concerto No. 1 in C major",
+      "previous_title_ko": "피아노 협주곡 1번"
+    },
+    {
+      "qid": "Q210203",
+      "title_ko": "피아노 협주곡 2번",
+      "sources": [
+        "sac-bpc2"
+      ],
+      "aliases": [
+        {
+          "text": "베피협 2번",
+          "kind": "shorthand",
+          "sources": [
+            "dc-beethoven"
+          ]
+        }
+      ],
+      "composer": "Ludwig van Beethoven",
+      "expected_title": "Piano Concerto No. 2 in B-flat major",
+      "previous_title_ko": "피아노 협주곡 2번"
+    },
+    {
+      "qid": "Q223331",
+      "title_ko": "피아노 협주곡 3번",
+      "sources": [
+        "sac-bpc3"
+      ],
+      "aliases": [
+        {
+          "text": "베피협 3번",
+          "kind": "shorthand",
+          "sources": [
+            "dc-beethoven"
+          ]
+        },
+        {
+          "text": "베피협3",
+          "kind": "shorthand",
+          "sources": [
+            "dc-usage"
+          ]
+        }
+      ],
+      "composer": "Ludwig van Beethoven",
+      "expected_title": "Piano Concerto No. 3 in C minor",
+      "previous_title_ko": "피아노 협주곡 3번"
+    },
+    {
+      "qid": "Q230772",
+      "title_ko": "피아노 협주곡 4번",
+      "sources": [
+        "sac-hero-choral"
+      ],
+      "aliases": [
+        {
+          "text": "베피협 4번",
+          "kind": "shorthand",
+          "sources": [
+            "dc-beethoven"
+          ]
+        }
+      ],
+      "composer": "Ludwig van Beethoven",
+      "expected_title": "Piano Concerto No. 4 in G major",
+      "previous_title_ko": "피아노 협주곡 4번"
+    },
+    {
+      "qid": "Q239700",
+      "title_ko": "피아노 협주곡 5번 '황제'",
+      "sources": [
+        "sac-emperor"
+      ],
+      "aliases": [
+        {
+          "text": "황제",
+          "kind": "nickname",
+          "sources": [
+            "sac-emperor"
+          ]
+        },
+        {
+          "text": "베피협 5번",
+          "kind": "shorthand",
+          "sources": [
+            "dc-beethoven",
+            "dc-concert"
+          ]
+        }
+      ],
+      "composer": "Ludwig van Beethoven",
+      "expected_title": "Piano Concerto No. 5 in E-flat major",
+      "previous_title_ko": "피아노 협주곡 5번"
+    },
+    {
+      "qid": "Q210224",
+      "title_ko": "피아노 협주곡 2번",
+      "sources": [
+        "sac-rach23"
+      ],
+      "aliases": [
+        {
+          "text": "라흐 피협 2번",
+          "kind": "shorthand",
+          "sources": [
+            "goclassic-rach2"
+          ]
+        },
+        {
+          "text": "라피협2번",
+          "kind": "shorthand",
+          "sources": [
+            "dc-concert"
+          ]
+        }
+      ],
+      "composer": "Sergei Rachmaninoff",
+      "expected_title": "Piano Concerto No. 2 in C minor",
+      "previous_title_ko": "피아노 협주곡 2번"
+    },
+    {
+      "qid": "Q223337",
+      "title_ko": "피아노 협주곡 3번",
+      "sources": [
+        "sac-rach23"
+      ],
+      "aliases": [
+        {
+          "text": "라흐 피협 3번",
+          "kind": "shorthand",
+          "sources": [
+            "dc-rach3"
+          ]
+        },
+        {
+          "text": "라흐피협3번",
+          "kind": "shorthand",
+          "sources": [
+            "dc-usage"
+          ]
+        }
+      ],
+      "composer": "Sergei Rachmaninoff",
+      "expected_title": "Piano Concerto No. 3 in D minor",
+      "previous_title_ko": "피아노 협주곡 3번 (라흐마니노프)"
+    },
+    {
+      "qid": "Q230787",
+      "title_ko": "피아노 협주곡 4번",
+      "sources": [
+        "sac-rach34"
+      ],
+      "aliases": [],
+      "composer": "Sergei Rachmaninoff",
+      "expected_title": "Piano Concerto No. 4 in G minor",
+      "previous_title_ko": "피아노 협주곡 4번"
+    },
+    {
+      "qid": "Q1330443",
+      "title_ko": "파가니니 주제에 의한 광시곡",
+      "sources": [
+        "kbs-rhapsody"
+      ],
+      "aliases": [
+        {
+          "text": "파가니니 주제에 의한 랩소디",
+          "kind": "spelling",
+          "sources": [
+            "sac-rhapsody"
+          ]
+        }
+      ],
+      "composer": "Sergei Rachmaninoff",
+      "expected_title": "Rhapsody on a Theme of Paganini in A minor",
+      "previous_title_ko": "파가니니 주제에 의한 광시곡"
+    },
+    {
+      "qid": "Q2092679",
+      "title_ko": "교향적 무곡",
+      "sources": [
+        "spo-dances"
+      ],
+      "aliases": [],
+      "composer": "Sergei Rachmaninoff",
+      "expected_title": "Symphonic Dances",
+      "previous_title_ko": "교향적 무곡"
+    },
+    {
+      "qid": "Q2465725",
+      "title_ko": "보칼리제",
+      "sources": [
+        "sac-rach23"
+      ],
+      "aliases": [],
+      "composer": "Sergei Rachmaninoff",
+      "expected_title": "Vocalise in C-sharp minor",
+      "previous_title_ko": "보칼리제 (라흐마니노프)"
+    },
+    {
+      "qid": "Q162876",
+      "title_ko": "피아노 협주곡 1번",
+      "sources": [
+        "spo-brahms1"
+      ],
+      "aliases": [
+        {
+          "text": "브피협1",
+          "kind": "shorthand",
+          "sources": [
+            "dc-usage"
+          ]
+        },
+        {
+          "text": "브람스 피협 1번",
+          "kind": "shorthand",
+          "sources": [
+            "dc-usage"
+          ]
+        }
+      ],
+      "composer": "Johannes Brahms",
+      "expected_title": "Piano Concerto No. 1 in D minor",
+      "previous_title_ko": "피아노 협주곡 1번"
+    },
+    {
+      "qid": "Q210208",
+      "title_ko": "피아노 협주곡 2번",
+      "sources": [
+        "spo-brahms2"
+      ],
+      "aliases": [
+        {
+          "text": "브피협2번",
+          "kind": "shorthand",
+          "sources": [
+            "dc-brahms2"
+          ]
+        },
+        {
+          "text": "브피협2",
+          "kind": "shorthand",
+          "sources": [
+            "dc-brahms2"
+          ]
+        },
+        {
+          "text": "브람스 피협 2번",
+          "kind": "shorthand",
+          "sources": [
+            "dc-usage"
+          ]
+        }
+      ],
+      "composer": "Johannes Brahms",
+      "expected_title": "Piano Concerto No. 2 in B-flat major",
+      "previous_title_ko": "피아노 협주곡 2번 (브람스)"
+    },
+    {
+      "qid": "Q1156068",
+      "title_ko": "바이올린 협주곡",
+      "sources": [
+        "spo-brahms-vc"
+      ],
+      "aliases": [],
+      "composer": "Johannes Brahms",
+      "expected_title": "Violin Concerto in D major",
+      "previous_title_ko": "바이올린 협주곡"
+    },
+    {
+      "qid": "Q162935",
+      "title_ko": "피아노 협주곡 1번",
+      "sources": [
+        "news-tchaik1"
+      ],
+      "aliases": [
+        {
+          "text": "차피협 1번",
+          "kind": "shorthand",
+          "sources": [
+            "dc-concert"
+          ]
+        }
+      ],
+      "composer": "Pyotr Ilyich Tchaikovsky",
+      "expected_title": "Piano Concerto No. 1 in B-flat minor",
+      "previous_title_ko": "피아노 협주곡 1번 (차이콥스키)"
+    },
+    {
+      "qid": "Q246589",
+      "title_ko": "교향곡 6번 '비창'",
+      "sources": [
+        "ggac-pathetique"
+      ],
+      "aliases": [
+        {
+          "text": "비창",
+          "kind": "nickname",
+          "sources": [
+            "ggac-pathetique"
+          ]
+        }
+      ],
+      "composer": "Pyotr Ilyich Tchaikovsky",
+      "expected_title": "Symphony No. 6 in B minor",
+      "previous_title_ko": "교향곡 6번"
+    },
+    {
+      "qid": "Q372907",
+      "title_ko": "바이올린 협주곡",
+      "sources": [
+        "spo-tchaik-vc"
+      ],
+      "aliases": [
+        {
+          "text": "차바협",
+          "kind": "shorthand",
+          "sources": [
+            "review-tchaik-vc",
+            "news-violin"
+          ]
+        }
+      ],
+      "composer": "Pyotr Ilyich Tchaikovsky",
+      "expected_title": "Violin Concerto in D major",
+      "previous_title_ko": "바이올린 협주곡"
+    },
+    {
+      "qid": "Q1054060",
+      "title_ko": "바이올린 협주곡 마단조",
+      "sources": [
+        "spo-mendel-vc"
+      ],
+      "aliases": [
+        {
+          "text": "멘바협",
+          "kind": "shorthand",
+          "sources": [
+            "news-violin"
+          ]
+        }
+      ],
+      "composer": "Felix Mendelssohn",
+      "expected_title": "Violin Concerto in E minor",
+      "previous_title_ko": "바이올린 협주곡"
+    },
+    {
+      "qid": "Q11985",
+      "title_ko": "교향곡 9번 '신세계로부터'",
+      "sources": [
+        "spo-new-world"
+      ],
+      "aliases": [
+        {
+          "text": "신세계",
+          "kind": "nickname",
+          "sources": [
+            "spo-new-world"
+          ]
+        },
+        {
+          "text": "신세계로부터",
+          "kind": "nickname",
+          "sources": [
+            "spo-new-world"
+          ]
+        },
+        {
+          "text": "신세계 교향곡",
+          "kind": "nickname",
+          "sources": [
+            "spo-new-world"
+          ]
+        }
+      ],
+      "composer": "Antonin Dvorak",
+      "expected_title": "Symphony No. 9 in E minor",
+      "previous_title_ko": "교향곡 9번 신세계로부터"
+    },
+    {
+      "qid": "Q261040",
+      "title_ko": "교향곡 7번",
+      "sources": [
+        "spo-dvorak7"
+      ],
+      "aliases": [],
+      "composer": "Antonin Dvorak",
+      "expected_title": "Symphony No. 7 in D minor",
+      "previous_title_ko": "교향곡 7번"
+    },
+    {
+      "qid": "Q25609",
+      "title_ko": "바이올린 협주곡 가단조",
+      "sources": [
+        "spo-dvorak-vc"
+      ],
+      "aliases": [],
+      "composer": "Antonin Dvorak",
+      "expected_title": "Violin Concerto in A minor",
+      "previous_title_ko": null
+    },
+    {
+      "qid": "Q2991907",
+      "title_ko": "바이올린 협주곡 2번",
+      "sources": [
+        "spo-dances"
+      ],
+      "aliases": [],
+      "composer": "Sergei Prokofiev",
+      "expected_title": "Violin Concerto No. 2 in G minor",
+      "previous_title_ko": null
+    },
+    {
+      "qid": "Q147619",
+      "title_ko": "환상 즉흥곡",
+      "sources": [
+        "tomplay-fantaisie"
+      ],
+      "aliases": [
+        {
+          "text": "즉흥환상곡",
+          "kind": "spelling",
+          "sources": [
+            "piano-fantaisie"
+          ]
+        },
+        {
+          "text": "즉흥 환상곡",
+          "kind": "spelling",
+          "sources": [
+            "piano-fantaisie",
+            "tomplay-fantaisie"
+          ]
+        }
+      ],
+      "composer": "Frédéric Chopin",
+      "expected_title": "Fantaisie-impromptu in C-sharp minor, op. 66",
+      "previous_title_ko": "환상 즉흥곡"
+    },
+    {
+      "qid": "Q1144746",
+      "title_ko": "라 캄파넬라",
+      "sources": [
+        "sac-campanella"
+      ],
+      "aliases": [],
+      "composer": "Franz Liszt",
+      "expected_title": "La campanella in G-sharp minor",
+      "previous_title_ko": "라 캄파넬라"
+    },
+    {
+      "qid": "Q213728",
+      "title_ko": "골드베르크 변주곡",
+      "sources": [
+        "sac-goldberg"
+      ],
+      "aliases": [
+        {
+          "text": "골드버그 변주곡",
+          "kind": "spelling",
+          "sources": [
+            "yes24-goldberg"
+          ]
+        }
+      ],
+      "composer": "Johann Sebastian Bach",
+      "expected_title": "Goldberg Variations in G major",
+      "previous_title_ko": "골드베르크 변주곡"
+    },
+    {
+      "qid": "Q12025",
+      "title_ko": "아이네 클라이네 나흐트무지크",
+      "sources": [
+        "sac-nachtmusik"
+      ],
+      "aliases": [
+        {
+          "text": "아이네 클라이네 나흐트 무지크",
+          "kind": "spelling",
+          "sources": [
+            "sac-nachtmusik"
+          ]
+        }
+      ],
+      "composer": "Wolfgang Amadeus Mozart",
+      "expected_title": "Eine kleine Nachtmusik in G major",
+      "previous_title_ko": "아이네 클라이네 나흐트무지크"
+    }
+  ]
+}
