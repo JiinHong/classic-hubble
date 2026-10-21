@@ -1,0 +1,23 @@
+{
+  "version": "2026-10-21.full-audit.review.1",
+  "held": {
+    "Q1828307": "The publisher renders Choros as a choral work; Korean title requires corroboration.",
+    "Q2634994": "The Korean publisher title replaces triumph with revolution; hold for corroboration.",
+    "Q3504978": "Canonical label combines Incises and Sur incises; a name for only one cannot resolve the combined identity.",
+    "Q3859201": "Literal Korean wording is unsuitable as a preferred usage name without another observed source.",
+    "Q7776237": "The Korean title denotes the wounded person rather than the wound-dresser; hold for corroboration.",
+    "Q110174523": "Observed Korean title contains the typo 6개늬; do not publish a guessed correction.",
+    "Q126942627": "Korean rendering of the place name Padoue is uncertain; hold for corroboration.",
+    "Q130065873": "Observed Korean title contains 찬앙; do not publish a guessed correction.",
+    "Q118151618": "The canonical title specifies oboe while the recording catalogue specifies cello for RV 53; resolve the canonical instrument conflict before applying names.",
+    "Q111754658": "Petite piece is a single work but the observed Korean title says a collection of pieces; hold for corroboration.",
+    "Q111659775": "The observed Korean rendering of Lermontov appears incomplete; hold for corroboration.",
+    "Q28401324": "The observed rendering of Arcadiana appears to omit a syllable; hold for corroboration."
+  },
+  "preferred_names": {
+    "Q2261005": {"title_ko": "글로리아", "source": "sac-49084", "exclude_aliases": []},
+    "Q1231760": {"title_ko": "주께서 말씀하신다", "source": "sac-49084", "exclude_aliases": ["주께서 말씀하셨다 1 사단조"]},
+    "Q3328515": {"title_ko": "변화의 음악", "source": "culture-music-of-changes", "exclude_aliases": ["어린이를 위한 음악"]},
+    "Q67199148": {"title_ko": "교회의 창", "source": "catholic-vetrate", "exclude_aliases": ["교희의 창"]}
+  }
+}

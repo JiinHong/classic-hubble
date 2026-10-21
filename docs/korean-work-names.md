@@ -371,3 +371,106 @@ checks are recorded with the change. Local verification passes 378 Python tests,
 build. Review was sequential in this task, not independent-agent review.
 This batch does not establish complete
 Korean coverage, measured popularity, or 100% automatic work-matching accuracy.
+
+## Complete remaining-target audit (2026-10-21)
+
+All 8,442 works without a Korean display title at the start of this pass now have
+an explicit research outcome. This completes the bounded source audit, not Korean
+translation of every work or an exhaustive search of the web.
+
+- 430 works received observed Korean titles.
+- 141 were held for identity, scope, instrument, or source-text conflicts.
+- 7,803 had no compatible Korean title in the checked sources.
+- 68 had unavailable linked catalogue sources and no accepted Korean title.
+
+The pass refreshed every target's Wikidata entity and checked 2,718 linked
+English Wikipedia article requests (2,716 identity-valid articles). It checked
+114 composer identities on public Korean/US Apple Music Classical artist pages
+(228 responses, including eight 404s) and 287 selected albums in both locales
+(574 responses, including eight 404s). These supplied 1,413 artist-page and 1,783
+album-page bilingual observations. The earlier 47-album corpus and 204 Korean
+composer/work-list documents were also compared. Album selection followed public
+links containing complete, edition, collected, integral, all the, works, sonatas,
+symphonies, or concertos; it did not enumerate Apple's entire catalogue.
+
+Exactly one remaining entity supplied an explicit Apple Classical work ID; its
+two locale pages were checked. The 3,524 MusicBrainz-linked entities were not
+queried through that API because commercial API access was not configured. Their
+audit entries state this limitation. No audio, artwork, private endpoint or
+search endpoint was collected. Names observed in a publisher catalogue do not
+establish which name is most popular among Korean listeners.
+
+The catalogue-less fallback requires a unique full title or existing alias within
+the same composer, consistent Korean/English catalogue information, and no known
+key, number or scope conflict. It does not use fuzzy matching or an LLM. Imported
+names do not promote a work out of review-only status. Twelve manually held
+identities are listed in `workers/data/work-name-audit-review.json`.
+
+Three independent public sources resolved four publisher-name issues:
+
+- [Seoul Arts Center programme](https://www.sac.or.kr/site/main/show/show_view?SN=49084)
+  supports Vivaldi's Gloria and Handel's Dixit Dominus names.
+- [Inmun360 music article](https://inmun360.culture.go.kr/content/357.do?cid=102728&mode=view&page=)
+  supports Cage's Music of Changes; the publisher's unrelated Korean name is excluded.
+- [Catholic newspaper music column](https://news.catholic.or.kr/WZ_NP/section/view.asp?cseq=3&seq=216753&tbcode=SEC08)
+  supports Respighi's Vetrate di chiesa; the publisher's misspelling is excluded.
+
+### Application and verification
+
+`workers/data/korean-full-audit-names.json` is immutable version
+`2026-10-21.full-audit.names.1`, digest
+`8d048cb7de05d0247ed2c549b55b391356d3362126201fd22045e1bfd0dbc05c`.
+The existing guarded importer filled 430 previously null titles and added 590
+aliases (434 Korean, 156 English). Production now has 3,634 Korean titles among
+11,646 works, 8,012 missing titles, and 39,680 aliases.
+
+Readback confirmed all previous titles/aliases, 209 composers, 229 program items,
+canonical crosswalks and non-title work fields were preserved. All 11,642 imported
+review-only works remain review-only. All 430 naming provenance records match the
+manifest. Replaying it proposes zero title or alias changes.
+
+`/reference/work-name-audit.json` records all 8,442 outcomes with source URLs,
+available revisions, observation times/hashes, conflicts and limitations. Digest:
+`2c193ef30e89eb1f05f17febc5e9085f4e48270484cd7c8c78004bbeb4d96443`.
+All 8,442 corresponding `provider_records` with entity type `work_name_audit`
+were read back and compared with the planned payloads. The audit is an on-demand
+reference download, not a homepage data dependency. The existing public naming
+reference has eight datasets; its prior seven datasets are unchanged.
+
+Local checks pass 402 Python tests, 15 shared tests, 76 web tests, scoped Ruff,
+ESLint and the production build. Tests cover incomplete/incorrect source IDs,
+composer/name ambiguity, catalogue/key/scope conflicts, public work/composer
+pairing, exact target coverage, evidence integrity and canonical identity guards.
+
+Search verification against a fresh production readback passed 1,068 queries:
+48 previous regression cases, all 430 new display names and all 590 new aliases.
+The previous cases retained their expected first match. New queries combined the
+composer, observed name and existing catalogue number; each expected work was
+returned, with a worst rank of six. This is not a claim that every bare alias is
+unique or always ranks first.
+
+Review ran sequentially in the main task, per the user's execution constraint;
+it was not independent-agent review. Code review: skipped (ce-code-review
+unavailable). The dedicated multi-agent flow could not produce an independent
+receipt under that constraint. Manual validation covered the full new Python
+module, tests, manifest identities and source evidence, data-preservation guards,
+partial-run recovery, and the generated audit. No blocking issue remained.
+
+### Reapplication and recovery
+
+Use the existing importer with `--dictionary workers/data/korean-full-audit-names.json`
+and a local `--report` path. Omit `--apply` first. It checks the exact Classic
+Hubble project, composer, canonical title and previous Korean title. Names and
+provenance are additive; a partial run can resume without replacing old aliases.
+
+For audit records, `catalog_name_audit.plan_audit` validates the fingerprint and
+current canonical crosswalk before the existing `apply_plan` writes provenance
+in conflict-ignored batches. Do not edit an applied artifact; create a new version
+for corrections. Keep original audit history.
+
+Rollback requires the saved application report, not a blanket deletion: restore
+only titles whose current value still equals this batch's imported value, and
+remove only newly inserted aliases with this manifest's source digest and exact
+work/name identity. Preserve later edits, prior aliases and all provenance. No
+schema, authentication, collection schedule or automatic programme matching rule
+changed in this pass.
