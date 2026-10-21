@@ -5,6 +5,7 @@ import io
 import pytest
 from classic_hubble_pipeline.ocr import PIPELINE_VERSION
 from classic_hubble_pipeline.r2 import R2Error, StoredObject
+from pdf_fixtures import make_pdf
 from PIL import Image
 
 
@@ -122,16 +123,41 @@ def test_deadline_is_resumable_and_does_not_claim_all_completed():
     assert store.reads == 0
 
 
-def test_pdf_gets_explicit_manual_handling_record_not_empty_success():
+def test_pdf_is_extracted_and_old_unsupported_cache_is_replaced():
     store = Store()
+    store.data = make_pdf()
+    store.sha = hashlib.sha256(store.data).hexdigest()
     repo = Repository(store)
     repo.sources[0]["content_type"] = "application/pdf"
+    repo.records["ocr_result", "old-pdf"] = {
+        "source_sha256": store.sha,
+        "pipeline_version": PIPELINE_VERSION,
+        "bucket": store.bucket,
+        "status": "needs_manual_handling",
+    }
     result = module().process_archives(
         repo, store, lambda _: pytest.fail(), max_seconds=60
     )
+    assert result["counters"]["processed"] == 1
+    assert result["counters"]["manual"] == 0
+    assert store.saved[0]["status"] == "text_extracted"
+    assert store.saved[0]["pipeline_version"] != PIPELINE_VERSION
+    assert store.reads == 1
+    again = module().process_archives(
+        repo, store, lambda _: pytest.fail(), max_seconds=60
+    )
+    assert again["counters"]["cached"] == 1
+    assert store.reads == 1
+
+
+def test_invalid_pdf_is_manual_not_cached_as_empty_text():
+    store = Store()
+    repo = Repository(store)
+    repo.sources[0]["content_type"] = "application/pdf"
+    result = module().process_archives(repo, store, lambda _: [], max_seconds=60)
     assert result["counters"]["manual"] == 1
-    assert repo.load_ocr_results()[0]["status"] == "needs_manual_handling"
-    assert store.reads == 0
+    assert repo.load_ocr_results()[0]["reason"] == "invalid_pdf"
+    assert store.reads == 1
 
 
 def test_wrong_source_hash_is_never_processed():
