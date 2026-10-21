@@ -43,6 +43,34 @@ const numbers = (text: string) =>
   );
 const keys = (text: string) =>
   [...text.matchAll(musicalKey)].map((match) => normalize(match[1]));
+const romanPositions = [
+  "I",
+  "II",
+  "III",
+  "IV",
+  "V",
+  "VI",
+  "VII",
+  "VIII",
+  "IX",
+  "X",
+  "XI",
+  "XII",
+  "XIII",
+  "XIV",
+  "XV",
+  "XVI",
+  "XVII",
+  "XVIII",
+  "XIX",
+  "XX",
+];
+const ordinalPosition = (value: string | undefined) =>
+  value === undefined
+    ? null
+    : /^\d+$/.test(value)
+      ? Number(value)
+      : romanPositions.indexOf(value.toUpperCase()) + 1;
 
 type IndexedWork = {
   work: Work;
@@ -152,14 +180,8 @@ export function identifyYouTubeWorks(
     const normalized = normalize(text);
     const ordinal = text
       .replace(/^\s*\[?(?:\d{1,2}:)?\d{1,3}:\d{2}\]?\s*/, "")
-      .match(/^\s*(I{1,3}|IV|V|VI{1,3}|IX|X|\d{1,2})[.)]\s+/i)?.[1];
-    const movementPosition = ordinal
-      ? /^\d+$/.test(ordinal)
-        ? Number(ordinal)
-        : ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X"].indexOf(
-            ordinal.toUpperCase(),
-          ) + 1
-      : null;
+      .match(/^\s*([IVX]+|\d{1,2})[.)]+\s+/i)?.[1];
+    const movementPosition = ordinalPosition(ordinal);
     const explicitIds = composerIds(text);
     const composer = explicitIds.size ? explicitIds : contextIds;
     const inputCatalogues = catalogues(text);
@@ -168,6 +190,13 @@ export function identifyYouTubeWorks(
       /\b(?:op|bwv|hwv|kv|k|rv|d|s|woo)\.?\s*\d+\s*[-–—]\s*\d+/i.test(text)
     )
       continue;
+    const catalogueMatch = [...text.matchAll(cataloguePattern)][0];
+    const catalogueOrdinal = catalogueMatch
+      ? text
+          .slice(catalogueMatch.index! + catalogueMatch[0].length)
+          .match(/^[\s:,–—-]+([IVX]+|\d{1,2})[.)]+\s+/i)?.[1]
+      : undefined;
+    const cataloguePosition = ordinalPosition(catalogueOrdinal);
     const inputNumbers = numbers(text),
       inputKeys = keys(text);
     const found: { work: Work; reason: YouTubeMatchReason; rank: number }[] =
@@ -185,6 +214,14 @@ export function identifyYouTubeWorks(
       )
         continue;
       if (composer.size && !composer.has(work.composer.id)) continue;
+      const catalogueComponent =
+        cataloguePosition !== null &&
+        work.partOf?.find(
+          (parent) =>
+            parent.position === cataloguePosition &&
+            inputCatalogues.includes(catalogueKey(parent.catalogue)),
+        );
+      if (cataloguePosition !== null && !catalogueComponent) continue;
       const component = work.partOf?.find(
         (parent) =>
           parent.position !== null &&
@@ -195,6 +232,7 @@ export function identifyYouTubeWorks(
       );
       if (
         !component &&
+        !catalogueComponent &&
         inputNumbers.length &&
         item.numbers.length &&
         inputNumbers.some((n) => !item.numbers.includes(n))
@@ -206,7 +244,11 @@ export function identifyYouTubeWorks(
         inputKeys.some((key) => !item.keys.includes(key))
       )
         continue;
-      if (inputCatalogues.length && !inputCatalogues.includes(item.catalogue))
+      if (
+        inputCatalogues.length &&
+        !catalogueComponent &&
+        !inputCatalogues.includes(item.catalogue)
+      )
         continue;
       const hasComposer = composer.has(work.composer.id);
       const name = item.names.find(
@@ -214,7 +256,11 @@ export function identifyYouTubeWorks(
           name.length >= (hasComposer ? 2 : 3) && contains(normalized, name),
       );
       let reason: YouTubeMatchReason;
-      if (hasComposer && inputCatalogues.length && item.catalogue)
+      if (
+        hasComposer &&
+        inputCatalogues.length &&
+        (item.catalogue || catalogueComponent)
+      )
         reason = "composer_catalogue";
       else if (hasComposer && (name || component)) reason = "composer_title";
       else if (

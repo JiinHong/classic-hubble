@@ -79,4 +79,10 @@ describe("metadata work candidates", () => {
     const movement = {...flower, title:"Allegro", titleKo:"Allegro", aliases:[], catalogue:""};
     expect(slugs(identify("Schumann recital", "I. Allegro 00:15", [parent,movement]))).toEqual([]);
   });
+  it("maps a Roman-numbered piece after the parent catalogue to the component", () => {
+    expect(slugs(identify("Kun-Woo Paik - Schumann: Waldszene Op. 82: III.. Einsame Blume"))).toEqual([flower.slug]);
+  });
+  it("does not substitute the parent when an explicit component is missing", () => {
+    expect(slugs(identify("Schumann: Waldszenen Op. 82: IV. Verrufene Stelle"))).toEqual([]);
+  });
 });
