@@ -36,6 +36,9 @@ export async function GET(request: Request) {
   return Response.json(result, {
     headers: {
       "Cache-Control": "no-store",
+      // This endpoint contains only anonymous catalog data, never user libraries.
+      "Vercel-CDN-Cache-Control":
+        "public, s-maxage=60, stale-while-revalidate=300",
       "Server-Timing": `catalog;dur=${(loadedAt - startedAt).toFixed(1)}, search;dur=${(performance.now() - loadedAt).toFixed(1)}`,
     },
   });
