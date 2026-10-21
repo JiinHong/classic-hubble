@@ -7,6 +7,8 @@ import {
   type Work,
 } from "@classic-hubble/shared";
 import { unstable_cache } from "next/cache";
+import { promisify } from "node:util";
+import { gzip, gunzip } from "node:zlib";
 
 import openOpusComposers from "@/data/openopus-composers.json";
 import workComponents from "@/data/work-components.json";
@@ -153,24 +155,26 @@ function firstRelation<T>(value: Relation<T> | undefined) {
   return value ?? null;
 }
 
+const dateFormatter = new Intl.DateTimeFormat("en", {
+  day: "2-digit",
+  month: "2-digit",
+  timeZone: "Asia/Seoul",
+  year: "numeric",
+});
+const timeFormatter = new Intl.DateTimeFormat("ko-KR", {
+  hour: "2-digit",
+  hourCycle: "h23",
+  minute: "2-digit",
+  timeZone: "Asia/Seoul",
+});
+
 function datePartsForKorea(value: string) {
   const date = new Date(value);
-  const dateFormatter = new Intl.DateTimeFormat("en", {
-    day: "2-digit",
-    month: "2-digit",
-    timeZone: "Asia/Seoul",
-    year: "numeric",
-  });
   const dateParts = Object.fromEntries(
     dateFormatter.formatToParts(date).map((part) => [part.type, part.value]),
   );
   const datePart = `${dateParts.year}-${dateParts.month}-${dateParts.day}`;
-  const timePart = new Intl.DateTimeFormat("ko-KR", {
-    hour: "2-digit",
-    hourCycle: "h23",
-    minute: "2-digit",
-    timeZone: "Asia/Seoul",
-  }).format(date);
+  const timePart = timeFormatter.format(date);
 
   return { date: datePart, time: timePart };
 }
@@ -344,6 +348,36 @@ async function readCatalogPages<T>(
 
 let cachedCatalog: { expires: number; value: CatalogSnapshot } | undefined;
 let pendingCatalog: Promise<CatalogSnapshot> | undefined;
+const compress = promisify(gzip);
+const decompress = promisify(gunzip);
+
+// Separate compressed groups stay below cache limits without dozens of lookups.
+const readSharedCatalog = unstable_cache(
+  async (
+    table: "works" | "performances",
+    columns: string,
+    sortColumn: string,
+  ) => {
+    const rows = await readCatalogPages(table, columns, sortColumn);
+    const encoded = (await compress(JSON.stringify(rows))).toString("base64");
+    // Leave room below the platform's per-entry limit; larger catalogs use pages.
+    return encoded.length <= 1_800_000 ? encoded : null;
+  },
+  ["public-catalog-group-v1", process.env.NEXT_PUBLIC_SUPABASE_URL ?? ""],
+  { revalidate: 60 },
+);
+
+async function readSharedCatalogRows<T>(
+  table: "works" | "performances",
+  columns: string,
+  sortColumn: string,
+): Promise<T[]> {
+  const encoded = await readSharedCatalog(table, columns, sortColumn);
+  if (encoded === null) return readCatalogPages<T>(table, columns, sortColumn);
+  return JSON.parse(
+    (await decompress(Buffer.from(encoded, "base64"))).toString("utf8"),
+  );
+}
 
 // Only anonymous, public catalog data is shared; user libraries never enter this cache.
 export async function getCatalogSnapshot(): Promise<CatalogSnapshot> {
@@ -368,8 +402,8 @@ async function readCatalogSnapshot(): Promise<CatalogSnapshot> {
 
   try {
     const [workRows, performanceRows] = await Promise.all([
-      readCatalogPages<WorkRow>("works", WORK_COLUMNS, "popularity_rank"),
-      readCatalogPages<PerformanceRow>(
+      readSharedCatalogRows<WorkRow>("works", WORK_COLUMNS, "popularity_rank"),
+      readSharedCatalogRows<PerformanceRow>(
         "performances",
         PERFORMANCE_COLUMNS,
         "starts_at",

@@ -41,6 +41,9 @@ describe("public catalog search route", () => {
       ),
     );
     expect(response.status).toBe(200);
+    expect(response.headers.get("Server-Timing")).toMatch(
+      /^catalog;dur=\d+(\.\d+)?, search;dur=\d+(\.\d+)?$/,
+    );
     expect((await response.json()).works[0].slug).toBe("beethoven-symphony-5");
   });
 });
