@@ -2,6 +2,7 @@ import hashlib
 import importlib
 import importlib.util
 import io
+import json
 
 import boto3
 import pytest
@@ -138,3 +139,35 @@ def test_read_rejects_corrupted_bytes():
             module().R2Store(settings(), client=s3).read(
                 "originals/sha256/aa/" + "a" * 64
             )
+
+
+def test_ocr_json_is_content_addressed_separately_and_readable():
+    result = {"lines": [], "status": "no_text"}
+    data = json.dumps(
+        result,
+        sort_keys=True,
+        ensure_ascii=False,
+        separators=(",", ":"),
+        allow_nan=False,
+    ).encode()
+    digest = hashlib.sha256(data).hexdigest()
+    key = f"ocr/sha256/{digest[:2]}/{digest}"
+    s3 = client()
+    with Stubber(s3) as stub:
+        stub.add_client_error("head_object", "404", http_status_code=404)
+        stub.add_response(
+            "put_object",
+            {},
+            {
+                "Bucket": "classic-hubble-sources",
+                "Key": key,
+                "Body": data,
+                "ContentType": "application/json",
+                "Metadata": {"sha256": digest},
+            },
+        )
+        stub.add_response("get_object", {"Body": io.BytesIO(data)})
+        store = module().R2Store(settings(), client=s3)
+        saved = store.archive_ocr_result(result)
+        assert saved.key == key
+        assert json.loads(store.read(key)) == result

@@ -426,3 +426,23 @@ def test_program_item_replacement_rejects_duplicate_positions():
         )
 
     http_client.close()
+
+
+def test_load_ocr_results_is_private_provider_scoped_and_paginated():
+    requests = []
+    def handler(request):
+        requests.append(request)
+        assert request.url.params["provider"] == "eq.paddleocr"
+        assert request.url.params["entity_type"] == "eq.ocr_result"
+        offset = int(request.url.params["offset"])
+        return httpx.Response(200, json=(
+            [{"id": "r1", "payload": {"source_sha256": "hash"}}]
+            if offset == 0 else []
+        ))
+    with httpx.Client(transport=httpx.MockTransport(handler)) as client:
+        repo = SupabaseRepository(
+            SupabaseSettings(url="https://project.supabase.co", api_key="test"),
+            http_client=client,
+        )
+        assert repo.load_ocr_results(page_size=1) == [{"source_sha256": "hash"}]
+        assert len(requests) == 2

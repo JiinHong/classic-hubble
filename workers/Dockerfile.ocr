@@ -1,0 +1,15 @@
+FROM python:3.11-slim-bookworm
+
+ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=/app/src \
+    HOME=/tmp OCR_MODEL_DIR=/models PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK=True \
+    OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1
+WORKDIR /app
+RUN apt-get update && apt-get install -y --no-install-recommends libglib2.0-0 libgl1 libgomp1 \
+    && rm -rf /var/lib/apt/lists/*
+COPY requirements-cloud.txt requirements-ocr.txt ./
+RUN pip install --no-cache-dir -r requirements-ocr.txt
+COPY bundle_ocr_models.py ./
+RUN python bundle_ocr_models.py /models
+COPY src ./src
+USER 10001
+ENTRYPOINT ["python", "-m", "classic_hubble_pipeline.ocr_worker"]
