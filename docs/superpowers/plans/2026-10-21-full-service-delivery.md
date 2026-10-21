@@ -79,3 +79,11 @@ job. Native text is preserved; scanned and mixed pages go through PaddleOCR.
 Unit 2 is still partial: broader PDF link discovery, semantic program-change
 comparison and recurring orchestration remain. OCR evidence is not automatically
 published as a program. Units 3-6 are not completed by image recognition.
+
+## Music Processing Progress
+
+Unit 3 now has a provider-independent grounded extraction contract, exact OCR
+evidence validation, canonical review suggestions and a private prepare/import
+CLI. See `docs/music-extraction.md`. No model is connected or called yet, and no
+OCR-derived result is published. The catalogue still contains four works.
+Canonical expansion, model evaluation and actual batch inference remain pending.

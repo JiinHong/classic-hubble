@@ -105,6 +105,12 @@ class R2Store:
         return self._archive(content, content_type, "originals")
 
     def archive_ocr_result(self, result: Mapping[str, object]) -> StoredObject:
+        return self._archive_json(result, "ocr")
+
+    def archive_extraction_result(self, result: Mapping[str, object]) -> StoredObject:
+        return self._archive_json(result, "extractions")
+
+    def _archive_json(self, result: Mapping[str, object], prefix: str) -> StoredObject:
         content = json.dumps(
             result,
             sort_keys=True,
@@ -112,7 +118,7 @@ class R2Store:
             separators=(",", ":"),
             allow_nan=False,
         ).encode("utf-8")
-        return self._archive(content, "application/json", "ocr")
+        return self._archive(content, "application/json", prefix)
 
     def _archive(self, content: bytes, content_type: str, prefix: str) -> StoredObject:
         if not content or len(content) > MAX_SOURCE_BYTES:
@@ -150,8 +156,10 @@ class R2Store:
         return StoredObject(key, digest, len(content), content_type, True)
 
     def read(self, key: str) -> bytes:
-        if not re.fullmatch(r"(?:originals|ocr)/sha256/[a-f0-9]{2}/[a-f0-9]{64}", key):
-            raise ValueError("Expected a content-addressed source or OCR object key")
+        if not re.fullmatch(
+            r"(?:originals|ocr|extractions)/sha256/[a-f0-9]{2}/[a-f0-9]{64}", key
+        ):
+            raise ValueError("Expected a content-addressed evidence object key")
         response = self._call("get_object", Bucket=self.bucket, Key=key)
         body = response["Body"]
         try:
