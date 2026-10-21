@@ -1,11 +1,10 @@
 "use client";
 
 import {
-  findWorksByQueryInList,
-  getUpcomingPerformancesFromList,
-  type Performance,
-  type Work,
-} from "@classic-hubble/shared";
+  SEARCH_PAGE_SIZE,
+  type CatalogSearchResult,
+  type SearchMode,
+} from "@/lib/catalog-search";
 import {
   ChevronDown,
   ListMusic,
@@ -14,78 +13,92 @@ import {
   Youtube,
 } from "lucide-react";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { PerformanceCard } from "./PerformanceCard";
 import { WorkCard } from "./WorkCard";
 
 const quickQueries = ["라흐 피협 2번", "운명", "신세계", "브바협"];
-const batchSize = 24;
-
-type SearchMode = "works" | "performances";
 
 type SearchExperienceProps = {
   initialQuery?: string;
-  performances: Performance[];
-  works: Work[];
+  initialResult: CatalogSearchResult;
 };
 
 export function SearchExperience({
   initialQuery = "",
-  performances,
-  works,
+  initialResult,
 }: SearchExperienceProps) {
   const [query, setQuery] = useState(initialQuery);
   const [mode, setMode] = useState<SearchMode>("works");
   const [city, setCity] = useState("전체");
-  const [visibleCount, setVisibleCount] = useState(batchSize);
+  const [offset, setOffset] = useState(0);
+  const [retry, setRetry] = useState(0);
+  const requestKey = JSON.stringify([query, mode, city, offset, retry]);
+  const [state, setState] = useState({
+    key: requestKey,
+    result: initialResult,
+    error: false,
+  });
+  const completedKey = useRef(requestKey);
+  const loading = state.key !== requestKey;
+  const error = !loading && state.error;
+  const { works: workResults, performances: performanceResults } = state.result;
+
+  useEffect(() => {
+    if (completedKey.current === requestKey) return;
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      try {
+        const params = new URLSearchParams({
+          q: query,
+          mode,
+          city,
+          offset: String(offset),
+        });
+        const response = await fetch(`/api/catalog/search?${params}`, {
+          signal: controller.signal,
+        });
+        if (!response.ok) throw new Error("Search unavailable");
+        const result: CatalogSearchResult = await response.json();
+        if (controller.signal.aborted) return;
+        completedKey.current = requestKey;
+        setState((previous) => ({
+          key: requestKey,
+          error: false,
+          result:
+            offset === 0
+              ? result
+              : {
+                  ...result,
+                  works: [...previous.result.works, ...result.works],
+                  performances: [
+                    ...previous.result.performances,
+                    ...result.performances,
+                  ],
+                },
+        }));
+      } catch {
+        if (!controller.signal.aborted) {
+          completedKey.current = requestKey;
+          setState((previous) => ({
+            ...previous,
+            key: requestKey,
+            error: true,
+          }));
+        }
+      }
+    }, 200);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [query, mode, city, offset, retry, requestKey]);
 
   function changeQuery(value: string) {
     setQuery(value);
-    setVisibleCount(batchSize);
+    setOffset(0);
   }
-
-  const workResults = useMemo(() => {
-    const trimmed = query.trim();
-    return trimmed ? findWorksByQueryInList(works, trimmed) : works;
-  }, [query, works]);
-  const matchedWorkSlugs = useMemo(
-    () => new Set(workResults.map((work) => work.slug)),
-    [workResults],
-  );
-
-  const performanceResults = useMemo(() => {
-    const lowered = query.trim().toLowerCase();
-
-    return getUpcomingPerformancesFromList(performances).filter(
-      (performance) => {
-        const cityMatches = city === "전체" || performance.city === city;
-        if (!cityMatches) return false;
-        if (!lowered) return true;
-
-        const haystack = [
-          performance.title,
-          performance.venue,
-          performance.city,
-          ...performance.artists,
-          ...performance.program.flatMap((item) => [
-            item.composerName,
-            item.displayTitle,
-            item.source.label,
-          ]),
-        ]
-          .join(" ")
-          .toLowerCase();
-
-        return (
-          haystack.includes(lowered) ||
-          performance.program.some((item) =>
-            matchedWorkSlugs.has(item.workSlug),
-          )
-        );
-      },
-    );
-  }, [city, matchedWorkSlugs, performances, query]);
 
   return (
     <section aria-labelledby="search-heading" className="space-y-5">
@@ -101,6 +114,7 @@ export function SearchExperience({
             </label>
             <input
               id="concert-search"
+              maxLength={200}
               value={query}
               onChange={(event) => changeQuery(event.target.value)}
               placeholder="곡명, 별칭, 작곡가, 공연장"
@@ -115,7 +129,7 @@ export function SearchExperience({
                 type="button"
                 onClick={() => {
                   setMode(item);
-                  setVisibleCount(batchSize);
+                  setOffset(0);
                 }}
                 aria-pressed={mode === item}
                 className={`rounded-md text-sm font-black transition ${
@@ -131,8 +145,12 @@ export function SearchExperience({
         </div>
 
         <div className="mt-4 flex flex-wrap items-center gap-2">
-          <Link href="/youtube" className="inline-flex h-8 items-center gap-1.5 rounded-md border border-stone-200 px-3 text-sm font-semibold text-stone-700 hover:border-red-300 hover:bg-red-50">
-            <Youtube aria-hidden="true" className="size-4 text-red-600" />유튜브로 찾기
+          <Link
+            href="/youtube"
+            className="inline-flex h-8 items-center gap-1.5 rounded-md border border-stone-200 px-3 text-sm font-semibold text-stone-700 hover:border-red-300 hover:bg-red-50"
+          >
+            <Youtube aria-hidden="true" className="size-4 text-red-600" />
+            유튜브로 찾기
           </Link>
           <span className="inline-flex h-8 items-center gap-1 rounded-md bg-stone-100 px-2 text-xs font-bold text-stone-500">
             <ListMusic aria-hidden="true" className="size-3.5" />곡 바로 찾기
@@ -162,7 +180,7 @@ export function SearchExperience({
               type="button"
               onClick={() => {
                 setCity(item);
-                setVisibleCount(batchSize);
+                setOffset(0);
               }}
               aria-pressed={city === item}
               className={`h-9 rounded-md border px-3 text-sm font-bold transition ${
@@ -186,26 +204,44 @@ export function SearchExperience({
             {mode === "works" ? "곡으로 찾는 공연" : "예정 공연"}
           </h1>
           <p className="mt-1 text-sm font-semibold text-stone-500">
-            {mode === "works"
-              ? `${workResults.length}개 작품 매칭`
-              : `${performanceResults.length}개 공연 매칭`}
+            {loading
+              ? "검색 중"
+              : error
+                ? "검색 일시 중단"
+                : `${state.result.total}개 ${mode === "works" ? "작품" : "공연"} 매칭`}
           </p>
         </div>
       </div>
 
-      {(mode === "works" ? workResults : performanceResults).length === 0 ? (
+      {error ? (
+        <div role="alert" className="py-8 text-sm text-stone-600">
+          검색 결과를 불러오지 못했습니다.
+          <button
+            type="button"
+            onClick={() => setRetry((value) => value + 1)}
+            className="ml-3 font-bold text-emerald-800"
+          >
+            다시 시도
+          </button>
+        </div>
+      ) : loading && offset === 0 ? (
+        <p role="status" className="py-12 text-center text-sm text-stone-500">
+          검색 중입니다.
+        </p>
+      ) : (mode === "works" ? workResults : performanceResults).length === 0 ? (
         <p role="status" className="py-12 text-center text-sm text-stone-500">
           검색 결과가 없습니다.
         </p>
       ) : mode === "works" ? (
         <div className="grid gap-4 md:grid-cols-2">
-          {workResults.slice(0, visibleCount).map((work) => (
+          {workResults.map((work) => (
             <WorkCard key={work.slug} work={work} />
           ))}
-          {visibleCount < workResults.length ? (
+          {state.result.hasMore ? (
             <button
               type="button"
-              onClick={() => setVisibleCount((count) => count + batchSize)}
+              disabled={loading}
+              onClick={() => setOffset((count) => count + SEARCH_PAGE_SIZE)}
               className="flex h-11 items-center justify-center gap-2 rounded-md border border-stone-300 bg-white text-sm font-bold text-stone-700 hover:bg-stone-50 md:col-span-2"
             >
               <ChevronDown aria-hidden="true" className="size-4" />
@@ -215,19 +251,18 @@ export function SearchExperience({
         </div>
       ) : (
         <div className="grid gap-4">
-          {performanceResults
-            .slice(0, visibleCount)
-            .map((performance, index) => (
-              <PerformanceCard
-                eager={index === 0}
-                key={performance.id}
-                performance={performance}
-              />
-            ))}
-          {visibleCount < performanceResults.length ? (
+          {performanceResults.map((performance, index) => (
+            <PerformanceCard
+              eager={index === 0}
+              key={performance.id}
+              performance={performance}
+            />
+          ))}
+          {state.result.hasMore ? (
             <button
               type="button"
-              onClick={() => setVisibleCount((count) => count + batchSize)}
+              disabled={loading}
+              onClick={() => setOffset((count) => count + SEARCH_PAGE_SIZE)}
               className="flex h-11 items-center justify-center gap-2 rounded-md border border-stone-300 bg-white text-sm font-bold text-stone-700 hover:bg-stone-50"
             >
               <ChevronDown aria-hidden="true" className="size-4" />
