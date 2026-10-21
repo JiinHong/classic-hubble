@@ -171,3 +171,93 @@ removed formatting noise without broad refactoring. No independent-agent review
 was performed: the user's task instructions require same-thread execution, which
 does not satisfy the independent-review skill's dispatch contract. Browser and
 deployment checks are recorded with the release.
+
+## Observed Korean and English expansion (2026-10-21, second pass)
+
+This pass adds source-observed names, not another formal-translation batch:
+
+- `english-wikipedia-names.json`: 4,596 exact-QID works, 16,343 observed article
+  titles/redirect names before deduplication against the database. Fragment redirects,
+  missing pages and disambiguation pages are excluded. English aliases never write
+  a Korean display title, including when a later Korean curation has changed it.
+- `korean-worklist-names.json`: 386 works from 11 Korean composer/work-list pages.
+  The candidate review fills 128 missing Korean display titles. Complete catalogue
+  codes and composers must match uniquely; duplicate codes, conflicting rows,
+  incompatible genres, work numbers, keys and excerpt scopes are excluded.
+- `concert-usage-names-2026-10-21.json`: six works checked against concert programs
+  and concert notices. Adds variants such as `홀베르그 모음곡`, `다비드동맹무곡`,
+  `포욜라의 딸`, `목신의 오후 전주곡`, and `터키풍` to their own work IDs.
+  The two new preferred titles do not overwrite any pre-release Korean title.
+
+These are **observed usages, not a measured popularity ranking**. The first 35-work
+curated dictionary remains intact. Wikipedia provides broad reference coverage;
+concert/community evidence is recorded separately. No invented abbreviations are
+created by combining composer initials, genres and arbitrary numbers.
+
+`worklist-name-review.json` records manual exclusions and exact-substring trims.
+`korean-worklist-rejections.json` retains 571 excluded candidate rows with reasons.
+Examples include a source calling Mozart K.452 a quartet instead of a quintet,
+Prokofiev Op.84 being labelled B-flat minor rather than B-flat major, and an
+uncorroborated Sibelius transliteration. Beethoven Op.132's movement nickname is
+removed from the whole-work title. Two concert-notice sources returned 403 on direct
+fetch; their search-index evidence is explicitly labelled, not represented as a
+successful direct-page retrieval.
+
+### Collection and replay
+
+Use the sitelink query above with `https://en.wikipedia.org/` and run:
+
+```sh
+python -m classic_hubble_pipeline.wikipedia_work_names \
+  --language en --sitelinks /tmp/en-sitelinks.json --cache /tmp/en-wiki-pages \
+  --output /tmp/english-names-candidate.json
+```
+
+Language is included in response cache identity. Article requests remain batched,
+cached and rate-limited; no audio, video or personal data is collected.
+
+`worklist_names.extract_rows` reads rendered MediaWiki parse responses, separating
+table cells and direct list-item text from nested movements. `match_rows` produces
+accepted/rejected candidates. `build_manifest` accepts those source documents plus
+the explicit review decisions, works, composers and canonical crosswalks. Its output
+must be inspected before use; source text is not an instruction to publish.
+The committed source revision IDs and row evidence permit an independent recheck.
+
+Replay the three new manifests in the order listed above with the guarded
+`korean_work_names` importer, first without `--apply`. They are additive and use the
+existing project restriction, identity guards and compare-and-set title updates.
+The same importer can replay the old Korean-only manifests unchanged.
+
+The public evidence file now includes both languages and the additional concert
+sources. It exposes no operational UUIDs or previous-title guards. The footer
+attributes both Korean and English Wikipedia contributors.
+
+### Review and verification limits
+
+Review was performed sequentially in this task, not by an independent agent, in
+accordance with the user's AGENTS instructions. Whole-repository Ruff currently
+reports 27 pre-existing findings outside this change; scoped Ruff for all changed
+Python modules/tests is clean. Existing unrelated files were not reformatted.
+Corpus-wide matching accuracy and popularity have not been established by this
+name-enrichment pass; imported canonical works retain their review-only status.
+
+### Verified database result
+
+The production readback confirms 11,837 new aliases (363 Korean, 11,474 English)
+across 3,939 changed works and 130 newly filled Korean titles. Totals are 36,027
+aliases and 2,191 Korean-titled works out of 11,646 canonical works. The remaining
+9,455 works still need Korean title research; source observation does not prove
+that each spelling is frequent or preferred by audiences.
+
+All 209 composers, 229 program items, canonical crosswalks, prior aliases and
+non-title work fields were preserved. All 11,642 imported review-only works retain
+that status. Every one of the 4,988 provenance records was checked, and replaying
+all three manifests proposes zero title or alias changes.
+
+Twenty-five searches against the full production catalog pass, including
+`다비드동맹무곡`, both `홀베르그`/`홀베르크` spellings, `포욜라의 딸`,
+`Rach 3`, `Emperor Concerto`, `Archduke Trio` and `Kreutzer Sonata`.
+The two distinct works called `비창` remain separate. Verification also passes
+348 Python tests, 12 shared tests, 76 web tests, scoped Ruff, ESLint and the
+Next.js production build. This is sampled search verification, not a claim of
+100% matching accuracy.

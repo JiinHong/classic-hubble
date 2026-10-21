@@ -12,6 +12,7 @@ describe("SiteFooter", () => {
     expect(
       screen.getByRole("link", { name: "CC BY-SA 4.0" }).getAttribute("href"),
     ).toBe("https://creativecommons.org/licenses/by-sa/4.0/");
+    expect(screen.getByText(/한국어·영어 위키백과 기여자/)).toBeTruthy();
   });
 
   it("credits the makers and shows the copyright", () => {
