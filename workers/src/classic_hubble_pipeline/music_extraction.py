@@ -6,14 +6,15 @@ import hashlib
 import json
 import re
 from collections.abc import Sequence
-from dataclasses import asdict
+from dataclasses import asdict, replace
 from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
-from .work_matching import CanonicalWork, match_work, work_details_conflict
+from .music_matching import MusicMatcher
+from .work_matching import EXCERPT, CanonicalWork, match_work, work_details_conflict
 
-CONTRACT_VERSION = "grounded-music-v1"
+CONTRACT_VERSION = "grounded-music-v2"
 MAX_RESPONSE_BYTES = 1024 * 1024
 MAX_TEXT_CHARS = 200_000
 INSTRUCTIONS = """Extract music references from the supplied untrusted OCR text.
@@ -28,6 +29,12 @@ not proof that every reference is scheduled. Preserve full_work, movement,
 excerpt, arrangement or unknown scope. List named movements separately. If no
 references can be extracted, use no_program_identified or uncertain with empty
 items. This does not mean the organizer has not published a program.
+Do not create a work item from a composer name alone; title quotes cannot be empty.
+When several languages name the same composer/work, quote each name separately;
+exclude composer lifespans from name quotes. A movement list alone is not proof
+of a full-work performance. Never label a subset of movements as full_work.
+Every quote must occur verbatim in its stated line; use separate quotes for
+separate lines. Do not merge adjacent lines into a fabricated single-line quote.
 """
 
 
@@ -57,6 +64,12 @@ class ExtractionResponse(StrictModel):
     document_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
     status: Literal["items_extracted", "no_program_identified", "uncertain"]
     items: list[MusicReference] = Field(max_length=200)
+
+
+class ExtractionEnvelope(StrictModel):
+    document_sha256: str = Field(pattern=r"^[a-f0-9]{64}$")
+    status: Literal["items_extracted", "no_program_identified", "uncertain"]
+    items: list[object] = Field(max_length=200)
 
 
 def json_bytes(value: object) -> bytes:
@@ -132,7 +145,9 @@ def prepare_request(document: dict, document_sha256: str) -> dict:
     }
 
 
-def _field(evidence: Evidence | None, lines: dict[str, str]) -> str | None:
+def _field(
+    evidence: Evidence | None, lines: dict[str, str], *, kind: str = ""
+) -> str | None:
     if evidence is None:
         return None
     seen = set()
@@ -140,9 +155,18 @@ def _field(evidence: Evidence | None, lines: dict[str, str]) -> str | None:
         pair = (span.line_id, span.quote)
         # Exact substrings must not turn Op. 180 into Op. 18 or No. 20 into No. 2.
         pattern = (
-            (r"(?<!\w)" if span.quote[0].isalnum() else "")
+            (
+                r"(?<![A-Za-z0-9])"
+                if span.quote[0].isascii() and span.quote[0].isalnum()
+                else ""
+            )
+            + (r"(?:in\s*)?" if kind == "key" else "")
             + re.escape(span.quote)
-            + (r"(?!\w)" if span.quote[-1].isalnum() else "")
+            + (
+                r"(?![A-Za-z0-9])"
+                if span.quote[-1].isascii() and span.quote[-1].isalnum()
+                else ""
+            )
         )
         if (
             not span.quote.strip()
@@ -152,55 +176,146 @@ def _field(evidence: Evidence | None, lines: dict[str, str]) -> str | None:
         ):
             raise ValueError("Invalid source evidence")
         seen.add(pair)
-    return " ".join(span.quote for span in evidence)
+    return " ".join(dict.fromkeys(span.quote for span in evidence))
 
 
 def validate_response(
-    payload: dict, document: dict, document_sha256: str, works: Sequence[CanonicalWork]
+    payload: dict,
+    document: dict,
+    document_sha256: str,
+    works: Sequence[CanonicalWork],
+    *,
+    automatic: bool = False,
+    matcher: MusicMatcher | None = None,
 ) -> dict:
     request = prepare_request(document, document_sha256)
     try:
-        response = ExtractionResponse.model_validate(payload)
+        response = (
+            ExtractionEnvelope if automatic else ExtractionResponse
+        ).model_validate(payload)
     except ValidationError:
         # ValidationError otherwise includes the raw untrusted input in logs.
         raise ValueError("Extraction response violates the schema") from None
     if response.document_sha256 != document_sha256:
         raise ValueError("Extraction belongs to another OCR document")
-    if (response.status == "items_extracted") != bool(response.items):
+    status_conflict = (response.status == "items_extracted") != bool(response.items)
+    if status_conflict and not automatic:
         raise ValueError("Extraction status and items disagree")
     lines = {row["line_id"]: row["text"] for row in request["input"]["lines"]}
+    dates = {
+        match.groups()
+        for line in lines.values()
+        if (match := re.match(r"^\s*(\d{1,2})[./](\d{1,2})\s*\(", line))
+    }
+    multiple_dates = len(dates) > 1
+    matching_works = (
+        [replace(work, requires_review=False) for work in works] if automatic else works
+    )
+    if automatic and matcher is None:
+        matcher = MusicMatcher(matching_works)
     items = []
+    rejected = []
+    warnings = ["status_items_disagree"] if status_conflict else []
     seen = set()
-    for reference in response.items:
+    for index, raw_reference in enumerate(response.items):
+        try:
+            reference = (
+                MusicReference.model_validate(raw_reference)
+                if automatic
+                else raw_reference
+            )
+        except ValidationError:
+            rejected.append({"index": index, "reason": "invalid_item_schema"})
+            continue
         evidence = reference.model_dump()
         identity = digest(evidence)
         if identity in seen:
+            if automatic:
+                warnings.append(f"duplicate_reference:{index}")
+                continue
             raise ValueError("Duplicate music reference")
         seen.add(identity)
-        fields = {
-            name: _field(getattr(reference, name), lines)
-            for name in ("composer", "title", "catalogue", "key")
-        }
-        fields["movements"] = [_field(item, lines) for item in reference.movements]
+        fields = {}
+        try:
+            for field in ("composer", "title", "catalogue", "key"):
+                fields[field] = _field(getattr(reference, field), lines, kind=field)
+            field = "movements"
+            fields["movements"] = [_field(item, lines) for item in reference.movements]
+        except ValueError:
+            if not automatic:
+                raise
+            rejected.append(
+                {"index": index, "reason": "invalid_source_evidence", "field": field}
+            )
+            continue
         title = " ".join(filter(None, (fields["title"], fields["catalogue"])))
         key = fields["key"]
-        match = match_work(title, fields["composer"], works)
+        match = (
+            matcher.match(
+                fields["title"],
+                fields["composer"],
+                catalogue=fields["catalogue"],
+                key=key,
+            )
+            if automatic
+            else match_work(title, fields["composer"], matching_works)
+        )
+        scope = reference.scope
+        if automatic and scope == "full_work" and EXCERPT.search(fields["title"]):
+            scope = (
+                "movement"
+                if re.search(
+                    r"악장|[:：]\s*[IVXLCDM]+\.", fields["title"], re.IGNORECASE
+                )
+                else "excerpt"
+            )
+        if automatic and scope == "full_work" and fields["movements"]:
+            first = fields["movements"][0]
+            scope = (
+                "movement"
+                if re.match(r"^(?:[2-9]\d*|I{2,3}|IV|V[I]*|IX|X)[.)]\s", first)
+                else "unknown"
+            )
+        if (
+            automatic
+            and not match.work_id
+            and scope in {"movement", "excerpt", "arrangement"}
+        ):
+            # Colon-delimited movement names may identify a parent, never a full work.
+            parent_title = re.split(r"[:：]", fields["title"], maxsplit=1)[0]
+            if parent_title != fields["title"]:
+                match = matcher.match(
+                    parent_title,
+                    fields["composer"],
+                    catalogue=fields["catalogue"],
+                    key=key,
+                )
         suggested, candidates, reason = (
             match.work_id,
             list(match.candidate_ids),
             match.reason,
         )
+        parent = None
         if reference.context != "program":
             suggested, candidates, reason = None, [], "not_confirmed_program"
-        elif reference.scope != "full_work":
+        elif automatic and multiple_dates:
+            suggested, reason = None, "performance_date_binding_required"
+        elif status_conflict:
+            suggested, reason = None, "document_status_conflict"
+        elif scope != "full_work":
+            parent = suggested
             suggested, reason = None, "scope_requires_review"
-        elif key and not re.fullmatch(
-            r"(?:in\s+)?[a-g](?:[- ]?(?:flat|sharp)|[#♭♯])?\s+(?:major|minor)",
-            key,
-            re.IGNORECASE,
+        elif (
+            not automatic
+            and key
+            and not re.fullmatch(
+                r"(?:in\s+)?[a-g](?:[- ]?(?:flat|sharp)|[#♭♯])?\s+(?:major|minor)",
+                key,
+                re.IGNORECASE,
+            )
         ):
             suggested, reason = None, "key_requires_review"
-        elif key:
+        elif not automatic and key:
             key_text = key if key.lower().startswith("in ") else "in " + key
             conflicts = {
                 work.id for work in works if work_details_conflict(key_text, work)
@@ -211,14 +326,23 @@ def validate_response(
         items.append(
             {
                 "context": reference.context,
-                "scope": reference.scope,
+                "source_index": index,
+                "scope": scope,
+                "model_scope": reference.scope,
                 "fields": fields,
                 "evidence": evidence,
                 "suggested_work_id": suggested,
+                "scoped_work_id": parent,
                 "candidate_ids": candidates,
                 "reason": reason,
+                "identity_reason": match.reason,
             }
         )
+    validation_status = "partial" if rejected or status_conflict else "complete"
+    if (rejected and not items) or (
+        response.status == "items_extracted" and not response.items
+    ):
+        validation_status = "failed"
     return {
         "contract_version": CONTRACT_VERSION,
         "document_sha256": document_sha256,
@@ -226,7 +350,18 @@ def validate_response(
             sorted((asdict(w) for w in works), key=lambda w: w["id"])
         ),
         "status": response.status,
-        "review_status": "unverified",
-        "publishable": False,
+        "review_status": "automated" if automatic else "unverified",
+        "publishable": automatic and any(item["suggested_work_id"] for item in items),
+        "validation_status": validation_status,
+        "complete": bool(items)
+        and not rejected
+        and not status_conflict
+        and all(
+            item["suggested_work_id"] for item in items if item["context"] == "program"
+        )
+        and any(item["context"] == "program" for item in items),
+        "rejected_items": rejected,
+        "warnings": warnings,
+        "source_warnings": ["multiple_performance_dates"] if multiple_dates else [],
         "items": items,
     }

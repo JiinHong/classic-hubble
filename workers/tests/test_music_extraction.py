@@ -2,6 +2,7 @@ import copy
 import importlib
 import importlib.util
 import json
+from dataclasses import replace
 
 import pytest
 from classic_hubble_pipeline.work_matching import CanonicalWork
@@ -194,3 +195,35 @@ def test_catalogue_quote_cannot_cut_off_a_digit_to_match_a_different_work():
     doc["lines"][2]["text"] = "Piano Concerto No. 2 in C minor, Op. 180"
     with pytest.raises(ValueError, match="evidence"):
         module().validate_response(response(), doc, "b" * 64, [WORK])
+
+
+def test_automatic_policy_links_unique_imported_work_without_human_approval():
+    imported = replace(WORK, slug="wikidata-Q123", requires_review=True)
+    report = module().validate_response(
+        response(), document(), "b" * 64, [imported], automatic=True
+    )
+    assert report["publishable"] is True
+    assert report["review_status"] == "automated"
+    assert report["items"][0]["suggested_work_id"] == WORK.id
+    assert imported.requires_review is True
+
+
+@pytest.mark.parametrize(
+    "problem", ["biography", "scope", "ambiguous", "unknown", "key"]
+)
+def test_automatic_policy_never_forces_uncertain_matches(problem):
+    data, doc, works = response(), document(), [WORK]
+    if problem == "biography":
+        data["items"][0]["context"] = "biography"
+    elif problem == "scope":
+        data["items"][0]["scope"] = "excerpt"
+    elif problem == "ambiguous":
+        works.append(replace(WORK, id="another"))
+    elif problem == "unknown":
+        works = []
+    else:
+        doc["lines"].append({"text": "D major"})
+        data["items"][0]["key"] = quote(5, "D major")
+    report = module().validate_response(data, doc, "b" * 64, works, automatic=True)
+    assert report["publishable"] is False
+    assert report["items"][0]["suggested_work_id"] is None
