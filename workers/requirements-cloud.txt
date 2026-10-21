@@ -1,4 +1,5 @@
 anyio==4.14.1
+annotated-types==0.7.0
 boto3==1.43.116
 botocore==1.43.116
 certifi==2026.6.17
@@ -9,7 +10,10 @@ idna==3.18
 jmespath==1.1.0
 python-dateutil==2.9.0.post0
 python-dotenv==1.2.2
+pydantic==2.14.1
+pydantic-core==2.50.1
 s3transfer==0.19.3
 six==1.17.0
 typing_extensions==4.16.0
+typing-inspection==0.4.4
 urllib3==2.8.0

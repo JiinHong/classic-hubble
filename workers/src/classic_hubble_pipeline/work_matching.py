@@ -5,7 +5,6 @@ import unicodedata
 from collections.abc import Sequence
 from dataclasses import dataclass
 
-
 CATALOGUE = re.compile(
     r"\b(?:op|bwv|hwv|kv|k|rv|d|s|l)\.?\s*\d+[a-z]?"
     r"(?:\s*[,/]?\s*(?:no|nr)\.?\s*\d+[a-z]?)?\b",
@@ -68,7 +67,8 @@ def _catalogue_key(value: str) -> str:
     return _normalize(value).replace(" ", "")
 
 
-def _details_conflict(title: str, work: CanonicalWork) -> bool:
+def work_details_conflict(title: str, work: CanonicalWork) -> bool:
+    """Check explicit work numbers and English keys against the canonical titles."""
     for pattern in (WORK_NUMBER, MUSICAL_KEY):
         actual = {
             _normalize(value) for value in pattern.findall(CATALOGUE.sub("", title))
@@ -102,7 +102,7 @@ def match_work(
     candidates: list[tuple[CanonicalWork, str]] = []
     for work in works:
         expected = _catalogue_key(work.catalogue or "")
-        if _details_conflict(lines[0], work):
+        if work_details_conflict(lines[0], work):
             continue
         exact_title = normalized in {
             _normalize(text) for text in (*work.titles, *work.aliases)

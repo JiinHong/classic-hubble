@@ -171,3 +171,32 @@ def test_ocr_json_is_content_addressed_separately_and_readable():
         saved = store.archive_ocr_result(result)
         assert saved.key == key
         assert json.loads(store.read(key)) == result
+
+
+def test_extraction_json_uses_private_content_addressed_namespace():
+    result = {"items": [], "publishable": False}
+    data = json.dumps(result, sort_keys=True, separators=(",", ":")).encode()
+    sha = hashlib.sha256(data).hexdigest()
+    key = f"extractions/sha256/{sha[:2]}/{sha}"
+    s3 = client()
+    with Stubber(s3) as stub:
+        stub.add_client_error("head_object", "404", http_status_code=404)
+        stub.add_response(
+            "put_object",
+            {},
+            {
+                "Bucket": "classic-hubble-sources",
+                "Key": key,
+                "Body": data,
+                "ContentType": "application/json",
+                "Metadata": {"sha256": sha},
+            },
+        )
+        stub.add_response("get_object", {"Body": io.BytesIO(data)})
+        store = module().R2Store(settings(), client=s3)
+        assert hasattr(store, "archive_extraction_result"), (
+            "Extraction storage is missing"
+        )
+        saved = store.archive_extraction_result(result)
+        assert saved.key == key
+        assert json.loads(store.read(key)) == result
