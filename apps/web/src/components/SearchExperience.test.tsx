@@ -36,15 +36,48 @@ function serve(data = catalog) {
 }
 
 describe("paginated catalog search", () => {
+  it("reuses recent results when returning to a query, without another request", async () => {
+    const fetcher = serve();
+    render(<SearchExperience initialResult={searchCatalog(catalog, {})} />);
+    fireEvent.change(input(), { target: { value: "운명" } });
+    await settle();
+    fireEvent.change(input(), { target: { value: "신세계" } });
+    await settle();
+    expect(fetcher).toHaveBeenCalledTimes(2);
+    fireEvent.change(input(), { target: { value: "운명" } });
+    await settle();
+    expect(screen.getByText("1개 작품 매칭")).toBeTruthy();
+    expect(fetcher).toHaveBeenCalledTimes(2);
+  });
+  it("refreshes expired search results instead of keeping stale concerts indefinitely", async () => {
+    const fetcher = serve();
+    render(<SearchExperience initialResult={searchCatalog(catalog, {})} />);
+    fireEvent.change(input(), { target: { value: "운명" } });
+    await settle();
+    fireEvent.change(input(), { target: { value: "신세계" } });
+    await settle();
+    await act(async () => vi.advanceTimersByTime(60_001));
+    fireEvent.change(input(), { target: { value: "운명" } });
+    await settle();
+    expect(fetcher).toHaveBeenCalledTimes(3);
+  });
   it("recovers when clearing a failed query back to the initial search", async () => {
-    vi.stubGlobal("fetch", vi.fn()
-      .mockResolvedValueOnce(Response.json({error:"unavailable"},{status:503}))
-      .mockImplementation(async () => Response.json(searchCatalog(catalog,{}))));
-    render(<SearchExperience initialResult={searchCatalog(catalog,{})} />);
-    fireEvent.change(input(),{target:{value:"failed query"}});
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValueOnce(
+          Response.json({ error: "unavailable" }, { status: 503 }),
+        )
+        .mockImplementation(async () =>
+          Response.json(searchCatalog(catalog, {})),
+        ),
+    );
+    render(<SearchExperience initialResult={searchCatalog(catalog, {})} />);
+    fireEvent.change(input(), { target: { value: "failed query" } });
     await settle();
     expect(screen.getByRole("alert")).toBeTruthy();
-    fireEvent.change(input(),{target:{value:""}});
+    fireEvent.change(input(), { target: { value: "" } });
     await settle();
     expect(screen.getByText(`${works.length}개 작품 매칭`)).toBeTruthy();
   });
@@ -88,6 +121,32 @@ describe("paginated catalog search", () => {
     await settle();
     expect(screen.getByText("1개 작품 매칭")).toBeTruthy();
     expect(screen.getByRole("link", { name: /Composition 30$/ })).toBeTruthy();
+  });
+  it("reuses cached pages without duplicating appended results", async () => {
+    const many = Array.from({ length: 30 }, (_, i) => ({
+      ...works[0],
+      slug: `w${i}`,
+      title: `Composition ${i + 1}`,
+      titleKo: `Composition ${i + 1}`,
+    }));
+    const data = { works: many, performances: [] };
+    const fetcher = serve(data);
+    render(<SearchExperience initialResult={searchCatalog(data, {})} />);
+    fireEvent.change(input(), { target: { value: "Composition" } });
+    await settle();
+    fireEvent.click(screen.getByRole("button", { name: "작품 더 보기" }));
+    await settle();
+    fireEvent.change(input(), { target: { value: "Composition 30" } });
+    await settle();
+    fireEvent.change(input(), { target: { value: "Composition" } });
+    await settle();
+    fireEvent.click(screen.getByRole("button", { name: "작품 더 보기" }));
+    await settle();
+    expect(fetcher).toHaveBeenCalledTimes(3);
+    expect(
+      screen.getAllByRole("link", { name: /Composition \d+$/ }),
+    ).toHaveLength(30);
+    expect(screen.queryByRole("button", { name: "작품 더 보기" })).toBeNull();
   });
   it("debounces typing and prevents an older response replacing a newer search", async () => {
     let resolve!: (response: Response) => void;

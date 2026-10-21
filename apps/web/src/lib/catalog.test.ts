@@ -5,7 +5,29 @@ import openOpusComposers from "@/data/openopus-composers.json";
 const mocks = vi.hoisted(() => ({
   configured: { value: true },
   createSupabaseClient: vi.fn(),
+  persistent: new Map<string, { expires: number; value: unknown }>(),
 }));
+
+vi.mock("next/cache", () => ({
+  unstable_cache:
+    (
+      read: (...args: unknown[]) => Promise<unknown>,
+      keys: string[],
+      options: { revalidate: number },
+    ) =>
+    async (...args: unknown[]) => {
+      const key = JSON.stringify([keys, args]);
+      const cached = mocks.persistent.get(key);
+      if (cached && cached.expires > Date.now()) return cached.value;
+      const value = await read(...args);
+      mocks.persistent.set(key, {
+        expires: Date.now() + options.revalidate * 1000,
+        value,
+      });
+      return value;
+    },
+}));
+afterEach(() => mocks.persistent.clear());
 
 vi.mock("./supabase/client", () => ({
   createSupabaseClient: () => mocks.createSupabaseClient(),
@@ -19,6 +41,18 @@ describe("getComposerDirectory", () => {
     mocks.configured.value = true;
     mocks.createSupabaseClient.mockReset();
     vi.resetModules();
+  });
+
+  it("reuses public composer rows across successive page visits", async () => {
+    const range = vi.fn().mockResolvedValue({ data: [], error: null });
+    const query = { order: vi.fn(() => query), range };
+    mocks.createSupabaseClient.mockReturnValue({
+      from: () => ({ select: () => query }),
+    });
+    const { getComposerDirectory } = await import("./catalog");
+    await getComposerDirectory();
+    await getComposerDirectory();
+    expect(range).toHaveBeenCalledTimes(1);
   });
 
   it("loads every Supabase page without imposing a display limit", async () => {
@@ -182,6 +216,17 @@ describe("getCatalogSnapshot", () => {
     program_items: [],
   });
 
+  it("reuses public database pages even after the process-local catalog is recreated", async () => {
+    const ranges = database({ performances: [[performance("p")]] });
+    const first = await import("./catalog");
+    await first.getCatalogSnapshot();
+    vi.resetModules();
+    const second = await import("./catalog");
+    expect((await second.getCatalogSnapshot()).performances[0].id).toBe("p");
+    expect(ranges.works).toHaveBeenCalledTimes(1);
+    expect(ranges.performances).toHaveBeenCalledTimes(1);
+  });
+
   it("reuses public catalog reads for one minute and coalesces simultaneous loads", async () => {
     vi.useFakeTimers();
     const ranges = database({ performances: [[performance("p")]] });
@@ -200,7 +245,7 @@ describe("getCatalogSnapshot", () => {
   });
 
   it("retries unavailable catalog reads instead of caching an outage", async () => {
-    database({}, "works");
+    database({}, "performances");
     const { getCatalogSnapshot } = await import("./catalog");
     expect((await getCatalogSnapshot()).source).toBe("unavailable");
     database({ performances: [[performance("recovered")]] });
@@ -328,5 +373,140 @@ describe("getCatalogSnapshot", () => {
       reviewQueue: [],
       source: "unavailable",
     });
+  });
+});
+
+describe("targeted detail queries", () => {
+  afterEach(() => {
+    mocks.configured.value = true;
+    mocks.createSupabaseClient.mockReset();
+    vi.resetModules();
+  });
+
+  function database(fail = false) {
+    const rows: Record<string, Record<string, unknown>[]> = {
+      works: [
+        {
+          slug: "wikidata-q3565331",
+          title: "Waldszenen",
+          title_ko: "숲의 정경",
+          catalogue: "Op. 82",
+          composers: { id: "schumann", name: "Robert Schumann" },
+          work_aliases: [{ alias: "Forest Scenes" }],
+        },
+        {
+          slug: "component-wikidata-q3565331-3",
+          title: "Einsame Blumen",
+          title_ko: "고독한 꽃",
+          composers: { id: "schumann", name: "Robert Schumann" },
+        },
+      ],
+      performances: [
+        {
+          kopis_performance_id: "PF123456",
+          title: "Recital",
+          starts_at: "2099-12-01T10:00:00Z",
+          status: "upcoming",
+          program_items: [
+            {
+              display_title: "Einsame Blumen",
+              position: 1,
+              confidence: 1,
+              source_type: "official",
+              works: { slug: "component-wikidata-q3565331-3" },
+            },
+            {
+              display_title: "Another work",
+              position: 2,
+              confidence: 1,
+              source_type: "official",
+              works: { slug: "another" },
+            },
+          ],
+        },
+      ],
+    };
+    const filters: [string, string, unknown][] = [];
+    const from = vi.fn((table: string) => {
+      let filtered = rows[table] ?? [];
+      const result = () => ({
+        data: filtered,
+        error: fail ? new Error("offline") : null,
+      });
+      const query = {
+        select: vi.fn(() => query),
+        order: vi.fn(() => query),
+        range: vi.fn(async () => result()),
+        eq: vi.fn((column: string, value: string) => {
+          filters.push([table, column, value]);
+          filtered = filtered.filter((row) => row[column] === value);
+          return query;
+        }),
+        in: vi.fn((column: string, values: string[]) => {
+          filters.push([table, column, values]);
+          if (column === "slug")
+            filtered = filtered.filter((row) =>
+              values.includes(row.slug as string),
+            );
+          return query;
+        }),
+        maybeSingle: vi.fn(async () => ({
+          ...result(),
+          data: filtered[0] ?? null,
+        })),
+        then: (resolve: (value: unknown) => unknown) =>
+          Promise.resolve(result()).then(resolve),
+      };
+      return query;
+    });
+    mocks.createSupabaseClient.mockReturnValue({ from });
+    return { from, filters };
+  }
+
+  it("reads only the requested performance, without loading the work catalog", async () => {
+    const { from, filters } = database();
+    const { getCatalogPerformanceById } = await import("./catalog");
+    const result = await getCatalogPerformanceById("PF123456");
+    expect(result.performance?.program).toHaveLength(2);
+    expect(from.mock.calls.map(([table]) => table)).toEqual(["performances"]);
+    expect(filters).toContainEqual([
+      "performances",
+      "kopis_performance_id",
+      "PF123456",
+    ]);
+  });
+
+  it("reads a component and its related works, preserving parent names and all concert program items", async () => {
+    const { filters } = database();
+    const { getCatalogWorkBySlug } = await import("./catalog");
+    const result = await getCatalogWorkBySlug("component-wikidata-q3565331-3");
+    expect(result.work?.partOf?.[0]).toMatchObject({
+      slug: "wikidata-q3565331",
+      titleKo: "숲의 정경",
+      position: 3,
+      aliases: ["Forest Scenes"],
+    });
+    expect(result.performances[0].program).toHaveLength(2);
+    expect(
+      filters.some(
+        ([table, column, value]) =>
+          table === "works" &&
+          column === "slug" &&
+          (value as string[]).includes("component-wikidata-q3565331-3"),
+      ),
+    ).toBe(true);
+    expect(filters).toContainEqual([
+      "performances",
+      "matched.works.slug",
+      ["component-wikidata-q3565331-3"],
+    ]);
+  });
+
+  it("distinguishes a missing detail from a database failure", async () => {
+    database();
+    const { getCatalogPerformanceById } = await import("./catalog");
+    expect((await getCatalogPerformanceById("missing")).performance).toBeNull();
+    database(true);
+    await expect(getCatalogPerformanceById("PF123456")).rejects.toThrow();
   });
 });

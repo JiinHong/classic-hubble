@@ -1,5 +1,11 @@
 import type { Session, SupabaseClient } from "@supabase/supabase-js";
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -18,7 +24,8 @@ vi.mock("@/lib/user-library", () => ({
 }));
 
 function createAuthHarness(initialSession: Session) {
-  let listener: ((event: string, session: Session | null) => void) | null = null;
+  let listener: ((event: string, session: Session | null) => void) | null =
+    null;
   const client = {
     auth: {
       async getSession() {
@@ -76,6 +83,27 @@ describe("UserLibraryProvider session isolation", () => {
     vi.mocked(saveNotificationPreference).mockReset();
   });
 
+  it("does not reload the library when the same user's session is refreshed", async () => {
+    const auth = createAuthHarness(sessionFor("user-a"));
+    const client = {} as SupabaseClient;
+    vi.mocked(loadUserLibrary).mockResolvedValue({
+      preferences: { email: true, web_push: false },
+      watchedSlugs: ["a-work"],
+    });
+    render(
+      <AuthProvider client={auth.client}>
+        <UserLibraryProvider client={client}>
+          <LibraryProbe />
+        </UserLibraryProvider>
+      </AuthProvider>,
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId("watched-slugs").textContent).toBe("a-work"),
+    );
+    await act(async () => auth.emit(sessionFor("user-a")));
+    expect(loadUserLibrary).toHaveBeenCalledTimes(1);
+  });
+
   it("ignores a previous user's mutation after the active session changes", async () => {
     const pendingSave = deferred();
     const auth = createAuthHarness(sessionFor("user-a"));
@@ -93,8 +121,12 @@ describe("UserLibraryProvider session isolation", () => {
       </AuthProvider>,
     );
 
-    const saveButton = await screen.findByRole("button", { name: "A 작품 저장" });
-    await waitFor(() => expect(saveButton.hasAttribute("disabled")).toBe(false));
+    const saveButton = await screen.findByRole("button", {
+      name: "A 작품 저장",
+    });
+    await waitFor(() =>
+      expect(saveButton.hasAttribute("disabled")).toBe(false),
+    );
     fireEvent.click(saveButton);
 
     await act(async () => {
