@@ -11,7 +11,9 @@ import {
   ListMusic,
   Search,
   SlidersHorizontal,
+  Youtube,
 } from "lucide-react";
+import Link from "next/link";
 import { useMemo, useState } from "react";
 
 import { PerformanceCard } from "./PerformanceCard";
@@ -129,6 +131,9 @@ export function SearchExperience({
         </div>
 
         <div className="mt-4 flex flex-wrap items-center gap-2">
+          <Link href="/youtube" className="inline-flex h-8 items-center gap-1.5 rounded-md border border-stone-200 px-3 text-sm font-semibold text-stone-700 hover:border-red-300 hover:bg-red-50">
+            <Youtube aria-hidden="true" className="size-4 text-red-600" />유튜브로 찾기
+          </Link>
           <span className="inline-flex h-8 items-center gap-1 rounded-md bg-stone-100 px-2 text-xs font-bold text-stone-500">
             <ListMusic aria-hidden="true" className="size-3.5" />곡 바로 찾기
           </span>
