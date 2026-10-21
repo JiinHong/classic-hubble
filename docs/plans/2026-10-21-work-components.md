@@ -36,9 +36,9 @@ components, not to make a parent and child equivalent.
   repeat execution and no modification of existing work/program records.
 - [x] RED/GREEN: website loads verified relationships and shows parent/child links
   without inheriting concert availability. Cover unavailable/dangling metadata.
-- [ ] Apply the guarded additive plan, read back every record, replay with zero
+- [x] Apply the guarded additive plan, read back every record, replay with zero
   additions, and compare all prior data. Publish full audit and source provenance.
-- [ ] Run Python/shared/web tests, lint/build, corpus search checks and browser
+- [x] Run Python/shared/web tests, lint/build, corpus search checks and browser
   checks. Review sequentially in the main thread. Commit only task files, merge
   after CI, verify Vercel production and public artifact fingerprints.
 
@@ -49,3 +49,22 @@ components, not to make a parent and child equivalent.
 piece. Searching an unknown phrase containing `꽃` does not return unrelated
 flower/fireworks works. Duplicate generic movement names remain disambiguated by
 parent/composer; source-only imports cannot trigger automatic concert matching.
+
+## Completed verification, 2026-10-21
+
+- 423 worker, 19 shared and 83 web tests passed; ESLint, scoped Python lint and
+  the production build passed. Review was sequential in the main thread.
+- 1,068 prior queries, all 1,368 component links, six target queries and one
+  unknown phrase passed against 12,435 works.
+- Added 789 works, 880 aliases and 1,368 relationships. Every record was read
+  back. All 11,646 prior works, 39,680 prior aliases and 229 program items were
+  unchanged. Replay planned zero additions and all new works require review.
+- PR #15 merged as `1e1792f49356b522560a6b636926c4c8c575af50`.
+  Vercel deployment `dpl_C7Gku72XQYvLSnJkrS6mu8zoWHv4` reached READY and served
+  the production domain. The public audit digest matched the local artifact.
+- Production desktop and 390px mobile checks covered search, the parent link,
+  all nine Waldszenen pieces and the component detail/source link. No horizontal
+  overflow or browser console errors were observed in those checks.
+- The full inventory, including held observations, was archived and read-back
+  verified in R2 as
+  `catalogs/sha256/70/707970fd11dfd69f2ce34f8bbd565f27207902daf2fc268e0e8ea43ba197baff`.
