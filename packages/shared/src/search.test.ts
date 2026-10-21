@@ -83,6 +83,35 @@ describe("reference catalog search", () => {
     expect(findWorksByQueryInList([other, work], "하이든 교향곡 4번")).toEqual([work]);
   });
 
+  it("matches whole catalogue numbers instead of numeric prefixes", () => {
+    const rondo = {
+      ...works[0], slug: "rondo", title: "Rondo in C minor, Op. 1",
+      titleKo: "론도 다단조", catalogue: "Op. 1", aliases: [],
+      composer: { ...works[0].composer, name: "Frédéric Chopin", nameKo: "쇼팽" },
+    };
+    const variations = {
+      ...rondo, slug: "variations", title: "Variations brillantes, Op. 12",
+      titleKo: "론도 주제에 의한 화려한 변주곡", catalogue: "Op. 12",
+    };
+    expect(findWorksByQueryInList([variations, rondo], "쇼팽 론도 Op 1")).toEqual([rondo]);
+    const sonata = { ...rondo, slug: "sonata", title: "Sonata K433", titleKo: "소나타", catalogue: "K433" };
+    const other = { ...sonata, slug: "other", title: "Sonata K4330", catalogue: "K4330" };
+    expect(findWorksByQueryInList([other, sonata], "소나타 K 433")).toEqual([sonata]);
+  });
+
+  it("ranks an explicit catalogue subnumber ahead of a collection with a shared alias", () => {
+    const piece = {
+      ...works[0], slug: "nocturne-17", title: "Nocturne No. 17 in B major, Op. 62 No. 1",
+      titleKo: "야상곡 17번", catalogue: "Op. 62 No. 1", aliases: [],
+      composer: { ...works[0].composer, name: "Frédéric Chopin", nameKo: "쇼팽" },
+    };
+    const collection = {
+      ...piece, slug: "nocturnes-62", title: "Nocturnes, Op. 62", titleKo: "녹턴",
+      catalogue: "Op. 62", aliases: ["Nocturne in B major, Op. 62, No. 1"],
+    };
+    expect(findWorksByQueryInList([collection, piece], "Chopin Nocturne Op 62 No 1")[0]).toEqual(piece);
+  });
+
   it("matches Korean aliases regardless of spacing or Hangul decomposition", () => {
     const work = {
       ...works[0],

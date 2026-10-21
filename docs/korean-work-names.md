@@ -318,3 +318,56 @@ ESLint and the Next.js production build. Review was sequential in the current
 task, not independent-agent review. This batch does not establish corpus-wide
 matching accuracy or complete Korean-name coverage. The remaining 9,256 works
 need further source research; titles were not translated merely to fill blanks.
+
+## Recording-catalog continuation (2026-10-21)
+
+This pass reads public Korean and English Apple Music Classical album work
+headers: 47 albums, 94 cached HTML pages, 1,796 paired rows and 1,464 distinct
+work headers. The accepted manifest uses 92 source pages. Names are paired by
+public work and composer IDs, not album position or track grouping. No audio,
+artwork, private API or search endpoint is collected. These are observed names,
+not audience popularity measurements or invented translations.
+
+`workers/data/korean-recording-names.json`, version `2026-10-21.recordings.1`,
+contains 977 works with source URLs, fetch dates and content hashes. The existing
+guarded importer applies it; do not edit an applied manifest. The accompanying
+`korean-recording-rejections.json` records rejected candidates. Existing Korean
+display names are preserved. New titles combine the observed primary Korean name
+with the work's existing canonical catalogue; aliases retain the primary observed
+Korean and English names.
+
+Acceptance requires a unique composer/catalogue match plus consistent key,
+number, form and scope. Editorial notes and secondary catalogue IDs are excluded
+from imported names. For example, the source incorrectly associates Chopin's
+Rondo Op. 1 with `이별의 왈츠`; that note is not imported. A note mentioning
+BWV 924 inside a BWV 924a entry cannot identify BWV 924. Track labels do not rename
+an unrelated work header, and collection names do not rename individual members.
+
+### Verified production result
+
+- 814 missing Korean titles filled, increasing coverage from 2,390 to 3,204 of
+  11,646 works. **8,442 works still have no Korean display title.**
+- 2,567 aliases added: 1,784 Korean and 783 English. Total aliases: 39,090.
+- All previous titles, aliases, composer rows, 229 program items, crosswalks and
+  non-title work fields preserved. All 11,642 imported review-only works remain so.
+- All 977 provenance records verified against the immutable manifest digest.
+  Replaying the manifest proposes zero title or alias changes.
+- 48 searches checked against the full production catalog, including all 38
+  earlier cases. A separate check confirms the incorrect Rondo nickname is absent.
+
+The full-catalog probe exposed two retrieval issues. Bare numeric tokens now
+match whole numbers (`Op. 1` does not fully match `Op. 12`), and an explicitly
+requested catalogue subnumber receives a small ranking preference over its
+collection when old aliases overlap. Both changes were preceded by failing tests.
+Search still supports partial-match fallback; a low-ranked result is not evidence
+that the query is an accepted identity alias. Existing source-imported collection
+aliases remain untouched and still need separate identity review.
+
+The public evidence file now contains seven datasets and preserves all six prior
+datasets. It exposes factual names and source references, not database UUIDs,
+previous-title guards, editorial prose, artwork or audio. Verification and release
+checks are recorded with the change. Local verification passes 378 Python tests,
+15 shared tests, 76 web tests, scoped Ruff, ESLint and the Next.js production
+build. Review was sequential in this task, not independent-agent review.
+This batch does not establish complete
+Korean coverage, measured popularity, or 100% automatic work-matching accuracy.
