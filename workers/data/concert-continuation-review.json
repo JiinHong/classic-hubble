@@ -1,0 +1,19 @@
+{
+  "sources": {
+    "sac-76674": {"url": "https://www.sac.or.kr/site/main/show/show_view?SN=76674", "kind": "concert_programme", "publisher": "예술의전당"},
+    "sac-35377": {"url": "https://www.sac.or.kr/site/main/show/show_view?SN=35377&tab=5", "kind": "concert_programme", "publisher": "예술의전당"},
+    "kbs-hebrides-794": {"url": "https://digitalkhall.kbssymphony.org/renew/dolby/video_detail.html?NO=794&cno=&mode=", "kind": "orchestra_programme", "publisher": "KBS교향악단"},
+    "apple-scriabin-1150638944": {"url": "https://classical.music.apple.com/kr/album/1150638944", "kind": "recording_catalogue", "publisher": "Apple Music Classical"},
+    "dc-scriabin-143525": {"url": "https://gall.dcinside.com/mgallery/board/view/?id=grdpiano&no=143525", "kind": "audience_discussion", "publisher": "디시인사이드 그랜드 피아노 갤러리"}
+  },
+  "works": [
+    {"qid": "Q2746359", "catalogue": "Op. 24", "title_ko": "엘레지", "sources": ["sac-76674"], "aliases": [{"text": "엘레지", "locale": "ko", "kind": "title", "sources": ["sac-76674"]}], "evidence": [{"source": "sac-76674", "text": "포레: 첼로와 피아노를 위한 엘레지, Op.24 / Elegy for Cello and Piano, Op.24"}]},
+    {"qid": "Q946777", "catalogue": "Op. 26", "title_ko": "핑갈의 동굴", "sources": ["sac-35377", "kbs-hebrides-794"], "aliases": [
+      {"text": "핑갈의 동굴", "locale": "ko", "kind": "title", "sources": ["sac-35377", "kbs-hebrides-794"]},
+      {"text": "핑갈의 동굴 서곡", "locale": "ko", "kind": "title", "sources": ["sac-35377"]},
+      {"text": "헤브라이드 서곡", "locale": "ko", "kind": "spelling", "sources": ["kbs-hebrides-794"]},
+      {"text": "Fingal's Cave", "locale": "en", "kind": "title", "sources": ["sac-35377"]}
+    ], "evidence": [{"source": "sac-35377", "text": "멘델스존 핑갈의 동굴 서곡 Op.26 / The Hebrides overture, Op.26 'Fingal's Cave'"}, {"source": "kbs-hebrides-794", "text": "멘델스존 / 헤브라이드 서곡(핑갈의 동굴), 작품26"}]},
+    {"qid": "Q2610891", "catalogue": "Op. 72", "title_ko": "불꽃을 향하여", "sources": ["apple-scriabin-1150638944", "dc-scriabin-143525"], "aliases": [{"text": "시곡 '불꽃을 향하여'", "locale": "ko", "kind": "title", "sources": ["apple-scriabin-1150638944"]}], "evidence": [{"source": "apple-scriabin-1150638944", "text": "알렉산더 스크랴빈 / 시곡 '불꽃을 향하여', Op.72 / Vers la Flamme, Op.72"}, {"source": "dc-scriabin-143525", "text": "스크랴빈 불꽃을 향하여(1948), Op.72"}]}
+  ]
+}

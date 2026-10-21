@@ -61,6 +61,60 @@ def _plain(node):
     return " ".join(node.text().split()).strip()
 
 
+def _catalogue_text(text):
+    text = re.sub(
+        r"작품번호\s*(\d+[a-z]?)(?:의\s*(\d+[a-z]?))?(?![\w])",
+        lambda m: f"Op. {m[1]}" + (f" No. {m[2]}" if m[2] else ""),
+        text,
+        flags=re.IGNORECASE,
+    )
+    return re.sub(
+        r"(\bOp\.?\s*\d+[a-z]?)\s*,\s*(\d+)번(?![\w])",
+        r"\1 No. \2",
+        text,
+        flags=re.IGNORECASE,
+    )
+
+
+def _list_items(node, context=""):
+    if node.tag == "li":
+        yield node, context
+        heading = re.sub(r"\s*\(\d+곡\)$", "", _plain(node))
+        genres = {ko for _, ko, _ in FORMS} | {"녹턴", "야상곡", "뱃노래", "바르카롤"}
+        context = _plain(node) if heading in genres else ""
+    for child in node.children:
+        if isinstance(child, Node):
+            yield from _list_items(child, context)
+
+
+def _text_row(raw, context=""):
+    text = _catalogue_text(raw)
+    matches = list(CATALOGUE.finditer(text))
+    if len(matches) != 1:
+        return None
+    match = matches[0]
+    # A slash in a Koechel list is often a revised catalogue number, not a part.
+    if re.match(r"\s*[-–—/,]\s*\d", text[match.end() :]) or (
+        match.group().lower().startswith(("k.", "kv")) and "/" in match.group()
+    ):
+        return None
+    before, after = text[: match.start()].strip(" ,"), text[match.end() :].strip(" ,")
+    if not before:
+        title = re.sub(r"\s*\(\d{4}[^)]*\)\s*$", "", after).strip()
+    elif not after or re.fullmatch(r"\(\d{4}[^)]*\)", after):
+        title = before
+    else:
+        return None
+    evidence = [raw]
+    if context and re.match(r"(?:제\s*)?\d+번", title):
+        title = re.sub(r"\s*\(\d+곡\)$", "", context) + " " + title
+        evidence.insert(0, context)
+    code = catalogue_code(match.group())
+    if code and re.search("[가-힣]", title) and len(title) < 140:
+        return {"code": code, "title": title, "evidence": evidence}
+    return None
+
+
 def extract_rows(html):
     root = Document(html).root
     rows = []
@@ -83,6 +137,18 @@ def extract_rows(html):
                 for c in cells
             ):
                 continue
+            if header in (["곡명", "조성"], ["곡명", "조성", "곡명", "조성"]):
+                for index in range(0, len(values), 2):
+                    row = _text_row(values[index])
+                    if row:
+                        rows.append(
+                            {
+                                **row,
+                                "title": values[index],
+                                "evidence": values[index : index + 2],
+                            }
+                        )
+                continue
             if header[:2] == ["번호", "제목, 조성"]:
                 code, title = catalogue_code(values[0]), values[1]
             elif header[:2] == ["HWV", "제목"]:
@@ -93,30 +159,10 @@ def extract_rows(html):
                 continue
             if code and re.search("[가-힣]", title):
                 rows.append({"code": code, "title": title, "evidence": values[:4]})
-    for li in root.descendants("li"):
-        text = _plain(li)
-        matches = list(CATALOGUE.finditer(text))
-        if len(matches) != 1:
-            continue
-        match = matches[0]
-        # A slash in a Koechel list is often a revised catalogue number, not a part.
-        if re.match(r"\s*[-–—/,]\s*\d", text[match.end() :]) or (
-            match.group().lower().startswith(("k.", "kv")) and "/" in match.group()
-        ):
-            continue
-        before, after = (
-            text[: match.start()].strip(" ,"),
-            text[match.end() :].strip(" ,"),
-        )
-        if not before:
-            title = re.sub(r"\s*\(\d{4}[^)]*\)\s*$", "", after).strip()
-        elif not after or re.fullmatch(r"\(\d{4}[^)]*\)", after):
-            title = before
-        else:
-            continue
-        code = catalogue_code(match.group())
-        if code and re.search("[가-힣]", title) and len(title) < 140:
-            rows.append({"code": code, "title": title, "evidence": [text]})
+    for li, context in _list_items(root):
+        row = _text_row(_plain(li), context)
+        if row:
+            rows.append(row)
     return rows
 
 
@@ -125,11 +171,14 @@ def _conflicts(title, work):
         EXCERPT.search(title)
         or EXCERPT.search(work["title"])
         or re.match(r"(?:제\s*)?\d+번", title)
+        or re.fullmatch(
+            r"\s*(?:내림|올림)?\s*[가나다라마바사]\s*(?:장조|단조)\s*", title
+        )
         or title.count("(") != title.count(")")
     ):
         return True
     # Compare explicit ordinals and keys across the two languages, without translating names.
-    comparable = re.sub(r"(\d+)번", r"No. \1", title)
+    comparable = re.sub(r"(?:제\s*)?(\d+)번", r"No. \1", _catalogue_text(title))
     comparable = re.sub(
         r"([A-Ga-g](?:[- ]?(?:flat|sharp)|[#♭♯])?)\s*(장조|단조)",
         lambda m: "in " + m[1] + (" major" if m[2] == "장조" else " minor"),
@@ -150,7 +199,7 @@ def _conflicts(title, work):
         comparable,
     )
     expected = CanonicalWork(
-        work["id"], "", (work["title"],), (), work.get("catalogue")
+        work["id"], "", (CATALOGUE.sub("", work["title"]),), (), work.get("catalogue")
     )
     if work_details_conflict(comparable, expected):
         return True
@@ -216,6 +265,12 @@ def match_rows(rows, composer_id, works):
             reason = "conflicting_source_rows"
         elif len(matches) != 1:
             reason = "missing_or_ambiguous_catalogue"
+        elif any(
+            code.split()[0] == row["code"].split()[0] and code != row["code"]
+            for match in CATALOGUE.finditer(matches[0]["title"])
+            if (code := catalogue_code(match.group()))
+        ):
+            reason = "canonical_title_catalogue_conflict"
         elif _conflicts(row["title"], matches[0]):
             reason = "scope_number_or_key_conflict"
         if reason:

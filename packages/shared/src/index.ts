@@ -338,10 +338,11 @@ const normalize = (value: string) =>
     .replace(/\s+/g, " ")
     .trim();
 
-const tokenMatches = (candidate: string, token: string) =>
-  /^\d+번$/.test(token)
-    ? candidate.split(" ").includes(token)
-    : candidate.includes(token);
+const tokenMatches = (candidate: string, token: string) => {
+  if (/^\d+번$/.test(token)) return candidate.split(" ").includes(token);
+  if (/^[가-힣]+$/.test(token)) return candidate.replace(/\s/g, "").includes(token);
+  return candidate.includes(token);
+};
 
 const scoreWork = (work: Work, query: string) => {
   const normalizedQuery = normalize(query);

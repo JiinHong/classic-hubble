@@ -123,6 +123,23 @@ describe("reference catalog search", () => {
     expect(findWorksByQueryInList([work], work.title)).toEqual([work]);
   });
 
+  it("distinguishes shared Korean titles with a composer and unspaced title token", () => {
+    const schumann = {
+      ...works[0], slug: "waldszenen", title: "Waldszenen", titleKo: "숲의 정경",
+      catalogue: "Op. 82", aliases: [], popularityRank: null,
+      composer: { ...works[0].composer, name: "Robert Schumann", nameKo: "로베르트 슈만" },
+    };
+    const macdowell = {
+      ...schumann, slug: "woodland-sketches", title: "Woodland Sketches", catalogue: "Op. 51",
+      composer: { ...schumann.composer, name: "Edward MacDowell", nameKo: "에드워드 맥도웰" },
+    };
+    const unrelated = { ...schumann, slug: "novelletten", title: "Novelletten", titleKo: "Novelletten" };
+    const catalog = [unrelated, macdowell, schumann];
+    expect(findWorksByQueryInList(catalog, "슈만 숲의정경")).toEqual([schumann]);
+    expect(findWorksByQueryInList(catalog, "맥도웰 숲의정경")).toEqual([macdowell]);
+    expect(findWorksByQueryInList(catalog, "숲의정경")).toEqual([macdowell, schumann]);
+  });
+
   it("does not treat missing metadata as a match for an unrelated query", () => {
     const work = { ...works[0], catalogue: "", aliases: [], popularityRank: 1 };
     expect(findWorksByQueryInList([work], "zzzzzzzz")).toEqual([]);
