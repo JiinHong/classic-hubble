@@ -397,6 +397,17 @@ def test_client_retries_a_transient_bad_request_before_parsing_response():
     http_client.close()
 
 
+def test_transport_error_exposes_http_status_without_leaking_request_key():
+    with httpx.Client(transport=httpx.MockTransport(
+        lambda request: httpx.Response(403, text="forbidden")
+    )) as http_client:
+        client = kopis.KopisClient(kopis.KopisSettings(api_key="private-key"), http_client=http_client)
+        with pytest.raises(kopis.KopisTransportError) as raised:
+            client.get_performance_detail("PF1")
+    assert raised.value.status_code == 403
+    assert "private-key" not in str(raised.value)
+
+
 def test_client_iterates_until_the_last_partial_page():
     requested_pages: list[int] = []
 

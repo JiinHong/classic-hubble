@@ -170,6 +170,34 @@ class SupabaseRepository:
             on_conflict="kopis_facility_id",
         )
 
+    def load_collection_checkpoint(self, key: str) -> dict[str, Any] | None:
+        response = self._request(
+            "GET", "provider_records",
+            params={
+                "provider": "eq.kopis",
+                "entity_type": "eq.collection_checkpoint",
+                "provider_id": f"eq.{key}",
+                "select": "payload", "limit": "1",
+            },
+            prefer="return=representation",
+        )
+        rows = response.json()
+        return rows[0]["payload"] if rows else None
+
+    def save_collection_checkpoint(
+        self, key: str, payload: Mapping[str, object]
+    ) -> None:
+        self._request(
+            "POST", "provider_records",
+            params={"on_conflict": "provider,entity_type,provider_id"},
+            json={
+                "provider": "kopis", "entity_type": "collection_checkpoint",
+                "provider_id": key, "payload": dict(payload),
+                "fetched_at": _utc_now(),
+            },
+            prefer="resolution=merge-duplicates,return=minimal",
+        )
+
     def upsert_hall(self, payload: Mapping[str, object]) -> str:
         values = dict(payload)
         values["updated_at"] = _utc_now()

@@ -1,0 +1,8 @@
+**
+!Dockerfile
+!requirements-cloud.txt
+!src/
+!src/**
+**/__pycache__/
+**/*.pyc
+**/*.egg-info/

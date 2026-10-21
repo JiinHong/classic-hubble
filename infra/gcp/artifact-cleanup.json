@@ -1,0 +1,17 @@
+[
+  {
+    "name": "delete-old-builds",
+    "action": { "type": "Delete" },
+    "condition": { "tagState": "any", "olderThan": "7d" }
+  },
+  {
+    "name": "keep-production",
+    "action": { "type": "Keep" },
+    "condition": { "tagState": "tagged", "tagPrefixes": ["production"] }
+  },
+  {
+    "name": "keep-three-recent",
+    "action": { "type": "Keep" },
+    "mostRecentVersions": { "keepCount": 3 }
+  }
+]
