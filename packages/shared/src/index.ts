@@ -340,6 +340,7 @@ const normalize = (value: string) =>
 
 const tokenMatches = (candidate: string, token: string) => {
   if (/^\d+번$/.test(token)) return candidate.split(" ").includes(token);
+  if (/^\d+$/.test(token)) return new RegExp(`(?:^|\\D)${token}(?!\\d)`).test(candidate);
   if (/^[가-힣]+$/.test(token)) return candidate.replace(/\s/g, "").includes(token);
   return candidate.includes(token);
 };
@@ -395,7 +396,13 @@ const scoreWork = (work: Work, query: string) => {
         alias.length > 0 && alias.length <= 12 && normalizedQuery.includes(alias),
     ).length;
 
-  return { score: score + shorthandHits * 10, complete };
+  // Prefer the requested member over its collection when their aliases overlap.
+  const catalogue = normalize(work.catalogue);
+  const catalogueBonus = catalogue && ` ${normalizedQuery} `.includes(` ${catalogue} `)
+    ? catalogue.split(" ").length
+    : 0;
+
+  return { score: score + shorthandHits * 10 + catalogueBonus, complete };
 };
 
 export const findWorksByQueryInList = (items: Work[], query: string) => {
