@@ -17,6 +17,12 @@ from .work_catalog import QID
 def validate_manifest(manifest):
     if not manifest.get("version") or not manifest.get("works"):
         raise ValueError("Missing dictionary version or works")
+    if manifest.get("origin", "reviewed-usage") not in {
+        "reviewed-usage",
+        "wikipedia-names",
+        "formal-rendering",
+    }:
+        raise ValueError("Unknown naming origin")
     sources = manifest["sources"]
     for source in sources.values():
         if not source["url"].startswith("https://") or not source.get("kind"):
@@ -53,6 +59,12 @@ def build_plan(manifest, works, composers, links, aliases):
         link_index[qid] = link["payload"]["work_id"]
     existing = {(a["work_id"], a["alias"]) for a in aliases}
     fingerprint = digest(manifest)
+    origin = manifest.get("origin", "reviewed-usage")
+    prefix = {
+        "reviewed-usage": "ko-usage",
+        "wikipedia-names": "ko-wikipedia",
+        "formal-rendering": "ko-form",
+    }[origin]
     plan = {"titles": [], "aliases": [], "provenance": []}
     seen_work_ids = set()
     for entry in manifest["works"]:
@@ -90,7 +102,7 @@ def build_plan(manifest, works, composers, links, aliases):
                     "work_id": work["id"],
                     "alias": name,
                     "locale": "ko",
-                    "source": f"ko-usage:{fingerprint}",
+                    "source": f"{prefix}:{fingerprint}",
                 }
             )
             existing.add((work["id"], name))
@@ -106,7 +118,10 @@ def build_plan(manifest, works, composers, links, aliases):
                     "work_id": work["id"],
                     "dictionary_sha256": fingerprint,
                     "version": manifest["version"],
-                    "verification": "korean_names_only",
+                    "verification": "formal_rendering_only"
+                    if origin == "formal-rendering"
+                    else "korean_names_only",
+                    "origin": origin,
                     "entry": entry,
                     "sources": {s: manifest["sources"][s] for s in sorted(source_ids)},
                 },
@@ -152,6 +167,19 @@ def apply_plan(repository, plan, *, apply=False):
             )
 
 
+def read_selected(repository, table, column, ids, params):
+    rows = []
+    for offset in range(0, len(ids), 100):
+        rows.extend(
+            repository._read_pages(
+                table,
+                {**params, column: f"in.({','.join(ids[offset : offset + 100])})"},
+                page_size=1000,
+            )
+        )
+    return rows
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--dictionary", type=Path, required=True)
@@ -165,28 +193,27 @@ def main(argv=None):
     if settings.url != "https://klnfamtwxwrelrjeguqb.supabase.co":
         raise ValueError("This reviewed dictionary targets Classic Hubble only")
     with SupabaseRepository(settings) as repository:
-        qids = ",".join(e["qid"] for e in manifest["works"])
-        links = repository._read_pages(
+        qids = [e["qid"] for e in manifest["works"]]
+        links = read_selected(
+            repository,
             "provider_records",
+            "provider_id",
+            qids,
             {
                 "select": "provider_id,payload",
                 "provider": "eq.wikidata",
                 "entity_type": "eq.canonical_work",
-                "provider_id": f"in.({qids})",
             },
-            page_size=1000,
         )
-        ids = ",".join(link["payload"]["work_id"] for link in links)
+        ids = [link["payload"]["work_id"] for link in links]
         if not ids:
             raise ValueError("No source crosswalks found")
-        works = repository._read_pages(
-            "works", {"select": "*", "id": f"in.({ids})"}, page_size=1000
-        )
+        works = read_selected(repository, "works", "id", ids, {"select": "*"})
         composers = repository._read_pages(
             "composers", {"select": "id,name"}, page_size=1000
         )
-        aliases = repository._read_pages(
-            "work_aliases", {"select": "*", "work_id": f"in.({ids})"}, page_size=1000
+        aliases = read_selected(
+            repository, "work_aliases", "work_id", ids, {"select": "*"}
         )
         plan = build_plan(manifest, works, composers, links, aliases)
         report = {

@@ -104,6 +104,29 @@ def test_same_nickname_can_belong_to_multiple_distinct_works():
     assert len([a for a in plan["aliases"] if a["alias"] == "월광 소나타"]) == 2
 
 
+def test_derived_names_are_not_claimed_as_observed_community_usage():
+    args = fixture()
+    args[0]["origin"] = "formal-rendering"
+    plan = build_plan(*args)
+    assert all(a["source"].startswith("ko-form:") for a in plan["aliases"])
+    assert plan["provenance"][0]["payload"]["verification"] == "formal_rendering_only"
+
+
+def test_large_dictionary_reads_use_bounded_identity_batches():
+    from classic_hubble_pipeline.korean_work_names import read_selected
+
+    class Reader:
+        def _read_pages(self, table, params, *, page_size):
+            values = params["id"][4:-1].split(",")
+            assert len(values) <= 100
+            return [{"id": value} for value in values]
+
+    ids = [f"id-{i}" for i in range(245)]
+    assert read_selected(Reader(), "works", "id", ids, {"select": "id"}) == [
+        {"id": value} for value in ids
+    ]
+
+
 class Repository:
     def __init__(self, conflict=False):
         self.calls = []

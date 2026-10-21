@@ -19,6 +19,26 @@ export function SiteFooter() {
             공연예술통합전산망(www.kopis.or.kr)
           </a>
         </p>
+        <p className="mt-1 text-xs leading-5 text-stone-500">
+          작품 자료: Wikidata (CC0), 한국어 위키백과 기여자 (
+          <a
+            href="https://creativecommons.org/licenses/by-sa/4.0/"
+            target="_blank"
+            rel="noreferrer"
+            className="underline underline-offset-2"
+          >
+            CC BY-SA 4.0
+          </a>
+          ).{" "}
+          <a
+            href="/reference/korean-work-names.json"
+            target="_blank"
+            rel="noreferrer"
+            className="underline underline-offset-2"
+          >
+            작품명·별칭 출처
+          </a>
+        </p>
       </div>
     </footer>
   );

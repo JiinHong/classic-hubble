@@ -28,6 +28,61 @@ describe("Classic Hubble shared search helpers", () => {
 import { findWorksByQueryInList, works } from "./index";
 
 describe("reference catalog search", () => {
+  it("expands observed genre shorthand without a per-work nickname entry", () => {
+    const work = {
+      ...works[0],
+      title: "Piano Concerto No. 21",
+      titleKo: "피아노 협주곡 21번 C장조",
+      aliases: [],
+      composer: { ...works[0].composer, nameKo: "볼프강 아마데우스 모차르트" },
+    };
+    const other = {
+      ...work,
+      slug: "other",
+      title: "Piano Concerto No. 2",
+      titleKo: "피아노 협주곡 2번",
+    };
+    for (const query of [
+      "모차르트 피협 21번", "모차르트피협21번", "모차르트 피협21",
+    ]) {
+      expect(findWorksByQueryInList([other, work], query)).toEqual([work]);
+    }
+  });
+
+  it("supports sonata and string-quartet shorthand across numbered works", () => {
+    const sonata = {
+      ...works[0],
+      slug: "sonata",
+      title: "Piano Sonata No. 32",
+      titleKo: "피아노 소나타 32번",
+      aliases: [],
+      composer: { ...works[0].composer, nameKo: "베토벤" },
+    };
+    const quartet = {
+      ...sonata,
+      slug: "quartet",
+      title: "String Quartet No. 12",
+      titleKo: "현악 사중주 12번",
+    };
+    expect(findWorksByQueryInList([quartet, sonata], "베토벤피소32번")[0]).toEqual(sonata);
+    expect(findWorksByQueryInList([sonata, quartet], "베토벤 현사12번")[0]).toEqual(quartet);
+    expect(findWorksByQueryInList([sonata, quartet], "베토벤 현악4중주 제12번")[0]).toEqual(quartet);
+  });
+
+  it("does not give exact-number rank to a different ordinal", () => {
+    const work = {
+      ...works[0],
+      titleKo: "교향곡 4번",
+      title: "Symphony No. 4",
+      aliases: [],
+      composer: { ...works[0].composer, nameKo: "하이든" },
+    };
+    const other = {
+      ...work, slug: "14", titleKo: "교향곡 14번", title: "Symphony No. 14",
+    };
+    expect(findWorksByQueryInList([other, work], "하이든 교향곡 4번")).toEqual([work]);
+  });
+
   it("matches Korean aliases regardless of spacing or Hangul decomposition", () => {
     const work = {
       ...works[0],
