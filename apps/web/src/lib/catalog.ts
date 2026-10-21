@@ -192,7 +192,10 @@ function mapWorks(rows: WorkRow[], performances: Performance[]): Work[] {
         period: composer?.period ?? "",
       },
       instrumentation: row.instrumentation ?? "",
-      popularityRank: row.popularity_rank ?? 999,
+      popularityRank: row.popularity_rank ?? null,
+      referenceUrl: /^wikidata-q[1-9]\d*$/.test(row.slug)
+        ? `https://www.wikidata.org/wiki/${row.slug.slice(9).toUpperCase()}`
+        : undefined,
       slug: row.slug,
       title: row.title,
       titleKo: row.title_ko ?? row.title,
@@ -284,7 +287,7 @@ async function readCatalogPages<T>(
   sortColumn: string,
 ): Promise<T[]> {
   const rows: T[] = [];
-  for (let offset = 0; ; offset += 1000) {
+  async function readPage(offset: number): Promise<T[]> {
     const result = await supabase
       .from(table)
       .select(columns)
@@ -292,9 +295,19 @@ async function readCatalogPages<T>(
       .order("id", { ascending: true })
       .range(offset, offset + 999);
     if (result.error) throw new Error(`Catalog query failed: ${table}`);
-    const page = (result.data ?? []) as T[];
-    rows.push(...page);
-    if (page.length < 1000) return rows;
+    return (result.data ?? []) as T[];
+  }
+  const first = await readPage(0);
+  rows.push(...first);
+  if (first.length < 1000) return rows;
+  for (let offset = 1000; ; offset += 4000) {
+    const pages = await Promise.all(
+      Array.from({ length: 4 }, (_, index) => readPage(offset + index * 1000)),
+    );
+    for (const page of pages) {
+      rows.push(...page);
+      if (page.length < 1000) return rows;
+    }
   }
 }
 

@@ -446,3 +446,39 @@ def test_load_ocr_results_is_private_provider_scoped_and_paginated():
         )
         assert repo.load_ocr_results(page_size=1) == [{"source_sha256": "hash"}]
         assert len(requests) == 2
+
+
+def test_unreviewed_catalog_imports_do_not_auto_link():
+    rows = [
+        {
+            "id": "imported", "slug": "imported", "title": "Sonata",
+            "catalogue": "Op. 1", "composers": {"name": "Composer"},
+            "work_aliases": [{"alias": "Sonata", "source": "wikidata:Q123"}],
+        },
+        {
+            "id": "curated", "slug": "curated", "title": "Concerto",
+            "catalogue": "Op. 2", "composers": {"name": "Composer"},
+            "work_aliases": [
+                {"alias": "Concerto", "source": "curated"},
+                {"alias": "Concerto 2", "source": "wikidata:Q456"},
+            ],
+        },
+        {
+            "id": "partial", "slug": "wikidata-q789", "title": "Symphony",
+            "composers": {"name": "Composer"}, "work_aliases": [],
+        },
+    ]
+
+    def handler(request):
+        assert "work_aliases(alias,source)" in request.url.params["select"]
+        return httpx.Response(200, json=rows)
+
+    with httpx.Client(transport=httpx.MockTransport(handler)) as client:
+        repo = SupabaseRepository(
+            SupabaseSettings("https://test.supabase.co", "sb_secret_test"),
+            http_client=client,
+        )
+        works = repo.load_work_catalog()
+    assert works[0].requires_review is True
+    assert works[1].requires_review is False
+    assert works[2].requires_review is True

@@ -110,6 +110,9 @@ class R2Store:
     def archive_extraction_result(self, result: Mapping[str, object]) -> StoredObject:
         return self._archive_json(result, "extractions")
 
+    def archive_catalog_snapshot(self, snapshot: Mapping[str, object]) -> StoredObject:
+        return self._archive_json(snapshot, "catalogs")
+
     def _archive_json(self, result: Mapping[str, object], prefix: str) -> StoredObject:
         content = json.dumps(
             result,
@@ -157,7 +160,7 @@ class R2Store:
 
     def read(self, key: str) -> bytes:
         if not re.fullmatch(
-            r"(?:originals|ocr|extractions)/sha256/[a-f0-9]{2}/[a-f0-9]{64}", key
+            r"(?:originals|ocr|extractions|catalogs)/sha256/[a-f0-9]{2}/[a-f0-9]{64}", key
         ):
             raise ValueError("Expected a content-addressed evidence object key")
         response = self._call("get_object", Bucket=self.bucket, Key=key)

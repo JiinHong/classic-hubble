@@ -72,4 +72,27 @@ describe("SearchExperience composer deep link", () => {
     fireEvent.click(screen.getByRole("button", { name: "공연", exact: true }));
     expect(screen.getByText("검색 결과가 없습니다.")).toBeTruthy();
   });
+
+  it("paginates works without excluding later works from search", () => {
+    const manyWorks = Array.from({ length: 30 }, (_, index) => ({
+      ...works[0],
+      id: `work-${index}`,
+      slug: `work-${index}`,
+      title: `Composition ${index + 1}`,
+      titleKo: `Composition ${index + 1}`,
+    }));
+    render(<SearchExperience performances={[]} works={manyWorks} />);
+    expect(screen.getByText("30개 작품 매칭")).toBeTruthy();
+    expect(screen.queryByRole("link", { name: /Composition 25$/ })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "작품 더 보기" }));
+    expect(screen.getByRole("link", { name: /Composition 30$/ })).toBeTruthy();
+    fireEvent.change(screen.getByLabelText("곡명, 작곡가, 공연장 검색"), {
+      target: { value: "Composition" },
+    });
+    expect(screen.queryByRole("link", { name: /Composition 25$/ })).toBeNull();
+    fireEvent.change(screen.getByLabelText("곡명, 작곡가, 공연장 검색"), {
+      target: { value: "Composition 30" },
+    });
+    expect(screen.getByRole("link", { name: /Composition 30$/ })).toBeTruthy();
+  });
 });

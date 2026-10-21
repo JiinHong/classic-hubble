@@ -17,9 +17,11 @@ export function WorkCard({ action, work }: WorkCardProps) {
         <div className="grid size-11 shrink-0 place-items-center rounded-md bg-emerald-50 text-emerald-800">
           <Music2 aria-hidden="true" className="size-5" />
         </div>
-        <span className="rounded-md bg-stone-100 px-2 py-1 text-xs font-bold text-stone-600">
-          #{work.popularityRank}
-        </span>
+        {work.popularityRank !== null && (
+          <span className="rounded-md bg-stone-100 px-2 py-1 text-xs font-bold text-stone-600">
+            #{work.popularityRank}
+          </span>
+        )}
       </div>
 
       <div className="mt-4 min-w-0">

@@ -194,9 +194,19 @@ export function SearchExperience({
         </p>
       ) : mode === "works" ? (
         <div className="grid gap-4 md:grid-cols-2">
-          {workResults.map((work) => (
+          {workResults.slice(0, visibleCount).map((work) => (
             <WorkCard key={work.slug} work={work} />
           ))}
+          {visibleCount < workResults.length ? (
+            <button
+              type="button"
+              onClick={() => setVisibleCount((count) => count + batchSize)}
+              className="flex h-11 items-center justify-center gap-2 rounded-md border border-stone-300 bg-white text-sm font-bold text-stone-700 hover:bg-stone-50 md:col-span-2"
+            >
+              <ChevronDown aria-hidden="true" className="size-4" />
+              작품 더 보기
+            </button>
+          ) : null}
         </div>
       ) : (
         <div className="grid gap-4">
