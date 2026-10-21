@@ -312,17 +312,40 @@ export const reviewQueue: ReviewItem[] = [
   },
 ];
 
+// Observed genre shorthand; this expands queries, not canonical work identities.
+const genreShorthand: Record<string, string> = {
+  피협: "피아노 협주곡",
+  바협: "바이올린 협주곡",
+  피소: "피아노 소나타",
+  현사: "현악 사중주",
+};
+
 const normalize = (value: string) =>
   value
     .normalize("NFC")
     .toLowerCase()
+    .replace(
+      /(피협|바협|피소|현사)\s*(?:제\s*)?(\d+)(?:번)?(?=$|\s|[^가-힣\d])/g,
+      (_, genre: string, number: string) => ` ${genreShorthand[genre]} ${number}번 `,
+    )
+    .replace(
+      /(피협|바협|피소|현사)(?=\s|$)/g,
+      (_, genre: string) => ` ${genreShorthand[genre]} `,
+    )
+    .replace(/현악\s*4중주/g, "현악 사중주")
+    .replace(/(?:제\s*)?(\d+)\s*번/g, " $1번 ")
     .replace(/[.,:;'"“”‘’〈〉<>()\[\]\-]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
 
+const tokenMatches = (candidate: string, token: string) =>
+  /^\d+번$/.test(token)
+    ? candidate.split(" ").includes(token)
+    : candidate.includes(token);
+
 const scoreWork = (work: Work, query: string) => {
   const normalizedQuery = normalize(query);
-  if (!normalizedQuery) return 0;
+  if (!normalizedQuery) return { score: 0, complete: false };
 
   const candidates = [
     work.title,
@@ -338,12 +361,10 @@ const scoreWork = (work: Work, query: string) => {
   let score = 0;
   const compactQuery = normalizedQuery.replace(/\s/g, "");
   const queryTokens = normalizedQuery.split(" ");
-  if (
-    queryTokens.length > 1 &&
-    queryTokens.every((token) =>
-      candidates.some((candidate) => candidate.includes(token)),
-    )
-  ) {
+  let complete = queryTokens.every((token) =>
+    candidates.some((candidate) => tokenMatches(candidate, token)),
+  );
+  if (queryTokens.length > 1 && complete) {
     score = 95;
   }
   for (const candidate of candidates) {
@@ -354,14 +375,13 @@ const scoreWork = (work: Work, query: string) => {
       candidate.replace(/\s/g, "") === compactQuery
     ) {
       score = Math.max(score, 100);
+      complete = true;
     }
     if (candidate === normalizedQuery) score = Math.max(score, 100);
     if (candidate.includes(normalizedQuery)) score = Math.max(score, 80);
     if (normalizedQuery.includes(candidate)) score = Math.max(score, 60);
 
-    const tokenHits = queryTokens.filter((token) =>
-      candidate.includes(token),
-    ).length;
+    const tokenHits = queryTokens.filter((token) => tokenMatches(candidate, token)).length;
     if (queryTokens.length > 1 && tokenHits > 0) {
       score = Math.max(score, tokenHits * 18);
     }
@@ -374,13 +394,14 @@ const scoreWork = (work: Work, query: string) => {
         alias.length > 0 && alias.length <= 12 && normalizedQuery.includes(alias),
     ).length;
 
-  return score + shorthandHits * 10;
+  return { score: score + shorthandHits * 10, complete };
 };
 
-export const findWorksByQueryInList = (items: Work[], query: string) =>
-  items
-    .map((work) => ({ work, score: scoreWork(work, query) }))
-    .filter(({ score }) => score > 0)
+export const findWorksByQueryInList = (items: Work[], query: string) => {
+  const ranked = items.map((work) => ({ work, ...scoreWork(work, query) }));
+  const hasCompleteMatch = ranked.some((item) => item.complete);
+  return ranked
+    .filter(({ score, complete }) => score > 0 && (!hasCompleteMatch || complete))
     .sort(
       (a, b) =>
         b.score - a.score ||
@@ -388,6 +409,7 @@ export const findWorksByQueryInList = (items: Work[], query: string) =>
           (b.work.popularityRank ?? Number.MAX_SAFE_INTEGER),
     )
     .map(({ work }) => work);
+};
 
 export const findWorksByQuery = (query: string) =>
   findWorksByQueryInList(works, query);
