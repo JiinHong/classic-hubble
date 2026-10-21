@@ -24,9 +24,12 @@ describe("public catalog search route", () => {
   });
   it("reports unavailability as an error, not an empty search", async () => {
     getCatalogSnapshot.mockResolvedValue({ source: "unavailable" });
-    expect(
-      (await GET(new Request("https://example.com/api/catalog/search"))).status,
-    ).toBe(503);
+    const response = await GET(
+      new Request("https://example.com/api/catalog/search"),
+    );
+    expect(response.status).toBe(503);
+    expect(response.headers.get("Cache-Control")).toBe("no-store");
+    expect(response.headers.has("Vercel-CDN-Cache-Control")).toBe(false);
   });
   it("returns only the requested public result page", async () => {
     getCatalogSnapshot.mockResolvedValue({
@@ -41,6 +44,10 @@ describe("public catalog search route", () => {
       ),
     );
     expect(response.status).toBe(200);
+    expect(response.headers.get("Cache-Control")).toBe("no-store");
+    expect(response.headers.get("Vercel-CDN-Cache-Control")).toBe(
+      "public, s-maxage=60, stale-while-revalidate=300",
+    );
     expect(response.headers.get("Server-Timing")).toMatch(
       /^catalog;dur=\d+(\.\d+)?, search;dur=\d+(\.\d+)?$/,
     );
