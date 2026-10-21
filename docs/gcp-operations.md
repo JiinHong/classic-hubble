@@ -16,9 +16,10 @@ complete coverage of every venue. Missing programs remain missing, not inferred.
 - Registry: `asia-northeast3-docker.pkg.dev/classic-hubble-prod-20261021/workers/collector`.
 - Database: the existing Classic Hubble Supabase project, `klnfamtwxwrelrjeguqb`.
 
-The worker currently collects KOPIS API data and registers image URLs for later
-processing. It does not yet download images to R2, run OCR, call a text LLM, or
-send email. NOL enrichment is not enabled in this job; the previously observed
+The catalog worker collects KOPIS API data and registers image URLs. A separate
+`source-archiver` job now downloads these originals to R2; see
+[R2 operations](r2-operations.md). Neither job runs OCR, calls a text LLM, or
+sends email. NOL enrichment is not enabled in these jobs; the previously observed
 HTTP 403 remains unresolved. Remaining product work is tracked in
 `superpowers/plans/2026-10-21-full-service-delivery.md`.
 
@@ -49,6 +50,10 @@ before choosing a processing frequency or paid model.
 only on the two secrets `kopis-api-key` and `supabase-secret-key`. The job pins
 secret version 1, so rotation requires deploying the replacement version reference.
 The Supabase server secret is privileged: never expose it to the web client.
+
+`source-archiver@...` is a separate runtime account with Secret Accessor only on
+`r2-access-key-id`, `r2-secret-access-key` and `supabase-secret-key`. These references
+also pin version 1. The catalog collector does not receive R2 credentials.
 
 `worker-builder@...` has Artifact Registry Writer on the workers repository,
 Storage Object Viewer on the build-source bucket and Logs Writer on this project.
@@ -127,8 +132,9 @@ a retention policy will be needed after routine scheduling begins.
 
 ## Verification
 
-- Python worker suite: 139 tests passed, including resume, isolated source errors,
-  access/rate-limit stops, repeated failure stops and NOL failure cases.
+- Python worker suite: 172 tests passed, including catalog resume, source errors,
+  access/rate-limit stops, R2 integrity, source revisions and recovery after a
+  metadata write failure.
 - Web/shared tests: 75 passed; ESLint and production Next.js build passed.
 - Initial container built successfully in Cloud Build and was deployed by digest.
 - Initial full-range execution `catalog-collector-m8fct` saved 528 performances
@@ -137,8 +143,10 @@ a retention policy will be needed after routine scheduling begins.
   subsequently available from the official API. This exposed the need for
   per-record error isolation, which was added with regression tests.
 - Independent list enumeration on 2026-10-21 found 3,205 unique performances in
-  the selected range. Consult execution status and `ingestion_runs` for the final
-  result; deployment readiness alone does not prove complete collection.
+  the selected range. Execution `catalog-collector-h7jzd` succeeded at
+  2026-10-21T02:43:51Z; its checkpoint contains all 3,205 completed IDs and
+  `complete=true`. This verifies the selected KOPIS range, not all historical
+  concerts or every venue.
 
 ## References
 

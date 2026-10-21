@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "Data ingestion and enrichment pipeline for Classic Hubble."
 requires-python = ">=3.11"
 dependencies = [
+  "boto3>=1.43.116,<2",
   "httpx>=0.28",
   "python-dotenv>=1.2",
 ]
