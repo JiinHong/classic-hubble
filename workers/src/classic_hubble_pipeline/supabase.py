@@ -242,6 +242,15 @@ class SupabaseRepository:
             on_conflict="kopis_performance_id",
         )
 
+    def load_ocr_results(self, *, page_size: int = 500) -> list[dict[str, Any]]:
+        rows = self._read_pages(
+            "provider_records",
+            {"select": "id,payload", "provider": "eq.paddleocr",
+             "entity_type": "eq.ocr_result"},
+            page_size=page_size,
+        )
+        return [row["payload"] for row in rows]
+
     def upsert_poster_review_item(self, payload: Mapping[str, object]) -> str:
         return self._upsert_one(
             "poster_review_items",

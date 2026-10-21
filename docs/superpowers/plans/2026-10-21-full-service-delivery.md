@@ -65,6 +65,15 @@ stop collection rather than silently hammering a provider.
 ## External Prerequisites
 
 Local configuration currently contains working KOPIS and Classic Hubble Supabase
-credentials. R2, a chosen text LLM, Resend verified sender, YouTube API key and
+credentials. R2 is configured and source archival is running. A chosen text LLM,
+Resend verified sender, YouTube API key and
 Amplitude project key are not configured. These are recorded prerequisites, not
 completed features. Additional paid service usage requires a cost decision.
+
+## Source Processing Progress
+
+R2 archival is shipped. Image OCR is implemented in a separate CPU Cloud Run job;
+see `docs/ocr-operations.md` for its storage, retry and deployment contract.
+Unit 2 is still partial: PDF text extraction/rendering, semantic program-change
+comparison and recurring orchestration remain. OCR evidence is not automatically
+published as a program. Units 3-6 are not completed by image recognition.

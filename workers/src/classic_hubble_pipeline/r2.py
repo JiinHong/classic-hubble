@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import os
 import re
 from collections.abc import Mapping
@@ -101,10 +102,23 @@ class R2Store:
             self._client.close()
 
     def archive(self, content: bytes, content_type: str) -> StoredObject:
+        return self._archive(content, content_type, "originals")
+
+    def archive_ocr_result(self, result: Mapping[str, object]) -> StoredObject:
+        content = json.dumps(
+            result,
+            sort_keys=True,
+            ensure_ascii=False,
+            separators=(",", ":"),
+            allow_nan=False,
+        ).encode("utf-8")
+        return self._archive(content, "application/json", "ocr")
+
+    def _archive(self, content: bytes, content_type: str, prefix: str) -> StoredObject:
         if not content or len(content) > MAX_SOURCE_BYTES:
             raise ValueError("Source size must be between 1 byte and 32 MiB")
         digest = hashlib.sha256(content).hexdigest()
-        key = f"originals/sha256/{digest[:2]}/{digest}"
+        key = f"{prefix}/sha256/{digest[:2]}/{digest}"
         params = {"Bucket": self.bucket, "Key": key}
         try:
             existing = self._client.head_object(**params)
@@ -136,8 +150,8 @@ class R2Store:
         return StoredObject(key, digest, len(content), content_type, True)
 
     def read(self, key: str) -> bytes:
-        if not re.fullmatch(r"originals/sha256/[a-f0-9]{2}/[a-f0-9]{64}", key):
-            raise ValueError("Expected a source object key")
+        if not re.fullmatch(r"(?:originals|ocr)/sha256/[a-f0-9]{2}/[a-f0-9]{64}", key):
+            raise ValueError("Expected a content-addressed source or OCR object key")
         response = self._call("get_object", Bucket=self.bucket, Key=key)
         body = response["Body"]
         try:

@@ -19,7 +19,8 @@ complete coverage of every venue. Missing programs remain missing, not inferred.
 The catalog worker collects KOPIS API data and registers image URLs. A separate
 `source-archiver` job now downloads these originals to R2; see
 [R2 operations](r2-operations.md). Neither job runs OCR, calls a text LLM, or
-sends email. NOL enrichment is not enabled in these jobs; the previously observed
+sends email. Image recognition now runs in a third, separate `ocr-worker` job;
+see [OCR operations](ocr-operations.md). NOL enrichment is not enabled in these jobs; the previously observed
 HTTP 403 remains unresolved. Remaining product work is tracked in
 `superpowers/plans/2026-10-21-full-service-delivery.md`.
 

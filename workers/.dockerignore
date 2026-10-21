@@ -1,6 +1,9 @@
 **
 !Dockerfile
+!Dockerfile.ocr
 !requirements-cloud.txt
+!requirements-ocr.txt
+!bundle_ocr_models.py
 !src/
 !src/**
 **/__pycache__/
