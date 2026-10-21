@@ -13,8 +13,8 @@ dependencies = [
 classic-hubble-pipeline = "classic_hubble_pipeline.cli:main"
 
 [project.optional-dependencies]
-dev = ["pytest>=9.0", "Pillow>=12.3,<13"]
-ocr = ["Pillow>=12.3,<13", "paddleocr==3.7.0", "paddlex[ocr-core]==3.7.2", "paddlepaddle==3.3.1"]
+dev = ["pytest>=9.0", "Pillow>=12.3,<13", "pypdfium2==5.14.0"]
+ocr = ["Pillow>=12.3,<13", "paddleocr==3.7.0", "paddlex[ocr-core]==3.7.2", "paddlepaddle==3.3.1", "pypdfium2==5.14.0"]
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]

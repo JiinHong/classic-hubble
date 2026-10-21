@@ -1,4 +1,4 @@
-"""Resumable, private OCR of all currently archived images, without an item cap."""
+"""Resumable, private text extraction from archived images and PDFs."""
 
 from __future__ import annotations
 
@@ -13,10 +13,19 @@ from datetime import UTC, datetime
 
 from .cloud_run import _terminated
 from .ocr import PIPELINE_VERSION, OcrInputError, PaddleEngine, extract_image
+from .pdf import PDF_PIPELINE_VERSION, extract_pdf
 from .r2 import R2Settings, R2Store
 from .supabase import SupabaseRepository, SupabaseSettings
 
 CACHEABLE = {"text_extracted", "no_text", "needs_manual_handling"}
+
+
+def _is_pdf(source):
+    return source["content_type"].split(";", 1)[0].strip().lower() == "application/pdf"
+
+
+def _version(source):
+    return PDF_PIPELINE_VERSION if _is_pdf(source) else PIPELINE_VERSION
 
 
 def process_archives(
@@ -50,7 +59,8 @@ def process_archives(
         cached = {
             row["source_sha256"]
             for row in repository.load_ocr_results()
-            if row.get("pipeline_version") == PIPELINE_VERSION
+            if row.get("source_sha256") in sources
+            and row.get("pipeline_version") == _version(sources[row["source_sha256"]])
             and row.get("bucket") == store.bucket
             and row.get("status") in CACHEABLE
         }
@@ -65,15 +75,16 @@ def process_archives(
             if clock() - started >= max_seconds:
                 break
             source = sources[sha]
+            version = _version(source)
             base = {
                 "source_sha256": sha,
                 "source_object_key": source["object_key"],
-                "pipeline_version": PIPELINE_VERSION,
+                "pipeline_version": version,
                 "bucket": store.bucket,
                 "review_status": "unverified",
             }
             item_started = clock()
-            if not source["content_type"].startswith("image/"):
+            if not source["content_type"].startswith("image/") and not _is_pdf(source):
                 result = {
                     **base,
                     "status": "needs_manual_handling",
@@ -85,7 +96,8 @@ def process_archives(
                 if hashlib.sha256(data).hexdigest() != sha:
                     raise ValueError("Source hash mismatch")
                 try:
-                    result = {**extract_image(data, read), **base}
+                    extract = extract_pdf if _is_pdf(source) else extract_image
+                    result = {**extract(data, read), **base}
                 except OcrInputError as error:
                     result = {
                         **base,
@@ -101,7 +113,7 @@ def process_archives(
                     repository.upsert_provider_record(
                         provider="paddleocr",
                         entity_type="ocr_error",
-                        provider_id=f"{PIPELINE_VERSION}:{sha}:{run_id}",
+                        provider_id=f"{version}:{sha}:{run_id}",
                         ingestion_run_id=run_id,
                         payload={**base, "error": type(error).__name__},
                     )
@@ -121,7 +133,7 @@ def process_archives(
             repository.upsert_provider_record(
                 provider="paddleocr",
                 entity_type="ocr_result",
-                provider_id=f"{PIPELINE_VERSION}:{sha}",
+                provider_id=f"{version}:{sha}",
                 ingestion_run_id=run_id,
                 payload=metadata,
             )
