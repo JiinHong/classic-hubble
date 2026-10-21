@@ -19,19 +19,24 @@ export async function GET(request: Request) {
   ) {
     return Response.json({ error: "invalid_request" }, { status: 400 });
   }
+  const startedAt = performance.now();
   const catalog = await getCatalogSnapshot();
+  const loadedAt = performance.now();
   if (catalog.source === "unavailable")
     return Response.json(
       { error: "unavailable" },
       { status: 503, headers: { "Cache-Control": "no-store" } },
     );
-  return Response.json(
-    searchCatalog(catalog, {
-      query,
-      city,
-      mode: mode as "works" | "performances",
-      offset,
-    }),
-    { headers: { "Cache-Control": "no-store" } },
-  );
+  const result = searchCatalog(catalog, {
+    query,
+    city,
+    mode: mode as "works" | "performances",
+    offset,
+  });
+  return Response.json(result, {
+    headers: {
+      "Cache-Control": "no-store",
+      "Server-Timing": `catalog;dur=${(loadedAt - startedAt).toFixed(1)}, search;dur=${(performance.now() - loadedAt).toFixed(1)}`,
+    },
+  });
 }

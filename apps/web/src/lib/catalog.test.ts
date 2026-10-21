@@ -1,10 +1,13 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { randomBytes } from "node:crypto";
+import { gunzipSync } from "node:zlib";
 
 import openOpusComposers from "@/data/openopus-composers.json";
 
 const mocks = vi.hoisted(() => ({
   configured: { value: true },
   createSupabaseClient: vi.fn(),
+  cacheReads: vi.fn(),
   persistent: new Map<string, { expires: number; value: unknown }>(),
 }));
 
@@ -16,6 +19,7 @@ vi.mock("next/cache", () => ({
       options: { revalidate: number },
     ) =>
     async (...args: unknown[]) => {
+      mocks.cacheReads(keys);
       const key = JSON.stringify([keys, args]);
       const cached = mocks.persistent.get(key);
       if (cached && cached.expires > Date.now()) return cached.value;
@@ -220,11 +224,38 @@ describe("getCatalogSnapshot", () => {
     const ranges = database({ performances: [[performance("p")]] });
     const first = await import("./catalog");
     await first.getCatalogSnapshot();
+    mocks.cacheReads.mockClear();
     vi.resetModules();
     const second = await import("./catalog");
     expect((await second.getCatalogSnapshot()).performances[0].id).toBe("p");
     expect(ranges.works).toHaveBeenCalledTimes(1);
     expect(ranges.performances).toHaveBeenCalledTimes(1);
+    expect(mocks.cacheReads).toHaveBeenCalledTimes(2);
+    const entries = [...mocks.persistent].filter(([key]) =>
+      key.includes("public-catalog-group"),
+    );
+    expect(entries).toHaveLength(2);
+    expect(
+      entries.map(([, { value }]) =>
+        JSON.parse(
+          gunzipSync(Buffer.from(value as string, "base64")).toString(),
+        ),
+      ),
+    ).toContainEqual([performance("p")]);
+  });
+
+  it("falls back to bounded pages when the compressed snapshot exceeds the cache limit", async () => {
+    const title = randomBytes(2_000_000).toString("base64");
+    database({ performances: [[{ ...performance("large"), title }]] });
+    const { getCatalogSnapshot } = await import("./catalog");
+    const result = await getCatalogSnapshot();
+    expect(result.source).toBe("supabase");
+    expect(result.performances[0].title).toBe(title);
+    const entry = [...mocks.persistent].find(
+      ([key]) =>
+        key.includes("public-catalog-group") && key.includes("performances"),
+    );
+    expect(entry?.[1].value).toBeNull();
   });
 
   it("reuses public catalog reads for one minute and coalesces simultaneous loads", async () => {
@@ -289,6 +320,37 @@ describe("getCatalogSnapshot", () => {
       reviewQueue: [],
       source: "supabase",
     });
+  });
+
+  it("reuses date formatters while preserving Korean performance dates", async () => {
+    const OriginalFormatter = Intl.DateTimeFormat;
+    const descriptor = Object.getOwnPropertyDescriptor(Intl, "DateTimeFormat")!;
+    let formatterCount = 0;
+    Object.defineProperty(Intl, "DateTimeFormat", {
+      ...descriptor,
+      value: class extends OriginalFormatter {
+        constructor(...args: ConstructorParameters<typeof OriginalFormatter>) {
+          super(...args);
+          formatterCount += 1;
+        }
+      },
+    });
+    try {
+      database({
+        performances: [[performance("first"), performance("second")]],
+      });
+      const { getCatalogSnapshot } = await import("./catalog");
+      const result = await getCatalogSnapshot();
+      expect(
+        result.performances.map(({ date, time }) => ({ date, time })),
+      ).toEqual([
+        { date: "2026-12-01", time: "19:00" },
+        { date: "2026-12-01", time: "19:00" },
+      ]);
+      expect(formatterCount).toBeLessThanOrEqual(3);
+    } finally {
+      Object.defineProperty(Intl, "DateTimeFormat", descriptor);
+    }
   });
 
   it("preserves unranked works and their source links past the API page boundary", async () => {
