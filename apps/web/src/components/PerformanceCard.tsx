@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { compactArtists, formatPerformanceDate, statusLabel, statusTone } from "@/lib/format";
+import { posterImage } from "@/lib/poster";
 
 import { ConfidenceBadge } from "./ConfidenceBadge";
 
@@ -27,13 +28,12 @@ export function PerformanceCard({
         className="relative block min-h-44 bg-stone-100 sm:min-h-full"
       >
         <Image
-          src={performance.posterUrl}
+          {...posterImage(performance.posterUrl)}
           alt={`${performance.title} 포스터`}
           className="absolute inset-0 h-full w-full object-cover"
           fill
           loading={eager ? "eager" : "lazy"}
           sizes="(min-width: 640px) 132px, 100vw"
-          unoptimized
         />
       </Link>
 

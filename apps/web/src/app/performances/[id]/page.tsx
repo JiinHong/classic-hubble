@@ -11,6 +11,7 @@ import {
   statusTone,
 } from "@/lib/format";
 import { getCatalogPerformanceById } from "@/lib/catalog";
+import { posterImage } from "@/lib/poster";
 
 export const dynamic = "force-dynamic";
 
@@ -43,13 +44,12 @@ export default async function PerformancePage({ params }: PerformancePageProps) 
       <section className="mt-5 grid gap-6 lg:grid-cols-[360px_minmax(0,1fr)]">
         <div className="relative aspect-[3/4] overflow-hidden rounded-lg border border-stone-200 bg-stone-100 shadow-sm">
           <Image
-            src={performance.posterUrl}
+            {...posterImage(performance.posterUrl)}
             alt={`${performance.title} 포스터`}
             className="object-cover"
             fill
             priority
             sizes="(min-width: 1024px) 360px, 100vw"
-            unoptimized
           />
         </div>
 

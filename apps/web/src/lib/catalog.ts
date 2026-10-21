@@ -6,6 +6,7 @@ import {
   type ReviewItem,
   type Work,
 } from "@classic-hubble/shared";
+import { unstable_cache } from "next/cache";
 
 import openOpusComposers from "@/data/openopus-composers.json";
 import workComponents from "@/data/work-components.json";
@@ -130,6 +131,14 @@ function mergeComposerRows(
 }
 
 const COMPOSER_PAGE_SIZE = 1000;
+
+const WORK_COLUMNS = `slug, title, title_ko, catalogue, instrumentation,
+  popularity_rank, composers(id, name, name_ko, period), work_aliases(alias)`;
+const PERFORMANCE_COLUMNS = `kopis_performance_id, title, starts_at, ends_on,
+  status, artists, price_range, booking_url, poster_url, source_label,
+  program_status, program_source_url, program_image_urls, venues(name, city),
+  program_items(display_title, composer_name, source_type, confidence,
+    position, source_provider, works(slug))`;
 
 const sourceLabels: Record<ConfidenceLevel, string> = {
   estimated: "추정 매칭",
@@ -256,8 +265,15 @@ export async function getComposerDirectory(): Promise<
   ComposerDirectoryEntry[]
 > {
   if (!isSupabaseConfigured) return copyBaselineComposerDirectory();
-
   try {
+    return mergeComposerRows(await readComposerRows());
+  } catch {
+    return copyBaselineComposerDirectory();
+  }
+}
+
+const readComposerRows = unstable_cache(
+  async () => {
     const supabase = createSupabaseClient();
     const rows: ComposerDirectoryRow[] = [];
 
@@ -269,35 +285,48 @@ export async function getComposerDirectory(): Promise<
         .order("id", { ascending: true })
         .range(offset, offset + COMPOSER_PAGE_SIZE - 1);
 
-      if (result.error) return copyBaselineComposerDirectory();
+      if (result.error) throw new Error("Composer query failed");
 
       const page = (result.data ?? []) as ComposerDirectoryRow[];
       rows.push(...page);
       if (page.length < COMPOSER_PAGE_SIZE) break;
     }
 
-    return mergeComposerRows(rows);
-  } catch {
-    return copyBaselineComposerDirectory();
-  }
-}
+    return rows;
+  },
+  ["public-composer-rows-v1", process.env.NEXT_PUBLIC_SUPABASE_URL ?? ""],
+  { revalidate: 60 },
+);
 
-async function readCatalogPages<T>(
-  supabase: ReturnType<typeof createSupabaseClient>,
-  table: "works" | "performances",
-  columns: string,
-  sortColumn: string,
-): Promise<T[]> {
-  const rows: T[] = [];
-  async function readPage(offset: number): Promise<T[]> {
-    const result = await supabase
+// Cache bounded public pages, not a multi-megabyte snapshot or authenticated data.
+const readCatalogPage = unstable_cache(
+  async (
+    table: "works" | "performances",
+    columns: string,
+    sortColumn: string,
+    offset: number,
+  ) => {
+    const result = await createSupabaseClient()
       .from(table)
       .select(columns)
       .order(sortColumn, { ascending: true })
       .order("id", { ascending: true })
       .range(offset, offset + 999);
     if (result.error) throw new Error(`Catalog query failed: ${table}`);
-    return (result.data ?? []) as T[];
+    return result.data ?? [];
+  },
+  ["public-catalog-page-v1", process.env.NEXT_PUBLIC_SUPABASE_URL ?? ""],
+  { revalidate: 60 },
+);
+
+async function readCatalogPages<T>(
+  table: "works" | "performances",
+  columns: string,
+  sortColumn: string,
+): Promise<T[]> {
+  const rows: T[] = [];
+  async function readPage(offset: number): Promise<T[]> {
+    return (await readCatalogPage(table, columns, sortColumn, offset)) as T[];
   }
   const first = await readPage(0);
   rows.push(...first);
@@ -338,52 +367,11 @@ async function readCatalogSnapshot(): Promise<CatalogSnapshot> {
   if (!isSupabaseConfigured) return unavailableSnapshot();
 
   try {
-    const supabase = createSupabaseClient();
-
     const [workRows, performanceRows] = await Promise.all([
-      readCatalogPages<WorkRow>(
-        supabase,
-        "works",
-        `
-          slug,
-          title,
-          title_ko,
-          catalogue,
-          instrumentation,
-          popularity_rank,
-          composers(id, name, name_ko, period),
-          work_aliases(alias)
-        `,
-        "popularity_rank",
-      ),
+      readCatalogPages<WorkRow>("works", WORK_COLUMNS, "popularity_rank"),
       readCatalogPages<PerformanceRow>(
-        supabase,
         "performances",
-        `
-          kopis_performance_id,
-          title,
-          starts_at,
-          ends_on,
-          status,
-          artists,
-          price_range,
-          booking_url,
-          poster_url,
-          source_label,
-          program_status,
-          program_source_url,
-          program_image_urls,
-          venues(name, city),
-          program_items(
-            display_title,
-            composer_name,
-            source_type,
-            confidence,
-            position,
-            source_provider,
-            works(slug)
-          )
-        `,
+        PERFORMANCE_COLUMNS,
         "starts_at",
       ),
     ]);
@@ -404,21 +392,96 @@ async function readCatalogSnapshot(): Promise<CatalogSnapshot> {
 }
 
 export async function getCatalogWorkBySlug(slug: string) {
-  const catalog = await getCatalogSnapshot();
+  const selection = await getCatalogSelection([slug]);
   return {
-    catalog,
-    performances: getUpcomingPerformancesFromList(catalog.performances).filter(
-      (performance) =>
-        performance.program.some((item) => item.workSlug === slug),
-    ),
-    work: catalog.works.find((item) => item.slug === slug) ?? null,
+    performances: selection.performances,
+    work: selection.works[0] ?? null,
   };
 }
 
 export async function getCatalogPerformanceById(id: string) {
-  const catalog = await getCatalogSnapshot();
+  const result = await createSupabaseClient()
+    .from("performances")
+    .select(PERFORMANCE_COLUMNS)
+    .eq("kopis_performance_id", id)
+    .maybeSingle();
+  if (result.error) throw new Error("Performance query failed");
   return {
-    catalog,
-    performance: catalog.performances.find((item) => item.id === id) ?? null,
+    performance:
+      mapPerformances(
+        result.data ? [result.data as unknown as PerformanceRow] : [],
+      )[0] ?? null,
+  };
+}
+
+const relatedWorks = new Map<string, Set<string>>();
+for (const { parent_slug, child_slug } of workComponents) {
+  for (const [from, to] of [
+    [parent_slug, child_slug],
+    [child_slug, parent_slug],
+  ]) {
+    const neighbors = relatedWorks.get(from) ?? new Set<string>();
+    neighbors.add(to);
+    relatedWorks.set(from, neighbors);
+  }
+}
+
+export async function getCatalogSelection(slugs: string[]) {
+  if (!slugs.length) return { works: [], performances: [] };
+  const selected = new Set(slugs);
+  const related = new Set(slugs);
+  const pending = [...slugs];
+  // Retain the connected family so relation validation (including cycles) stays intact.
+  while (pending.length) {
+    for (const slug of relatedWorks.get(pending.pop()!) ?? []) {
+      if (related.has(slug)) continue;
+      related.add(slug);
+      pending.push(slug);
+    }
+  }
+  const supabase = createSupabaseClient();
+  const readWorks = async () => {
+    const rows: WorkRow[] = [];
+    const requested = [...related];
+    for (let offset = 0; offset < requested.length; offset += 100) {
+      const result = await supabase
+        .from("works")
+        .select(WORK_COLUMNS)
+        .in("slug", requested.slice(offset, offset + 100));
+      if (result.error) throw new Error("Work query failed");
+      rows.push(...((result.data ?? []) as unknown as WorkRow[]));
+    }
+    return rows;
+  };
+  const readPerformances = async () => {
+    const rows: PerformanceRow[] = [];
+    for (let offset = 0; ; offset += 1000) {
+      // Filter through a separate relation to keep the complete concert program.
+      const result = await supabase
+        .from("performances")
+        .select(
+          `${PERFORMANCE_COLUMNS}, matched:program_items!inner(works!inner(slug))`,
+        )
+        .in("matched.works.slug", [...selected])
+        .order("starts_at", { ascending: true })
+        .order("id", { ascending: true })
+        .range(offset, offset + 999);
+      if (result.error) throw new Error("Work performances query failed");
+      const page = (result.data ?? []) as unknown as PerformanceRow[];
+      rows.push(...page);
+      if (page.length < 1000) break;
+    }
+    return getUpcomingPerformancesFromList(mapPerformances(rows));
+  };
+  const [rows, performances] = await Promise.all([
+    readWorks(),
+    readPerformances(),
+  ]);
+  return {
+    works: attachWorkComponents(
+      mapWorks(rows, performances),
+      workComponents,
+    ).filter((work) => selected.has(work.slug)),
+    performances,
   };
 }

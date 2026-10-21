@@ -61,6 +61,7 @@ export function UserLibraryProvider({
   client: providedClient,
 }: UserLibraryProviderProps) {
   const { loading: authLoading, openAuth, user } = useAuth();
+  const userId = user?.id;
   const client = useMemo(
     () =>
       providedClient ??
@@ -73,19 +74,19 @@ export function UserLibraryProvider({
   useEffect(() => {
     let active = true;
 
-    if (!user || !client) {
+    if (!userId || !client) {
       return () => {
         active = false;
       };
     }
 
-    void loadUserLibrary(client, user.id)
+    void loadUserLibrary(client, userId)
       .then((snapshot) => {
         if (!active) return;
         setLibrary({
           error: null,
           preferences: snapshot.preferences,
-          userId: user.id,
+          userId,
           watchedSlugs: snapshot.watchedSlugs,
         });
       })
@@ -97,7 +98,7 @@ export function UserLibraryProvider({
               ? loadError.message
               : "관심곡을 불러오지 못했습니다.",
           preferences: initialPreferences,
-          userId: user.id,
+          userId,
           watchedSlugs: [],
         });
       });
@@ -105,7 +106,7 @@ export function UserLibraryProvider({
     return () => {
       active = false;
     };
-  }, [client, user]);
+  }, [client, userId]);
 
   const hasLoadedLibrary = Boolean(user && library?.userId === user.id);
   const visibleWatchedSlugs = hasLoadedLibrary

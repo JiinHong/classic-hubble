@@ -41,6 +41,9 @@ export function SearchExperience({
     error: false,
   });
   const completedKey = useRef(requestKey);
+  const recentResults = useRef(
+    new Map<string, { expires: number; result: CatalogSearchResult }>(),
+  );
   const loading = state.key !== requestKey;
   const error = !loading && state.error;
   const { works: workResults, performances: performanceResults } = state.result;
@@ -48,47 +51,69 @@ export function SearchExperience({
   useEffect(() => {
     if (completedKey.current === requestKey) return;
     const controller = new AbortController();
-    const timer = setTimeout(async () => {
-      try {
-        const params = new URLSearchParams({
-          q: query,
-          mode,
-          city,
-          offset: String(offset),
-        });
-        const response = await fetch(`/api/catalog/search?${params}`, {
-          signal: controller.signal,
-        });
-        if (!response.ok) throw new Error("Search unavailable");
-        const result: CatalogSearchResult = await response.json();
-        if (controller.signal.aborted) return;
-        completedKey.current = requestKey;
-        setState((previous) => ({
-          key: requestKey,
-          error: false,
-          result:
-            offset === 0
-              ? result
-              : {
-                  ...result,
-                  works: [...previous.result.works, ...result.works],
-                  performances: [
-                    ...previous.result.performances,
-                    ...result.performances,
-                  ],
-                },
-        }));
-      } catch {
-        if (!controller.signal.aborted) {
+    const cacheKey = JSON.stringify([query.trim(), mode, city, offset]);
+    const cached = recentResults.current.get(cacheKey);
+    const fresh = cached && cached.expires > Date.now();
+    const timer = setTimeout(
+      async () => {
+        try {
+          const params = new URLSearchParams({
+            q: query,
+            mode,
+            city,
+            offset: String(offset),
+          });
+          let result: CatalogSearchResult;
+          if (fresh) {
+            result = cached.result;
+          } else {
+            const response = await fetch(`/api/catalog/search?${params}`, {
+              signal: controller.signal,
+            });
+            if (!response.ok) throw new Error("Search unavailable");
+            result = await response.json();
+          }
+          if (controller.signal.aborted) return;
+          if (!fresh) {
+            recentResults.current.delete(cacheKey);
+            recentResults.current.set(cacheKey, {
+              expires: Date.now() + 60_000,
+              result,
+            });
+            if (recentResults.current.size > 20)
+              recentResults.current.delete(
+                recentResults.current.keys().next().value!,
+              );
+          }
           completedKey.current = requestKey;
           setState((previous) => ({
-            ...previous,
             key: requestKey,
-            error: true,
+            error: false,
+            result:
+              offset === 0
+                ? result
+                : {
+                    ...result,
+                    works: [...previous.result.works, ...result.works],
+                    performances: [
+                      ...previous.result.performances,
+                      ...result.performances,
+                    ],
+                  },
           }));
+        } catch {
+          if (!controller.signal.aborted) {
+            completedKey.current = requestKey;
+            setState((previous) => ({
+              ...previous,
+              key: requestKey,
+              error: true,
+            }));
+          }
         }
-      }
-    }, 200);
+      },
+      fresh ? 0 : 200,
+    );
     return () => {
       clearTimeout(timer);
       controller.abort();
