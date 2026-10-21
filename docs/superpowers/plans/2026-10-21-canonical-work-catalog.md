@@ -27,11 +27,11 @@ no new cloud service, no schema changes or changes to other Supabase projects.
   must never publish a concert program or send notifications.
 - [x] Collect all eligible records for the 220 known composer IDs. Dry-run and
   inspect source anomalies/merges before applying. Keep the data readable past
-  1,000 rows. Post-import response size/speed verification is still pending.
-- [ ] Verify actual database counts, preserved four IDs/19 aliases, repeat-import
+  1,000 rows. Post-import response size/speed is recorded in `docs/work-catalog.md`.
+- [x] Verify actual database counts, preserved four IDs/19 aliases, repeat-import
   idempotence, representative matches and review-only behavior. Run Python/web
   suites, lint and build. Document coverage and source/license limitations.
-- [ ] Commit only this unit's files, push a PR, verify CI, merge and verify the
+- [x] Commit only this unit's files, push a PR, verify CI, merge and verify the
   production deployment. Leave user-owned `docs/capstone/` unchanged.
 
 ## Accuracy Contract

@@ -4,7 +4,7 @@
 
 The 2026-10-21 snapshot queries Wikidata for the 220 composers already identified
 in the reviewed composer directory. It contains 16,952 unique source items.
-The initial dry-run accepts 11,646 works and reuses the four curated work IDs:
+The production import accepts 11,646 works and reuses the four curated work IDs:
 11,642 new works and 205 new composers, giving 209 composers with eligible works.
 These are reference records, not 11,646 manually verified compositions, a complete
 history of classical music, or a claim that each work has an upcoming concert.
@@ -92,3 +92,39 @@ program links remain unchanged, then run a second dry run to confirm zero new
 work/composer inserts. Record actual production counts separately from dry-run
 counts. The GCP KOPIS collector does not run NOL enrichment; any process running
 matching must use this guard before imported references are available.
+
+## Production verification, 2026-10-21
+
+Applied at 04:55:45 UTC after production commit
+`b52813a2657098dece91b4449cf49e4e880b23c8` became ready (PR #7).
+Read-back counts: 209 composers, 11,646 works, 21,566 title/alias rows and
+11,646 private source crosswalks. Of the works, 4,346 have a parsed catalogue
+number and 721 have a source/local Korean title. All 11,642 new works are
+review-only. These counts include collections or excerpts where Wikidata models
+them as compositions; they do not assert a uniform whole-work level.
+
+The original four composer/work rows, 19 curated alias rows and all 229 program
+items compare identically with the pre-import snapshot. Real matcher checks
+preserve the curated Beethoven fifth symphony link and return only a review
+candidate for the newly imported *Fuer Elise*. A second dry run proposes zero new
+composers or works. Missing Korean labels and instrumentation are not fabricated.
+
+Snapshot digest:
+`c4173d0c866b2bf95cbebd2be00bb3151b669534d499fcd523fe461daa7107c9`.
+Private R2 bucket: `classic-hubble-sources`. Object key:
+`catalogs/sha256/76/76071786b32938ce4817b512d135742e481d8fbcde5a838e878c51a182c54f6c`.
+A private `wikidata/catalog_snapshot` provider record stores the archive pointer
+and verification receipt. This receipt was recorded during operational rollout;
+the CLI itself writes the detailed local report and per-work crosswalks.
+
+Production UI verification found 11,646 searchable works; Korean search for
+*Fuer Elise* returned its new record, with WoO 59 and the Wikidata source on its
+detail page. The narrow in-app viewport displayed it without overlapping text.
+Home returned HTTP 200 in 10.59 seconds with 6,697,841 uncompressed bytes, versus
+10.93 seconds and 725,779 bytes before import. These are single observations, not
+a performance benchmark. Initial transfer size and full-catalog reads remain
+known scaling work. No error/fatal runtime logs appeared during this smoke check.
+
+Local and PR CI verification: 289 Python tests, 81 shared/web tests, ESLint and
+the production build passed. These tests verify implementation behavior, not
+measured real-world OCR or music-identification accuracy.

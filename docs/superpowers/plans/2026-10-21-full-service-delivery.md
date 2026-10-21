@@ -85,5 +85,9 @@ published as a program. Units 3-6 are not completed by image recognition.
 Unit 3 now has a provider-independent grounded extraction contract, exact OCR
 evidence validation, canonical review suggestions and a private prepare/import
 CLI. See `docs/music-extraction.md`. No model is connected or called yet, and no
-OCR-derived result is published. The catalogue still contains four works.
-Canonical expansion, model evaluation and actual batch inference remain pending.
+OCR-derived result is published. The canonical reference catalogue is expanded
+to 11,646 works by 209 composers, with 21,566 title/alias rows. Existing four
+curated works are preserved and all new imported works require matching review.
+See `docs/work-catalog.md` for source coverage, exclusions and production evidence.
+Unit 3 remains partial: source curation, model evaluation, calibrated matching
+precision and actual batch inference are still pending.
