@@ -184,6 +184,45 @@ class SupabaseRepository:
         rows = response.json()
         return rows[0]["payload"] if rows else None
 
+    def load_music_request(self, key: str) -> dict[str, Any] | None:
+        response = self._request(
+            "GET", "provider_records",
+            params={
+                "provider": "eq.openai", "entity_type": "eq.music_request",
+                "provider_id": f"eq.{key}", "select": "payload", "limit": "1",
+            },
+            prefer="return=representation",
+        )
+        rows = response.json()
+        return rows[0]["payload"] if rows else None
+
+    def claim_music_request(self, key: str, payload: Mapping[str, object]) -> bool:
+        response = self._request(
+            "POST", "provider_records",
+            params={"on_conflict": "provider,entity_type,provider_id"},
+            json={
+                "provider": "openai", "entity_type": "music_request",
+                "provider_id": key, "payload": dict(payload),
+            },
+            prefer="resolution=ignore-duplicates,return=representation",
+        )
+        return bool(response.json())
+
+    def finish_music_request(
+        self, key: str, owner: str, payload: Mapping[str, object]
+    ) -> bool:
+        response = self._request(
+            "PATCH", "provider_records",
+            params={
+                "provider": "eq.openai", "entity_type": "eq.music_request",
+                "provider_id": f"eq.{key}", "payload->>owner": f"eq.{owner}",
+                "payload->>status": "eq.claimed",
+            },
+            json={"payload": dict(payload), "fetched_at": _utc_now()},
+            prefer="return=representation",
+        )
+        return bool(response.json())
+
     def save_collection_checkpoint(
         self, key: str, payload: Mapping[str, object]
     ) -> None:

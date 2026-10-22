@@ -11,6 +11,44 @@ from classic_hubble_pipeline.supabase import (
 )
 
 
+def test_music_request_claim_does_not_overwrite_an_existing_paid_attempt():
+    requests = []
+
+    def handler(request):
+        requests.append(request)
+        return httpx.Response(201, json=[{"id": "claim"}] if len(requests) == 1 else [])
+
+    with httpx.Client(transport=httpx.MockTransport(handler)) as client:
+        repo = SupabaseRepository(SupabaseSettings("https://example.supabase.co", "secret"), http_client=client)
+        assert repo.claim_music_request("hash", {"status": "claimed", "owner": "owner"})
+        assert not repo.claim_music_request("hash", {"status": "claimed", "owner": "other"})
+    assert requests[0].headers["prefer"] == "resolution=ignore-duplicates,return=representation"
+    assert requests[0].url.params["on_conflict"] == "provider,entity_type,provider_id"
+    payload = json.loads(requests[0].content)
+    assert payload["provider"] == "openai"
+    assert payload["entity_type"] == "music_request"
+
+
+def test_music_request_reads_and_completion_are_scoped_to_owner_and_claim():
+    requests = []
+
+    def handler(request):
+        requests.append(request)
+        return httpx.Response(200, json=[{"payload": {"status": "claimed"}}] if request.method == "GET" else [])
+
+    with httpx.Client(transport=httpx.MockTransport(handler)) as client:
+        repo = SupabaseRepository(SupabaseSettings("https://example.supabase.co", "secret"), http_client=client)
+        assert repo.load_music_request("hash") == {"status": "claimed"}
+        assert not repo.finish_music_request("hash", "owner", {"status": "succeeded"})
+    for request in requests:
+        assert request.url.params["provider"] == "eq.openai"
+        assert request.url.params["entity_type"] == "eq.music_request"
+        assert request.url.params["provider_id"] == "eq.hash"
+    assert requests[1].method == "PATCH"
+    assert requests[1].url.params["payload->>status"] == "eq.claimed"
+    assert requests[1].url.params["payload->>owner"] == "eq.owner"
+
+
 def test_source_image_scan_covers_all_pages_in_collection_window():
     from datetime import date
     requests = []
