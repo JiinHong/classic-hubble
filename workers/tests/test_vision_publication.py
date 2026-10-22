@@ -52,6 +52,7 @@ def test_apply_rechecks_live_source_and_sends_one_atomic_request(monkeypatch):
     assert payload["p_source"] == repo.sources[0]
     assert payload["p_reading"] == next(iter(repo.cached.values()))
     assert payload["p_evaluation"]["matching"]["items"][0]["scope"] == "full_work"
+    assert payload["p_evaluation"]["performance_date"] == "2026-10-22"
     assert payload["p_items"][0]["work_id"] == "rach-2"
     assert "confidence" not in payload["p_items"][0]
 
@@ -118,3 +119,46 @@ def test_korean_month_day_uses_the_target_year():
     run(repo, store, data, apply=True)
     with httpx.Client() as client:
         assert module().publish(repo, store, client, "p1")["status"] == "ready"
+
+
+@pytest.mark.parametrize("date_text", [
+    "2026. 10. 22 TUR 7:30 PM",  # The original PF299019 really prints TUR.
+    "2026.10.22 THU 19:30",
+    "2026. 10. 22 [목] 오후 7시 30분",
+    "2026/10/22 Thursday 19:30",
+    "10.22 (THUR) 19:30 | 부산콘서트홀",
+])
+def test_observed_date_headings_bind_without_rewriting_the_reading(date_text):
+    repo, store, _, writes = setup()
+    repo.cached.clear()
+    data = reading(store)
+    data["lines"].append({"text": date_text, "page_index": 0})
+    run(repo, store, data, apply=True)
+    before = copy.deepcopy(repo.cached)
+    with httpx.Client() as client:
+        assert module().publish(repo, store, client, "p1")["status"] == "ready"
+    assert repo.cached == before
+    assert not writes
+
+
+@pytest.mark.parametrize("headers", [
+    ["2025.10.22 THU 19:30"],
+    ["2026.10.23 [금] 19:30"],
+    ["Biography: debuted 2026.10.22 THU in Seoul"],
+    ["2026.10.22 THURSDAYISH"],
+    ["2026.10.22 THU", "2026.10.23 [금]"],
+    ["2026.10.22 THU & 10.23 FRI"],
+    ["2026.10.22 THU ~ 23 FRI"],
+    ["2026.10.22 THU 2026.10.23 FRI"],
+    ["2026.10.22 THU", "2026.02.30 [월]"],
+])
+def test_new_heading_forms_cannot_bypass_single_valid_date_binding(headers, monkeypatch):
+    repo, store, _, writes = setup()
+    repo.cached.clear()
+    data = reading(store)
+    data["lines"].extend({"text": text, "page_index": 0} for text in headers)
+    run(repo, store, data, apply=True)
+    monkeypatch.setattr(module(), "download_source", lambda *args: pytest.fail("No source download"))
+    with httpx.Client() as client:
+        assert module().publish(repo, store, client, "p1", apply=True)["status"] == "date_binding_required"
+    assert not writes

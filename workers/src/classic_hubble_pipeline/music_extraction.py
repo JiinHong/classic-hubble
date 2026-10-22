@@ -12,6 +12,7 @@ from typing import Annotated, Literal
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from .music_matching import MusicMatcher
+from .performance_dates import date_headings
 from .work_matching import EXCERPT, CanonicalWork, match_work, work_details_conflict
 
 CONTRACT_VERSION = "grounded-music-v2"
@@ -202,16 +203,11 @@ def validate_response(
     if status_conflict and not automatic:
         raise ValueError("Extraction status and items disagree")
     lines = {row["line_id"]: row["text"] for row in request["input"]["lines"]}
-    dates = {
-        (int(match[1]), int(match[2]))
-        for line in lines.values()
-        for match in re.finditer(
-            r"(?:^|&)\s*(?:20\d{2}\s*[./년]\s*)?"
-            r"(\d{1,2})\s*[./월]\s*(\d{1,2})\s*[.일]?\s*\(", line
-        )
-        if 1 <= int(match[1]) <= 12 and 1 <= int(match[2]) <= 31
-    }
+    dates, invalid_date = date_headings(lines.values())
     multiple_dates = len(dates) > 1
+    date_warnings = ["multiple_performance_dates"] if multiple_dates else []
+    if invalid_date:
+        date_warnings.append("unresolved_performance_dates")
     matching_works = (
         [replace(work, requires_review=False) for work in works] if automatic else works
     )
@@ -391,17 +387,19 @@ def validate_response(
         ),
         "status": response.status,
         "review_status": "automated" if automatic else "unverified",
-        "publishable": automatic and any(item["suggested_work_id"] for item in items),
+        "publishable": automatic and not date_warnings
+        and any(item["suggested_work_id"] for item in items),
         "validation_status": validation_status,
         "complete": bool(items)
         and not rejected
         and not status_conflict
+        and not date_warnings
         and all(
             item["suggested_work_id"] for item in items if item["context"] == "program"
         )
         and any(item["context"] == "program" for item in items),
         "rejected_items": rejected,
         "warnings": warnings,
-        "source_warnings": ["multiple_performance_dates"] if multiple_dates else [],
+        "source_warnings": date_warnings,
         "items": items,
     }

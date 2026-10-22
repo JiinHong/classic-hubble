@@ -56,6 +56,30 @@ begin
   result := public.publish_direct_vision_program(pid, target, src, rd || '{"reading_sha256":"changed"}', ev, items);
   if result->>'status' <> 'stale' then raise exception 'Changed reading was accepted'; end if;
 
+  -- Python grounds the transcription; SQL requires its normalized date to match
+  -- the locked performance, including the year. Neither a missing nor wrong
+  -- evaluation date may reuse an otherwise valid publication payload.
+  begin
+    perform public.publish_direct_vision_program(pid, target, src, rd, ev - 'performance_date', items);
+    raise exception 'TEST: missing date unexpectedly accepted';
+  exception when others then
+    if sqlerrm <> 'Incomplete publication evidence' then raise; end if;
+  end;
+  begin
+    perform public.publish_direct_vision_program(pid, target, src, rd,
+      jsonb_set(ev, '{performance_date}', '"2025-10-22"'), items);
+    raise exception 'TEST: wrong year unexpectedly accepted';
+  exception when others then
+    if sqlerrm <> 'Incomplete publication evidence' then raise; end if;
+  end;
+  begin
+    perform public.publish_direct_vision_program(pid, target, src, rd,
+      jsonb_set(ev, '{performance_date}', '"2026-10-23"'), items);
+    raise exception 'TEST: wrong day unexpectedly accepted';
+  exception when others then
+    if sqlerrm <> 'Incomplete publication evidence' then raise; end if;
+  end;
+
   begin
     perform public.publish_direct_vision_program(pid, target, src, rd,
       jsonb_set(ev, '{matching,items,0,scope}', '"excerpt"'), items);
@@ -79,4 +103,4 @@ begin
   then raise exception 'Existing provider data was changed'; end if;
 end $$;
 rollback;
-select 'PASS: permissions, publication, idempotence, stale source/reading/performance, scope, evidence, provider preservation' as result;
+select 'PASS: permissions, publication, idempotence, stale source/reading/performance, date, scope, evidence, provider preservation' as result;
