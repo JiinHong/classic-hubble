@@ -69,6 +69,9 @@ def replay(root: Path, output: Path) -> dict:
                 {
                     "document_sha256": sha,
                     "index": item["source_index"],
+                    "derived_from": json.dumps(item["derived_from"], sort_keys=True)
+                    if item.get("derived_from")
+                    else "",
                     "context": item["context"],
                     "scope": item["scope"],
                     "composer": item["fields"]["composer"],
@@ -86,7 +89,9 @@ def replay(root: Path, output: Path) -> dict:
         "raw_items": raw_items,
         "validation_statuses": dict(Counter(r["validation_status"] for r in reports)),
         "document_failures": failures,
-        "validated_items": len(rows),
+        "validated_items": sum(not r["derived_from"] for r in rows),
+        "derived_items": sum(bool(r["derived_from"]) for r in rows),
+        "evaluated_items": len(rows),
         "rejected_items": sum(rejection_reasons.values()),
         "rejection_reasons": dict(rejection_reasons),
         "matching_reasons": dict(reasons),
@@ -102,6 +107,13 @@ def replay(root: Path, output: Path) -> dict:
         "matched_documents": len(
             {
                 r["document_sha256"]
+                for r in rows
+                if r["full_work_id"] or r["scoped_work_id"]
+            }
+        ),
+        "unique_document_work_pairs": len(
+            {
+                (r["document_sha256"], r["full_work_id"] or r["scoped_work_id"])
                 for r in rows
                 if r["full_work_id"] or r["scoped_work_id"]
             }

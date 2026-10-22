@@ -87,8 +87,26 @@ requires a new output directory, and creates mode-0600 reports/CSV files.
 ```
 
 This reuses paid responses; changing the extraction prompt requires a separate
-new model run. The revised prompt has unit tests but has not yet been re-evaluated
-with live inference. Never describe cached-response replay as a prompt benchmark.
+new model run. Never describe cached-response replay as a prompt benchmark.
+
+The matching layer normalizes the OCR catalogue prefix `0p` to `Op` only for
+search. It does not repair digits, discard conflicting catalogues, or change
+the original fields/evidence. Scoped titles can remove presentation markers
+such as `from` or a Korean closing quote followed by `중`, and use a delimited
+parent title. Genre, number, catalogue and key constraints still come from the
+**entire** title, including the suffix; a conflicting suffix cannot be hidden.
+
+When the model puts separately numbered works in `movements`, an explicit work
+genre and catalogue can recover individual identities. Each derived item has
+the original `source_index`, a `derived_from` movement index and exact source
+quotes. It has `scope=unknown`, `suggested_work_id=null` and a `scoped_work_id`;
+identifying a listed work does not prove a full performance or a catalogue
+parent-child relationship. Biography, status and multi-date gates still apply.
+
+Replay counts `validated_items` as original model references and reports
+`derived_items` and `evaluated_items` separately. `unique_document_work_pairs`
+deduplicates repeated mentions of the same work in a document. Neither a link
+count nor schema-validation success is an accuracy metric.
 
 ## Private prepare/import workflow
 
@@ -143,6 +161,19 @@ There were 18 full-work suggestions and 15 separately scoped identifications
 across 14 documents. These are references, not 33 unique works or a measured
 accuracy. The original 6 full-work suggestions included one partial-work error.
 The replay corrected that overstatement and made zero additional paid calls.
+
+On 2026-10-22 a live v2 run produced 201 valid references across the same 53
+documents, but only 28 distinct document/work links. Replaying those exact v2
+responses after matcher fixes recovered all seven lost v1 links, with no v2 link
+losses: 35 distinct document/work pairs across 15 documents. There are 14
+full-work suggestions and 22 scoped references (one repeated mention), including
+four derived constituent-work identities. All 201 original references remain
+valid and unchanged; four derived references are reported separately. This
+replay disabled network access, preserved the 12,435-work catalogue snapshot and
+all saved inputs, made zero API calls and changed no public data. The remaining
+140 unlinked program references are not all missed works: they include missing
+composer information, non-work text, ambiguity and catalogue gaps. These 53
+development documents are not a held-out accuracy benchmark.
 
 Remaining: semantic/coverage evaluation on held-out annotated posters; source
 date binding; catalogue/alias data quality; selective re-extraction of malformed

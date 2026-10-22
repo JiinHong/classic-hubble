@@ -97,6 +97,31 @@ def _title_key(text: str) -> str:
     return value.replace(" ", "") if re.search(r"[가-힣]", value) else value
 
 
+def _catalogue_ocr(text: str) -> str:
+    # Only the known Op. prefix is repaired; catalogue digits remain evidence.
+    return re.sub(r"(?<!\w)0p(?=\.?\s*\d)", "Op", text, flags=re.IGNORECASE)
+
+
+def _scoped_titles(text: str) -> frozenset[str]:
+    parts = [text]
+    korean, latin = re.search(r"[가-힣]", text), re.search(r"[A-Za-z]", text)
+    if korean and latin:
+        split = max(korean.start(), latin.start())
+        parts.extend([text[:split], text[split:]])
+    variants = set()
+    for part in parts:
+        clean = re.sub(r"^\s*from\s+", "", part, flags=re.IGNORECASE)
+        clean = re.sub(r"[»〉》>\]}’'\"]\s*중\s*$", "", clean)
+        clean = clean.strip(" {}[]<>«»〈〉《》‘’\"'.,")
+        variants.update(_titles(clean))
+        # Only scoped references may use a delimited parent title. All constraints
+        # (numbers, keys, catalogues, genres) still come from the entire input.
+        prefix, *suffix = re.split(r"[:：'‘“\"]", clean, maxsplit=1)
+        if suffix and not re.search(r"\bfrom\b", suffix[0], re.IGNORECASE):
+            variants.update(_titles(prefix))
+    return frozenset(variants)
+
+
 @lru_cache(maxsize=80_000)
 def _titles(text: str) -> frozenset[str]:
     parts = [text, *re.findall(r'"([^"\n]+)"|“([^”\n]+)”', text)]
@@ -250,7 +275,10 @@ class MusicMatcher:
         *,
         catalogue: str | None = None,
         key: str | None = None,
+        scoped: bool = False,
     ) -> WorkMatch:
+        title = _catalogue_ocr(title)
+        catalogue = _catalogue_ocr(catalogue) if catalogue else None
         actual_catalogues = _catalogues(title + " " + (catalogue or ""))
         if catalogue and (
             not _catalogues(catalogue) or CATALOGUE.sub("", catalogue).strip(" ,;:()")
@@ -283,7 +311,7 @@ class MusicMatcher:
         ):
             return WorkMatch(None, (), "insufficient_title")
         supported = []
-        title_variants = _titles(title)
+        title_variants = _titles(title) | (_scoped_titles(title) if scoped else set())
         actual_numbers = _numbers(title)
         for work in self.by_composer[names]:
             expected_genres = frozenset().union(*(_genres(t) for t in work.titles))
@@ -329,3 +357,13 @@ class MusicMatcher:
         return WorkMatch(
             None, candidates[:3], "ambiguous" if candidates else "no_candidate"
         )
+
+    def match_listed_work(self, title: str, composer: str | None) -> WorkMatch:
+        """Recognize an explicitly numbered work inside a model movement list."""
+        if (
+            not _catalogues(_catalogue_ocr(title))
+            or not _genres(title)
+            or re.match(r"^\s*(?:[IVXLCDM]+|\d+)[.)]\s", title, re.IGNORECASE)
+        ):
+            return WorkMatch(None, (), "not_explicit_listed_work")
+        return self.match(title, composer)
