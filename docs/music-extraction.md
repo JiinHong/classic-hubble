@@ -147,6 +147,13 @@ The original model response and evidence remain unchanged in the evaluation set.
   composer-only titles do not auto-link. One-character OCR composer typos produce
   candidates only. Imported canonical IDs can link without human approval when
   the identity evidence is unique; no new work IDs are invented.
+- Explicit full names `Johann Strauss II`, `Johann Strauss Jr` and `Johann Strauss
+  Junior` identify the same composer. Full-name generation markers I and III stay
+  distinct; I is not expanded as an initial of II. This is not a general rule
+  equating every composer's Junior suffix with II, or resolving a bare Strauss.
+  The [Vienna Institute for Strauss Research biography](https://www.johann-strauss.at/en/forschung/biografien/jss/)
+  distinguishes Johann Strauss II from his father. Work, scope and date guards
+  still apply after name recognition.
 - `suggested_work_id` is reserved for full-work suggestions. `scoped_work_id`
   retains an identified work with its movement/excerpt/arrangement/unknown scope;
   it is not necessarily a parent work and is not a full-work publication.
