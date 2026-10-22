@@ -3,7 +3,7 @@
 import re
 from datetime import date
 
-DATE_BINDING_VERSION = "concert-date-headings-v2"
+DATE_BINDING_VERSION = "concert-date-headings-v3"
 _DATE = re.compile(
     r"(?:(20\d{2})\s*[./년]\s*)?(\d{1,2})\s*[./월]\s*(\d{1,2})(?!\d)"
 )
@@ -13,7 +13,7 @@ _ENGLISH_DAY = (
 )
 _DAY = rf"(?:[월화수목금토일](?:요일)?|{_ENGLISH_DAY})"
 _SUFFIX = re.compile(
-    rf"\s*[.일]?\s*(?:\(\s*{_DAY}\s*\)|\[\s*{_DAY}\s*\]|{_ENGLISH_DAY}\b)",
+    rf"\s*[.일]?\s*(?:\(\s*{_DAY}\s*\)|\[\s*{_DAY}\s*\]|{_DAY}\b)",
     re.IGNORECASE,
 )
 _CONTINUATION = re.compile(r"(?:&|~|[-–—]|,|및|부터)\s*(?=\d)")

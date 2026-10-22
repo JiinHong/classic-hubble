@@ -428,7 +428,7 @@ class MusicMatcher:
             exact_ids = {work.id for work in exact}
             named = [(work, reason) for work, reason in supported if work.id in exact_ids]
             if len(named) == 1:
-                supported = [(named[0][0], "composer_catalogue_and_exact_title")]
+                supported = named
         candidates = tuple(work.id for work, _ in supported)
         if len(candidates) == 1:
             work, reason = supported[0]
