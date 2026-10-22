@@ -74,6 +74,13 @@ def _keys(text: str) -> frozenset[str]:
 
 @lru_cache(maxsize=80_000)
 def _catalogues(text: str) -> frozenset[str]:
+    # Koechel editions use alternate numbers, unlike Op.102/2 (a collection member).
+    text = re.sub(
+        r"\b(KV?)\.?\s*(\d+[a-z]?)\s*(?:/\s*(\d+[a-z]?)|\(\s*(\d+[a-z]?)\s*\))",
+        lambda m: f"{m[1]}. {m[2]}; {m[1]}. {m[3] or m[4]}",
+        text,
+        flags=re.IGNORECASE,
+    )
     values = {_catalogue_key(m.group()) for m in CATALOGUE.finditer(text)}
     # A duplicated root plus its explicit member denotes the member, not two works.
     return frozenset(
@@ -179,6 +186,7 @@ def _genres(text: str) -> frozenset[str]:
         "symphony": r"\bsymphon(?:y|ies)\b|교향곡",
         "quartet": r"\bquartets?\b|사중주",
         "trio": r"\btrios?\b|삼중주",
+        "canzone": r"\bcanzone\b",
     }
     return frozenset(
         name
@@ -187,9 +195,17 @@ def _genres(text: str) -> frozenset[str]:
     )
 
 
+@lru_cache(maxsize=80_000)
 def _name_matches(actual: str, names: tuple[str, ...]) -> bool:
     if _composer_matches(actual, names):
         return True
+    tokens = _normalize(actual).split()
+    if len(tokens) >= 2 and all(re.fullmatch(r"[a-z]+", t) for t in tokens):
+        for name in names:
+            expected = _normalize(name).split()
+            if len(expected) > len(tokens) and tokens[-1] == expected[-1]:
+                if _composer_matches(actual, (" ".join(expected[-len(tokens) :]),)):
+                    return True
     compact = _normalize(actual).replace(" ", "")
     return bool(re.fullmatch(r"[가-힣]+", compact)) and any(
         compact == _normalize(name).replace(" ", "") for name in names
@@ -377,6 +393,20 @@ class MusicMatcher:
                 continue
             if actual_catalogues:
                 if not self._catalogue_match(actual_catalogues, work):
+                    continue
+                # An opera-wide catalogue may also occur on an aria row. A shared
+                # catalogue alone must not turn another excerpt into that aria.
+                if (
+                    re.search(r"\boverture\b|서곡", title, re.IGNORECASE)
+                    and not any(
+                        re.search(r"\boverture\b|서곡", t, re.IGNORECASE)
+                        for t in (*work.titles, *work.aliases)
+                    )
+                    and not any(
+                        title_variants & _titles(t)
+                        for t in (*work.titles, *work.aliases)
+                    )
+                ):
                     continue
                 match_reason = "composer_and_catalogue"
             elif any(

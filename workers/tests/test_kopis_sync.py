@@ -64,6 +64,36 @@ def test_new_nol_ingestion_uses_the_same_bilingual_matching_as_backfill():
     assert rows[0]["display_title"] == text
 
 
+def test_new_nol_ingestion_splits_multiwork_blocks_with_contiguous_positions():
+    text = "Beethoven / Symphony No.8 Op.93\nBeethoven / Symphony No.4 Op.60"
+    data = NolPerformanceData(
+        goods_code="1",
+        title="Recital",
+        venue_name="Hall",
+        program_status="confirmed",
+        program_source_url="https://tickets.interpark.com/goods/1",
+        program_image_urls=(),
+        program_items=(
+            NolProgramItem(
+                position=7,
+                display_title=text,
+                composer=None,
+                composer_lifespan=None,
+                work_title=text,
+            ),
+        ),
+        raw_summary={},
+        raw_play_db={},
+    )
+    works = [
+        CanonicalWork("a", "a", ("Symphony No.8",), ("Ludwig van Beethoven",), "Op.93"),
+        CanonicalWork("b", "b", ("Symphony No.4",), ("Ludwig van Beethoven",), "Op.60"),
+    ]
+    rows = _map_nol_program_items(data, works)
+    assert [r["work_id"] for r in rows] == ["a", "b"]
+    assert [r["position"] for r in rows] == [0, 1]
+
+
 def performance_summary(performance_id: str = "PF300001") -> KopisPerformanceSummary:
     return KopisPerformanceSummary(
         performance_id=performance_id,

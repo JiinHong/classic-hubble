@@ -2,6 +2,9 @@ import { describe, expect, it } from "vitest";
 import relations from "@/data/work-components.json";
 
 describe("published component registry", () => {
+  it("keeps Mit Myrten und Rosen under Liederkreis Op.24, not Myrthen Op.25", () => {
+    expect(relations.find(r => r.child_slug === "component-wikidata-q6544099-9")).toMatchObject({ parent_slug: "wikidata-q6544099", position: 9 });
+  });
   it("has unique, non-self relationships and valid explicit ordinals", () => {
     expect(new Set(relations.map(r => `${r.parent_slug}/${r.child_slug}`)).size).toBe(relations.length);
     for (const relation of relations) {

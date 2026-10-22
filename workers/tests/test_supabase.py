@@ -4,7 +4,6 @@ import json
 
 import httpx
 import pytest
-
 from classic_hubble_pipeline.supabase import (
     SupabaseConfigurationError,
     SupabaseRepository,
@@ -301,7 +300,7 @@ def test_program_source_update_sets_a_fresh_timestamp():
     http_client.close()
 
 
-def test_program_item_replacement_upserts_before_deleting_stale_nol_rows():
+def test_nol_replacement_is_one_atomic_database_operation():
     requests: list[httpx.Request] = []
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -340,20 +339,15 @@ def test_program_item_replacement_upserts_before_deleting_stale_nol_rows():
         ],
     )
 
-    upsert, delete = requests
-    rows = json.loads(upsert.content)
+    assert len(requests) == 1
+    upsert = requests[0]
+    payload = json.loads(upsert.content)
+    rows = payload["p_items"]
     assert upsert.method == "POST"
-    assert upsert.url.path == "/rest/v1/program_items"
-    assert upsert.url.params["on_conflict"] == (
-        "performance_id,source_provider,position"
-    )
-    assert upsert.headers["prefer"] == ("resolution=merge-duplicates,return=minimal")
-    assert rows[0]["performance_id"] == "performance-1"
-    assert rows[0]["source_provider"] == "nol"
-    assert delete.method == "DELETE"
-    assert delete.url.params["performance_id"] == "eq.performance-1"
-    assert delete.url.params["source_provider"] == "eq.nol"
-    assert delete.url.params["position"] == "not.in.(0,1)"
+    assert upsert.url.path == "/rest/v1/rpc/replace_nol_program_items"
+    assert payload["p_performance_id"] == "performance-1"
+    assert payload["p_expected"] is None
+    assert [r["position"] for r in rows] == [0, 1]
     http_client.close()
 
 
@@ -377,11 +371,34 @@ def test_empty_program_replacement_deletes_only_the_requested_provider_rows():
 
     assert len(requests) == 1
     request = requests[0]
-    assert request.method == "DELETE"
-    assert request.url.params["performance_id"] == "eq.performance-1"
-    assert request.url.params["source_provider"] == "eq.nol"
-    assert "position" not in request.url.params
+    assert request.method == "POST"
+    assert request.url.path == "/rest/v1/rpc/replace_nol_program_items"
+    assert json.loads(request.content)["p_items"] == []
     http_client.close()
+
+
+def test_program_repair_passes_full_expected_snapshot_and_reports_conflict():
+    calls = []
+
+    def handler(request):
+        calls.append(request)
+        return httpx.Response(200, json=False)
+
+    with httpx.Client(transport=httpx.MockTransport(handler)) as client:
+        repo = SupabaseRepository(
+            SupabaseSettings("https://example.supabase.co", "sb_secret_test"),
+            http_client=client,
+        )
+        original = [{"id": "a", "position": 0, "display_title": "Original"}]
+        assert (
+            repo.replace_nol_program_snapshot(
+                "p", original, [{"position": 0, "display_title": "New"}]
+            )
+            is False
+        )
+    payload = json.loads(calls[0].content)
+    assert payload["p_expected"] == original
+    assert payload["p_items"][0]["display_title"] == "New"
 
 
 @pytest.mark.parametrize("position", [None, -1, True, "0"])

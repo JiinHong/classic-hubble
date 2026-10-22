@@ -20,7 +20,7 @@ from .kopis import (
 )
 from .music_matching import MusicMatcher
 from .nol import NolError, NolPerformanceData, extract_nol_goods_code
-from .program_matching import match_program_text
+from .program_split import split_program_block
 from .work_matching import CanonicalWork
 
 KOREA_TIMEZONE = ZoneInfo("Asia/Seoul")
@@ -552,18 +552,22 @@ def _map_nol_program_items(
     matcher = matcher or MusicMatcher(
         [replace(work, requires_review=False) for work in works]
     )
+    segments = [
+        segment
+        for item in nol_data.program_items
+        for segment in split_program_block(
+            {"display_title": item.work_title, "composer_name": item.composer}, matcher
+        )
+    ]
     return [
         {
-            "work_id": match_program_text(
-                {"display_title": item.work_title, "composer_name": item.composer},
-                matcher,
-            ).work_id,
-            "display_title": item.work_title,
-            "composer_name": item.composer,
+            "work_id": item["work_id"],
+            "display_title": item["display_title"],
+            "composer_name": item["composer_name"],
             "source_type": "official",
             "confidence": 0.98,
-            "position": item.position,
+            "position": position,
             "source_url": nol_data.program_source_url,
         }
-        for item in nol_data.program_items
+        for position, item in enumerate(segments)
     ]

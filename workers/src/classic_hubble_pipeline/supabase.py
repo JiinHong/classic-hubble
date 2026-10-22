@@ -281,8 +281,8 @@ class SupabaseRepository:
     ) -> None:
         normalized_provider = _require_provider(source_provider)
         positions: list[int] = []
+        rows: list[dict[str, object]] = []
         if items:
-            rows: list[dict[str, object]] = []
             for item in items:
                 row = dict(item)
                 position = row.get("position")
@@ -301,6 +301,11 @@ class SupabaseRepository:
                 row["source_provider"] = normalized_provider
                 rows.append(row)
 
+        if normalized_provider == "nol":
+            self.replace_nol_program_snapshot(performance_id, None, items)
+            return
+
+        if rows:
             self._request(
                 "POST",
                 "program_items",
@@ -323,6 +328,19 @@ class SupabaseRepository:
             params=params,
             prefer="return=minimal",
         )
+
+    def replace_nol_program_snapshot(self, performance_id, expected, items) -> bool:
+        response = self._request(
+            "POST",
+            "rpc/replace_nol_program_items",
+            json={
+                "p_performance_id": performance_id,
+                "p_expected": expected,
+                "p_items": list(items),
+            },
+            prefer="return=representation",
+        )
+        return response.json() is True if response.content else True
 
     def load_work_catalog(self, *, page_size: int = 500) -> list[CanonicalWork]:
         rows = self._read_pages(
