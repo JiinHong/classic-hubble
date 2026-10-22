@@ -1,5 +1,11 @@
 [
   {
+    "parent_slug": "wikidata-q6544099",
+    "child_slug": "component-wikidata-q6544099-9",
+    "position": 9,
+    "source_url": "https://www.henle.de/de/Liederkreis-op.-24/HN-548"
+  },
+  {
     "parent_slug": "wikidata-q1008459",
     "child_slug": "wikidata-q29884858",
     "position": 1,

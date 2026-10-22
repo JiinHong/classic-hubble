@@ -3,6 +3,7 @@ import importlib.util
 from dataclasses import replace
 
 import pytest
+from classic_hubble_pipeline.music_matching import MusicMatcher
 from classic_hubble_pipeline.work_matching import CanonicalWork
 
 BEETHOVEN = CanonicalWork(
@@ -263,3 +264,79 @@ def test_catalogue_cannot_override_explicitly_conflicting_work_genre():
         .work_id
         is None
     )
+
+
+@pytest.mark.parametrize(
+    "title", ["Violin Sonata K. 301 / 293a", "Violin Sonata K.301 (293a)"]
+)
+def test_koechel_alternate_numbers_require_both_numbers_in_catalogue(title):
+    work = CanonicalWork("w", "w", ("Violin Sonata",), ("Mozart",), "K.301; K.293a")
+    assert MusicMatcher([work]).match(title, "Mozart").work_id == "w"
+    wrong = CanonicalWork("x", "x", ("Violin Sonata",), ("Mozart",), "K.301")
+    assert MusicMatcher([wrong]).match(title, "Mozart").work_id is None
+
+
+def test_different_koechel_alternate_is_not_ignored():
+    work = CanonicalWork("w", "w", ("Violin Sonata",), ("Mozart",), "K.301; K.293a")
+    assert (
+        MusicMatcher([work]).match("Violin Sonata K.301/293b", "Mozart").work_id is None
+    )
+
+
+def test_opus_slash_still_means_member_not_alternate_number():
+    work = CanonicalWork("w", "w", ("Sonata",), ("Beethoven",), "Op.102 No.2")
+    assert MusicMatcher([work]).match("Sonata Op.102/2", "Beethoven").work_id == "w"
+
+
+def test_catalogue_number_cannot_turn_an_overture_into_an_unrelated_aria():
+    m = MusicMatcher(
+        [
+            CanonicalWork(
+                "aria",
+                "aria",
+                ("Welche Wonne, welche Lust",),
+                ("Wolfgang Amadeus Mozart",),
+                "K.384",
+            )
+        ]
+    )
+    assert (
+        m.match(
+            "Die Entführung aus dem Serail, K.384: Overture", "Mozart", scoped=True
+        ).work_id
+        is None
+    )
+
+
+def test_catalogue_number_with_conflicting_genre_is_not_sufficient():
+    m = MusicMatcher(
+        [CanonicalWork("pc", "pc", ("Piano Concerto",), ("Samuel Barber",), "Op.38")]
+    )
+    assert (
+        m.match("Canzone for Flute and Piano, Op.38", "Samuel Barber").work_id is None
+    )
+
+
+def test_composer_can_omit_first_given_name_but_not_change_it():
+    m = MusicMatcher(
+        [CanonicalWork("h", "h", ("Example",), ("Franz Joseph Haydn",), "Op.1")]
+    )
+    assert m.match("Example Op.1", "Joseph Haydn").work_id == "h"
+    assert m.match("Example Op.1", "J. Haydn").work_id == "h"
+    assert m.match("Example Op.1", "Michael Haydn").work_id is None
+
+
+def test_overture_catalogue_with_an_explicit_overture_alias_is_supported():
+    m = MusicMatcher(
+        [
+            CanonicalWork(
+                "m",
+                "m",
+                ("A Midsummer Night's Dream",),
+                ("Felix Mendelssohn",),
+                "Op.21",
+                ("A Midsummer Night's Dream Overture",),
+            )
+        ]
+    )
+    assert m.match("Overture to , Op.21", "Mendelssohn", scoped=True).work_id == "m"

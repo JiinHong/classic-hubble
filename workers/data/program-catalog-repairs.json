@@ -1,0 +1,67 @@
+{
+  "observed_at": "2026-10-22",
+  "repairs": [
+    {
+      "slug": "wikidata-q3509144", "composer": "Krzysztof Penderecki", "expected_catalogue": null,
+      "aliases": ["Cadenza for Solo Viola", "Cadenza per viola sola"],
+      "source_url": "https://www.schott-music.com/de/cadenza-noc92940.html",
+      "reason": "The existing work had only the short title Cadenza. Schott VAB 52 identifies the solo-viola work."
+    },
+    {
+      "slug": "wikidata-q51571146", "composer": "Ludwig van Beethoven", "expected_catalogue": null,
+      "catalogue": "Op. 102 No. 2",
+      "aliases": ["Cello Sonata No. 5 in D Major, Op. 102 No. 2", "Violoncello Sonata in D major, Op. 102 No. 2"],
+      "source_url": "https://www.henle.de/Violoncello-Sonata-D-major-op.-102-no.-2/HN-1475",
+      "reason": "Existing Cello Sonata No. 5 lacked its opus/member identifier."
+    },
+    {
+      "slug": "component-wikidata-q6544099-9", "composer": "Robert Schumann", "new": true,
+      "title": "Mit Myrten und Rosen", "title_ko": null, "catalogue": "Op. 24 No. 9",
+      "parent_slug": "wikidata-q6544099", "position": 9,
+      "aliases": ["Mit Myrthen und Rosen", "Mit myrten und rosen"],
+      "source_url": "https://www.henle.de/de/Liederkreis-op.-24/HN-548",
+      "reason": "Missing ninth song of Liederkreis Op.24, not the different cycle Myrthen Op.25."
+    },
+    {
+      "slug": "wikidata-q42190553", "composer": "Astor Piazzolla", "expected_catalogue": null,
+      "aliases": ["Le Grand Tango for Violin and Piano"],
+      "source_url": "https://www.boosey.com/cr/music/Astor-Piazzolla-Le-Grand-Tango/51477",
+      "reason": "Publisher identifies the violin/piano arrangement of the existing work; keep source instrumentation."
+    },
+    {
+      "slug": "wikidata-q4383611", "composer": "Wolfgang Amadeus Mozart", "expected_catalogue": "K. 301",
+      "catalogue": "K. 301; K. 293a",
+      "aliases": ["Violin Sonata No. 18 in G Major, K. 301 / 293a", "Violin Sonata in G major, K. 293a"],
+      "source_url": "https://www.henle.de/Violin-Sonatas-Volume-I/HN-77",
+      "reason": "K.301 and K.293a are alternate Koechel numbers, not a collection/member pair."
+    },
+    {
+      "slug": "wikidata-q65686481", "composer": "Arcangelo Corelli", "expected_catalogue": "Op. 5",
+      "catalogue": "Op. 5 No. 12",
+      "aliases": ["La Folia", "La Follia", "La Folia, Op. 5 No. 12 Theme and Variations"],
+      "source_url": "https://www.schott-music.com/en/sonata-la-follia-d-minor-noc316887.html",
+      "reason": "Existing member had only the parent opus. Ensemble credit in parentheses must not change work genre."
+    },
+    {
+      "slug": "reviewed-sibelius-five-pieces-op81", "composer": "Jean Sibelius", "new": true,
+      "title": "Five Pieces for Violin and Piano", "title_ko": "바이올린과 피아노를 위한 다섯 개의 소품", "catalogue": "Op. 81",
+      "aliases": ["5 Pieces for Violin and Piano, Op. 81", "Five Pieces, Op. 81"],
+      "source_url": "https://www.halleonard.com/bin/CatClassicalViolincatalog2013-2014.pdf",
+      "reason": "Missing violin/piano collection; publisher catalogue lists Fennica Gehrman M042089965."
+    },
+    {
+      "slug": "reviewed-brahms-fae-scherzo-woo2", "composer": "Johannes Brahms", "new": true,
+      "title": "Scherzo in C minor from the F-A-E Sonata", "title_ko": "F-A-E 소나타 중 스케르초", "catalogue": "WoO 2",
+      "aliases": ["Scherzo in C minor, F-A-E Sonata", "Scherzo in C minor, “F-A-E Sonata”", "Scherzo WoO 2"],
+      "source_url": "https://www.henle.de/fr/Sonate-pour-violon-en-la-mineur-Sonate-F.-A.-E./HN-1572",
+      "reason": "Missing Brahms movement, not Brahms piano Scherzo Op.4 and not the complete jointly composed sonata."
+    },
+    {
+      "slug": "wikidata-q7362809", "composer": "Antonin Dvorak", "expected_catalogue": null,
+      "catalogue": "Op. 75",
+      "aliases": ["4 Romantic Pieces, Op. 75", "Four Romantic Pieces for Violin and Piano, Op. 75"],
+      "source_url": "https://www.antonin-dvorak.cz/en/work/romantic-pieces-for-violin-and-piano-op-75-b150/",
+      "reason": "Existing work lacked Op.75. This is the violin/piano version B.150, not the string-trio version B.149."
+    }
+  ]
+}
