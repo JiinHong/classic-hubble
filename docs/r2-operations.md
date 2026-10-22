@@ -3,8 +3,11 @@
 ## Scope
 
 `source-archiver` stores all introduction-image URLs attached to KOPIS performances
-overlapping the catalog window: three calendar months before through six months
-after the Korean collection date. There is no record-count cap. Poster-only URLs,
+overlapping the catalog window. By default this is three calendar months before
+through six months after the Korean collection date. Set both `COLLECTION_START`
+and `COLLECTION_END` to use an explicit inclusive date range instead. An incomplete
+or reversed range is rejected before any run or source writes. There is no
+record-count cap. Poster-only URLs,
 NOL pages and arbitrary third-party files are not part of this job.
 
 Original bytes go to `classic-hubble-sources` in Cloudflare R2. The account-level
@@ -46,7 +49,8 @@ authorized server route, not the storage credentials.
 - Secret Manager: `r2-access-key-id:1`, `r2-secret-access-key:1`,
   `supabase-secret-key:1`. Only the runtime needs access to these secret values.
 - Non-secret environment: `S3_ENDPOINT_URL`, `S3_BUCKET`, `S3_REGION`,
-  `SUPABASE_URL`; optional execution-only `COLLECTION_DATE`.
+  `SUPABASE_URL`; optional execution-only `COLLECTION_DATE`, `COLLECTION_START`
+  and `COLLECTION_END`.
 - Container command: `python -m classic_hubble_pipeline.source_archive`.
 
 Build the shared worker container using `docs/gcp-operations.md`, then update only
@@ -84,6 +88,22 @@ consecutive download failures also stop it. Other individual source failures
 are recorded while remaining sources continue. Any source error makes the final
 run status failed so missing files do not silently pass. Storage or database
 errors stop the run without advancing the failed source's pointer.
+
+For a historical backfill, first finish catalog collection and compare its official
+ID list with the database. Archival only sees performances already in the database;
+successful archival alone does not establish complete catalog coverage. Then run:
+
+```sh
+gcloud run jobs execute source-archiver \
+  --update-env-vars=COLLECTION_START=2024-01-01,COLLECTION_END=2026-10-22,COLLECTION_DATE=2026-10-22 \
+  --region=asia-northeast3 --project=classic-hubble-prod-20261021 --wait
+```
+
+Resume an interrupted historical sweep using the same three settings, including
+the original `COLLECTION_DATE` even when resuming on another day. This skips durable
+source pointers already checked for that sweep; changing the date deliberately
+refreshes the files. `checked_at` still records the actual wall-clock check time.
+Keep these settings execution-only so routine runs retain their rolling window.
 
 Inspect both Cloud Run execution status and private `ingestion_runs` rows with
 provider `r2`; a hard kill may leave the latter running. Successful source pointers
