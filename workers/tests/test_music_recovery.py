@@ -121,6 +121,10 @@ def test_biography_has_no_parent_performance_link():
     ["10월 21일(수)", "10월 22일(목)"],
     ["2026. 10. 21.(수) & 10. 22.(목) 19:30"],
     ["2026. 10. 21.(수)", "2026. 10. 22.(목)"],
+    ["2026.10.21 WED", "2026.10.22 THU"],
+    ["2026.10.21 [수] & 10.22 [목]"],
+    ["2025.10.22 THU", "2026.10.22 THU"],
+    ["2026.10.21 WED", "2026.10.22 THU", "01.16."],
 ])
 def test_multi_date_series_poster_requires_performance_date_binding(headers):
     data, doc = response(), document()
@@ -137,9 +141,30 @@ def test_multi_date_series_poster_requires_performance_date_binding(headers):
 def test_repeated_date_in_different_notations_is_one_performance_date():
     data, doc = response(), document()
     doc["lines"].extend({"text": text} for text in [
-        "2026. 02. 26.(목)", "2월 26일(목)", "2.26(목)",
+        "2026. 02. 26.(목)", "2월 26일(목)", "2.26(목)", "2026.2.26 THU", "2.26 [목]",
     ])
     assert evaluate(data, doc)["items"][0]["suggested_work_id"] == WORK.id
+
+
+def test_observed_four_letter_thursday_does_not_erase_an_existing_identity():
+    data, doc = response(), document()
+    doc["lines"].append({"text": "10.22 (THUR) 19:30 | 부산콘서트홀"})
+    result = evaluate(data, doc)
+    assert result["items"][0]["suggested_work_id"] == WORK.id
+    assert result["source_warnings"] == []
+
+
+@pytest.mark.parametrize("scope", ["full_work", "movement"])
+def test_unreadable_date_keeps_work_identity_but_holds_document_publication(scope):
+    data, doc = response(), document()
+    data["items"][0]["scope"] = scope
+    doc["lines"].append({"text": "2026. 10.30. FR1 7:30pM"})
+    result = evaluate(data, doc)
+    field = "suggested_work_id" if scope == "full_work" else "scoped_work_id"
+    assert result["items"][0][field] == WORK.id
+    assert result["publishable"] is False
+    assert result["complete"] is False
+    assert result["source_warnings"] == ["unresolved_performance_dates"]
 
 
 def test_inline_movement_cannot_be_published_as_full_work_when_model_omits_movements():

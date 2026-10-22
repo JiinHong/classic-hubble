@@ -5,11 +5,11 @@ The observation is never overwritten when matching rules or the catalogue change
 """
 
 import hashlib
-import re
 from datetime import UTC, date, datetime
 
 from .direct_vision import _cached, _identity, _match_reading, _original
 from .music_extraction import digest
+from .performance_dates import DATE_BINDING_VERSION, date_headings
 from .source_archive import download_source
 
 PUBLICATION_VERSION = "direct-vision-single-source-v1"
@@ -17,17 +17,10 @@ PUBLICATION_VERSION = "direct-vision-single-source-v1"
 
 def _date_matches(reading, target_date):
     target = date.fromisoformat(target_date)
-    dates = set()
-    for line in reading["lines"]:
-        for match in re.finditer(
-            r"(?:^|&)\s*(?:(20\d{2})\s*[./년]\s*)?"
-            r"(\d{1,2})\s*[./월]\s*(\d{1,2})\s*[.일]?\s*\(", line["text"]
-        ):
-            try:
-                dates.add(date(int(match[1] or target.year), int(match[2]), int(match[3])))
-            except ValueError:
-                return False
-    return dates == {target}
+    dates, invalid = date_headings(
+        (line["text"] for line in reading["lines"]), fallback_year=target.year
+    )
+    return not invalid and dates == {(target.year, target.month, target.day)}
 
 
 def publish(repository, store, client, performance_id, *, apply=False):
@@ -79,6 +72,7 @@ def publish(repository, store, client, performance_id, *, apply=False):
         "source_checked_at": datetime.now(UTC).isoformat(),
         "live_sha256": source["sha256"],
         "performance_date": target["starts_on"],
+        "date_binding_version": DATE_BINDING_VERSION,
     }
     return repository.publish_direct_vision({
         "p_performance_id": performance_id, "p_expected_performance": target,
