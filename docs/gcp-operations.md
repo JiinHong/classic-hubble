@@ -2,7 +2,7 @@
 
 ## Scope and deployment
 
-The production collector has no performance-count cap. It enumerates all KOPIS
+The production collector has no performance-count cap. By default, it enumerates all KOPIS
 classical records returned for the three calendar months before and six calendar
 months after the Korean collection date. On 2026-10-21 the inclusive range is
 2026-07-21 through 2027-04-21. This is not a claim of all historical concerts or
@@ -12,7 +12,8 @@ complete coverage of every venue. Missing programs remain missing, not inferred.
 - Region: `asia-northeast3` (Seoul).
 - Cloud Run job: `catalog-collector`.
 - Runtime: Python 3.11, 1 vCPU, 512 MiB, one task, parallelism one.
-- Each execution stops after 3,600 seconds; automatic task retries are disabled.
+- The default task timeout is 3,600 seconds; automatic task retries are disabled.
+  Historical backfills can use an execution-only timeout override.
 - Registry: `asia-northeast3-docker.pkg.dev/classic-hubble-prod-20261021/workers/collector`.
 - Database: the existing Classic Hubble Supabase project, `klnfamtwxwrelrjeguqb`.
 
@@ -116,6 +117,35 @@ A hard kill can replay the unflushed tail; existing natural-key upserts
 avoid duplicate concert records. A failed checkpoint write can require more replay.
 A completed sweep is a no-op on same-date rerun; the next date refreshes the range.
 This is daily snapshot behavior, not real-time detection or an hourly refresh.
+
+### Historical backfill
+
+Set both `COLLECTION_START` and `COLLECTION_END` to collect an explicit inclusive
+range. A missing bound or a reversed range fails before collection begins. The
+worker splits the range into KOPIS-compatible windows of at most 31 days and
+reads every page, deduplicating performance IDs across windows.
+
+```sh
+gcloud run jobs execute catalog-collector \
+  --update-env-vars=COLLECTION_START=2024-01-01,COLLECTION_END=2026-10-22 \
+  --task-timeout=6h \
+  --region=asia-northeast3 --project=classic-hubble-prod-20261021 --wait
+```
+
+This does not change the default job configuration or the daily collection range.
+Progress is isolated under `catalog-range-v1:2024-01-01:2026-10-22`. Reuse those
+exact bounds to resume, even on another day. A completed explicit-range run is a
+no-op; do not clear its checkpoint merely to check whether it finished. A later
+range has a separate checkpoint and refreshes its records. Keep the existing
+budget and single-execution constraints; do not automatically increase the spend
+cap if a backfill is stopped by enforcement.
+
+Before marking a backfill complete, independently enumerate the official range
+and compare its unique KOPIS IDs against the production database. Verify a
+complete checkpoint and investigate any `collection_error` records. Catalog
+coverage means performance metadata, available booking links and introduction
+image URLs. R2 downloads, OCR, music extraction and work matching require their
+own subsequent jobs and coverage checks.
 
 Run only one collector execution at a time. Cloud Run parallelism limits tasks
 inside an execution, not the number of separate executions. Checkpoints are not a
