@@ -281,15 +281,13 @@ def validate_response(
             and not match.work_id
             and scope in {"movement", "excerpt", "arrangement"}
         ):
-            # Colon-delimited movement names may identify a parent, never a full work.
-            parent_title = re.split(r"[:：]", fields["title"], maxsplit=1)[0]
-            if parent_title != fields["title"]:
-                match = matcher.match(
-                    parent_title,
-                    fields["composer"],
-                    catalogue=fields["catalogue"],
-                    key=key,
-                )
+            match = matcher.match(
+                fields["title"],
+                fields["composer"],
+                catalogue=fields["catalogue"],
+                key=key,
+                scoped=True,
+            )
         suggested, candidates, reason = (
             match.work_id,
             list(match.candidate_ids),
@@ -338,6 +336,44 @@ def validate_response(
                 "identity_reason": match.reason,
             }
         )
+        if automatic and (suggested or parent) and fields["movements"]:
+            # The model sometimes files distinct works under movements. Preserve
+            # the original item and add traceable identities, never full-work claims.
+            listed_ids = {suggested or parent}
+            for movement_index, movement in enumerate(fields["movements"]):
+                listed = matcher.match_listed_work(movement, fields["composer"])
+                if not listed.work_id or listed.work_id in listed_ids:
+                    continue
+                listed_ids.add(listed.work_id)
+                items.append(
+                    {
+                        "context": reference.context,
+                        "source_index": index,
+                        "derived_from": {"field": "movements", "index": movement_index},
+                        "scope": "unknown",
+                        "model_scope": reference.scope,
+                        "fields": {
+                            "composer": fields["composer"],
+                            "title": movement,
+                            "catalogue": None,
+                            "key": None,
+                            "movements": [],
+                        },
+                        "evidence": {
+                            **evidence,
+                            "scope": "unknown",
+                            "title": evidence["movements"][movement_index],
+                            "catalogue": None,
+                            "key": None,
+                            "movements": [],
+                        },
+                        "suggested_work_id": None,
+                        "scoped_work_id": listed.work_id,
+                        "candidate_ids": list(listed.candidate_ids),
+                        "reason": "listed_work_scope_unconfirmed",
+                        "identity_reason": listed.reason,
+                    }
+                )
     validation_status = "partial" if rejected or status_conflict else "complete"
     if (rejected and not items) or (
         response.status == "items_extracted" and not response.items
