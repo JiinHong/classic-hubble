@@ -1,5 +1,57 @@
 # Grounded Music Extraction
 
+## Direct image reading for the initial historical backfill
+
+The user's 2026-10-22 direction overrides the OCR runtime for the initial
+2024-01-01 through 2026-10-22 backfill: use the local Mac, archive originals in
+private R2, then show actual image pixels to the model in this conversation.
+Do not install/run PaddleOCR or substitute new OpenAI API image/text calls for
+this work. Conversation usage still consumes Codex allowance. Historical OCR
+and the 53 Luna responses retain their original provenance.
+
+`direct_vision.prepare(repository, store, source_sha, output_directory)` exports
+a hash-verified R2 original and `reading-request.json` into a new private
+directory (0700, files 0600). It never calls a model. An operator/agent must
+actually view the original using the image viewer, or render and inspect PDF
+pages, before writing the response. A file export or a hash is not evidence that
+the pixels were read. Long images require readable region views; incomplete
+viewing is `coverage=partial`, not a claim to have read the entire source.
+
+The response schema retains the original source hash, timezone-aware observation
+time, coverage, visible text lines with zero-based page indices, and music fields
+quoted from those lines (`L000000`, `L000001`, ...). It rejects extra confidence,
+coordinate and model-ID fields rather than fabricating them. `no_text`,
+`unreadable`, and text with `no_program_identified` are separate outcomes; none
+proves that the organizer has not published a program.
+
+`direct_vision.import_reading(..., raw_bytes, apply=False)` validates the response
+and runs the existing conservative matcher. `apply=True` stores immutable private
+R2 evidence and an insert-only `provider_records` row under `codex_vision` /
+`direct_reading`. Identity includes the source hash, bucket, method and pipeline
+version. Repeated identical imports reuse the first observation; another reading
+cannot silently replace it. Corrupt caches fail instead of triggering new reads.
+Storage completes before the DB completion record; a lost DB acknowledgement can
+be reconciled by reading that record. No historical OCR row is renamed or edited.
+
+The saved envelope includes transcription, source URL/association snapshot,
+grounding evidence, work candidates and match reasons. It is limited to 1 MiB so
+it can be read back through the same bounded JSON parser. The schema and exact
+quote checks do not establish visual transcription accuracy. Public performance
+associations must be checked against current data separately.
+
+Biography-only and series-poster observations with no work items do not load the
+work catalogue. They retain text/no-program evidence and cannot become confirmed
+programs simply because their ingestion completed.
+
+**Current boundary:** this adapter only persists private observations and match
+reports. `published_items` is always zero. It does not add works, replace NOL or
+manual data, send alerts, or create a human approval queue. A source-current
+atomic publication transaction and bounded batch orchestration remain to be
+implemented. Cached matching reflects the catalogue at import time, not future
+catalogue changes. `eligible_for_publication` only describes full-work candidate
+eligibility with complete image coverage, not permission to skip publication's
+source, scope, performance-date and ownership checks.
+
 ## Delivered boundary
 
 `music_review` prepares a **text-only** request from an existing private OCR result
@@ -132,6 +184,13 @@ such as `from` or a Korean closing quote followed by `중`, and use a delimited
 parent title. Genre, number, catalogue and key constraints still come from the
 **entire** title, including the suffix; a conflicting suffix cannot be hidden.
 
+For separately extracted numbered ballades, composer-scoped title comparison
+accepts `Ballades No. 1` as `Ballade No. 1`. The original plural evidence stays
+unchanged. This does not fold a multi-number list/range into one work, remove
+number/key/catalogue conflicts, resolve duplicate candidates, or expand the
+composerless title index. The actual source must first establish each separate
+number; the matcher does not invent a split from a collection title.
+
 When the model puts separately numbered works in `movements`, an explicit work
 genre and catalogue can recover individual identities. Each derived item has
 the original `source_index`, a `derived_from` movement index and exact source
@@ -216,6 +275,49 @@ date binding; catalogue/alias data quality; selective re-extraction of malformed
 items; scoped-work UI/DB publication; and a resumable, budgeted worker plus an
 atomic source-freshness-checked publication transaction. No new production job
 is deployed by this change. Existing NOL/manual program entries must be preserved.
+
+## Direct image observations and incremental publication (2026-10-22)
+
+The historical backfill now uses images actually viewed in the chat model, not
+an OCR engine or a separate model API. `direct_vision.prepare` exports verified
+R2 bytes and a strict observation schema. `import_reading` stores immutable,
+private evidence under the `codex_vision/direct_reading` provider record. It
+does not itself publish. Cached observations are re-matched against the current
+catalogue/rules; their original matching snapshot is not overwritten.
+
+`vision_publication.publish` has a deliberately narrow initial publication
+boundary: one current introduction image, one performance date, complete image
+coverage and all program works matched with full-work scope. Multi-date or
+multi-image sources, partial observations, excerpts and unresolved works stay
+private until performance-specific binding and scoped publication are supported.
+Korean/full-year date headings and ampersand-separated dates now trigger the
+multi-date guard. This is still not a general date parser.
+Publication also requires a transcribed date heading matching the performance
+date. Missing or conflicting dates remain private, even when the works match.
+
+Before apply, the publisher verifies archived bytes and immutable reading hashes,
+re-runs matching, and downloads the original URL to compare the live hash. One
+service-role-only RPC locks the performance and source records, compares expected
+snapshots and validates the submitted items against matching evidence. It writes
+programs, confirmation state and a private before/after audit in one transaction.
+NOL/manual/other provider items are preserved; such performances are skipped.
+Repeating the same publication preserves row IDs and creates no duplicate items.
+The external website can change after the final check; periodic recollection is
+still needed. SQL regression checks are in `supabase/tests/direct_vision_publication.sql`
+and roll back every synthetic fixture. No migration enables a paid worker/job.
+
+Direct-reading program rows retain source provider `codex_vision`. The existing
+required numeric confidence column uses its zero sentinel, not a measured
+confidence; the web mapper exposes `null` and shows only the image-reading label.
+The private audit retains the exact observation, hash references and matching
+evaluation. Never describe this processing coverage as measured accuracy.
+
+Replaying the 53 saved v2 results after the stricter date guard retains 14 full
+work suggestions, while scoped references decrease from 27 to 22 (40 to 36
+distinct document/work pairs; 17 to 15 documents with a suggestion). These are
+withheld suggestions from ambiguous multi-date sources, not deleted public
+links. Candidates remain available for performance-specific date binding. This
+replay makes no additional model API calls and is not an accuracy benchmark.
 
 ## Incremental matching batches (2026-10-22)
 

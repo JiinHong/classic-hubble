@@ -162,6 +162,12 @@ def _titles(text: str) -> frozenset[str]:
         stripped = KOREAN_KEY.sub("", stripped)
         if stripped.strip(" ,;:()"):
             result.add(_title_key(stripped))
+    # Split numbered ballades retain their printed plural. Add this equivalent
+    # only to composer-scoped comparisons, never the composerless title index.
+    result.update(
+        re.sub(r"^ballades (no \d+)$", r"ballade \1", value)
+        for value in tuple(result)
+    )
     return frozenset(result - {""})
 
 

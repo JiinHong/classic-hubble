@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import os
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
@@ -184,6 +185,60 @@ class SupabaseRepository:
         rows = response.json()
         return rows[0]["payload"] if rows else None
 
+    def load_direct_vision_result(self, key: str) -> dict[str, Any] | None:
+        response = self._request(
+            "GET", "provider_records",
+            params={
+                "provider": "eq.codex_vision", "entity_type": "eq.direct_reading",
+                "provider_id": f"eq.{key}", "select": "payload", "limit": "1",
+            },
+            prefer="return=representation",
+        )
+        rows = response.json()
+        return rows[0]["payload"] if rows else None
+
+    def load_vision_target(self, performance_id: str) -> dict[str, Any] | None:
+        response = self._request(
+            "GET", "performances",
+            params={"id": f"eq.{performance_id}", "limit": "1",
+                    "select": "id,title,starts_on,ends_on,intro_image_urls"},
+            prefer="return=representation",
+        )
+        rows = response.json()
+        return rows[0] if rows else None
+
+    def load_vision_source(self, url: str) -> dict[str, Any] | None:
+        response = self._request(
+            "GET", "provider_records",
+            params={"provider": "eq.r2", "entity_type": "eq.source_archive",
+                    "provider_id": f"eq.{hashlib.sha256(url.encode()).hexdigest()}",
+                    "select": "payload", "limit": "1"},
+            prefer="return=representation",
+        )
+        rows = response.json()
+        return rows[0]["payload"] if rows else None
+
+    def publish_direct_vision(self, payload: Mapping[str, object]) -> dict[str, Any]:
+        return self._request(
+            "POST", "rpc/publish_direct_vision_program", json=dict(payload),
+            prefer="return=representation",
+        ).json()
+
+    def save_direct_vision_result(
+        self, key: str, payload: Mapping[str, object], run_id: str
+    ) -> bool:
+        response = self._request(
+            "POST", "provider_records",
+            params={"on_conflict": "provider,entity_type,provider_id"},
+            json={
+                "provider": "codex_vision", "entity_type": "direct_reading",
+                "provider_id": key, "payload": dict(payload),
+                "ingestion_run_id": run_id,
+            },
+            prefer="resolution=ignore-duplicates,return=representation",
+        )
+        return bool(response.json())
+
     def load_music_request(self, key: str) -> dict[str, Any] | None:
         response = self._request(
             "GET", "provider_records",
@@ -260,14 +315,22 @@ class SupabaseRepository:
             page_size=page_size,
         )
 
-    def load_source_archives(self, *, page_size: int = 500) -> list[dict[str, Any]]:
+    def load_source_archives(
+        self, *, page_size: int = 500,
+        source_sha256: str | None = None, bucket: str | None = None,
+    ) -> list[dict[str, Any]]:
+        params = {
+            "select": "id,payload",
+            "provider": "eq.r2",
+            "entity_type": "eq.source_archive",
+        }
+        if source_sha256 is not None:
+            params["payload->>sha256"] = f"eq.{source_sha256}"
+        if bucket is not None:
+            params["payload->>bucket"] = f"eq.{bucket}"
         rows = self._read_pages(
             "provider_records",
-            {
-                "select": "id,payload",
-                "provider": "eq.r2",
-                "entity_type": "eq.source_archive",
-            },
+            params,
             page_size=page_size,
         )
         return [row["payload"] for row in rows]
