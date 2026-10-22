@@ -14,6 +14,42 @@ retains usage on invalid responses, and never retries automatically. It does not
 by itself run a worker or publish to the website. The 53-document pilot was a
 separate, explicitly authorized API run; the replay below makes no API calls.
 
+## Durable paid-response cache
+
+`music_cache.MusicResponseCache` persists exact request identities in private
+`provider_records` (`openai` / `music_request`). The cache key is a digest of the
+complete wire body, including the OCR hash, text, instructions, schema and model.
+Original extracted JSON, request body, response ID and usage are kept in private
+R2; small DB metadata records cost estimates and the content-addressed pointer.
+
+A unique insert claims the request before inference. Duplicate or concurrent
+requests cannot replace that claim. Completed results are read back with hash,
+bucket, request and document identity checks. Claimed, failed, corrupt or missing
+results never silently fall back to another paid call. A crash or an uncertain
+network outcome requires reconciliation; claims do not expire automatically.
+Known billed tokens survive API/storage failures when available. Unknown charges
+retain the conservative request estimate, not zero. A lost DB acknowledgement
+can leave a claim even if R2 succeeded; do not delete it to force a paid retry.
+
+`import_result` accepts an operator-verified historical `InferenceResult` with
+usage and its original request bundle. Before importing saved evaluations, compare
+the saved wire body with `OpenAIMusicClient.body(bundle)` and parse the saved API
+response through the existing adapter with an offline transport. Importing is
+idempotent and never invokes the model. Historical costs are marked separately
+from live attempts so importing does not count as new spending.
+
+This is response storage, **not source freshness validation or publication**.
+The caller must select current OCR before inference and revalidate freshness in
+the eventual publication transaction. Cached JSON must still pass grounding and
+current-catalogue matching. A scheduled `music_worker` and atomic public-program
+writer remain separate work; this cache does not create either or send alerts.
+
+For the finite 2024-01-01 through 2026-10-22 backfill the user approved proceeding
+without a cumulative OpenAI spending cap. Keep bounded document/time batches,
+record known and unknown charges, and do not retry uncertain paid attempts. The
+separate GCP KRW 10,000 / Cloud Run KRW 7,000 limits remain in effect. Reported
+token-based costs are estimates, not invoices, and exclude tax/FX/infrastructure.
+
 The request contains the schema, extraction instructions, OCR document hash and
 stable line IDs with zero-based page indices. It contains no credentials, source
 URLs, original images, DB IDs or object-storage keys. OCR text itself can contain
