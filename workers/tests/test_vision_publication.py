@@ -127,6 +127,9 @@ def test_korean_month_day_uses_the_target_year():
     "2026. 10. 22 [목] 오후 7시 30분",
     "2026/10/22 Thursday 19:30",
     "10.22 (THUR) 19:30 | 부산콘서트홀",
+    "2026. 10.22. 목 19:30",
+    "2026년 10월 22일 목요일 오후 7시 30분",
+    "10.22 목",
 ])
 def test_observed_date_headings_bind_without_rewriting_the_reading(date_text):
     repo, store, _, writes = setup()
@@ -151,6 +154,11 @@ def test_observed_date_headings_bind_without_rewriting_the_reading(date_text):
     ["2026.10.22 THU ~ 23 FRI"],
     ["2026.10.22 THU 2026.10.23 FRI"],
     ["2026.10.22 THU", "2026.02.30 [월]"],
+    ["2026.10.22 목관 연주자 프로필"],
+    ["2026.10.22 목요일마다 공연"],
+    ["2026.10.22 목 & 10.23 금"],
+    ["2026.10.22 목 ~ 23 금"],
+    ["2026.10.22 목", "2025.10.22 수"],
 ])
 def test_new_heading_forms_cannot_bypass_single_valid_date_binding(headers, monkeypatch):
     repo, store, _, writes = setup()
@@ -162,3 +170,19 @@ def test_new_heading_forms_cannot_bypass_single_valid_date_binding(headers, monk
     with httpx.Client() as client:
         assert module().publish(repo, store, client, "p1", apply=True)["status"] == "date_binding_required"
     assert not writes
+
+
+def test_bare_korean_weekday_from_pf301498_is_bound_to_its_actual_date(monkeypatch):
+    repo, store, target, writes = setup()
+    target["starts_on"] = target["ends_on"] = "2026-10-21"
+    repo.cached.clear()
+    data = reading(store)
+    data["lines"].append({"text": "2026. 10.21. 수 19:30", "page_index": 0})
+    run(repo, store, data, apply=True)
+    before = copy.deepcopy(repo.cached)
+    monkeypatch.setattr(module(), "download_source", lambda *args: (store.source, "image/png"))
+    with httpx.Client() as client:
+        result = module().publish(repo, store, client, "p1", apply=True)
+    assert result["status"] == "published"
+    assert writes[0]["p_evaluation"]["performance_date"] == "2026-10-21"
+    assert repo.cached == before

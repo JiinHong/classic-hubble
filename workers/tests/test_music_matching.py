@@ -40,6 +40,7 @@ def test_exact_distinctive_title_disambiguates_shared_parent_catalogue():
         "The Nutcracker Suite", "P. I. Tchaikovsky", catalogue="Op. 71a", scoped=True,
     )
     assert result.work_id == "suite"
+    assert result.reason == "composer_and_catalogue"
 
 
 def test_exact_component_title_can_disambiguate_shared_parent_catalogue():
@@ -47,6 +48,7 @@ def test_exact_component_title_can_disambiguate_shared_parent_catalogue():
         "Nutcracker March", "P. I. Tchaikovsky", catalogue="Op. 71a", scoped=True,
     )
     assert result.work_id == "march"
+    assert result.reason == "composer_and_catalogue"
 
 
 def test_complete_chopin_op22_title_does_not_match_polonaise_component():
