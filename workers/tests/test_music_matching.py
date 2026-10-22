@@ -22,6 +22,80 @@ def matcher(works):
     return importlib.import_module(name).MusicMatcher(works)
 
 
+def shared_catalogue_parent_and_component():
+    parent = CanonicalWork(
+        "suite", "suite", ("Nutcracker Suite",), ("Pyotr Ilyich Tchaikovsky",),
+        "Op. 71a", ("The Nutcracker Suite",),
+    )
+    component = replace(
+        parent, id="march", slug="march", titles=("Nutcracker March",),
+        catalogue=None,
+        aliases=("The Nutcracker Suite, Op. 71a: II. Danses: a) Marche",),
+    )
+    return parent, component
+
+
+def test_exact_distinctive_title_disambiguates_shared_parent_catalogue():
+    result = matcher(shared_catalogue_parent_and_component()).match(
+        "The Nutcracker Suite", "P. I. Tchaikovsky", catalogue="Op. 71a", scoped=True,
+    )
+    assert result.work_id == "suite"
+
+
+def test_exact_component_title_can_disambiguate_shared_parent_catalogue():
+    result = matcher(shared_catalogue_parent_and_component()).match(
+        "Nutcracker March", "P. I. Tchaikovsky", catalogue="Op. 71a", scoped=True,
+    )
+    assert result.work_id == "march"
+
+
+def test_complete_chopin_op22_title_does_not_match_polonaise_component():
+    parent = CanonicalWork(
+        "complete", "complete", ("Andante spianato et grande polonaise brillante",),
+        ("Frederic Chopin",), "Op. 22",
+        ("Andante spianato and Grande polonaise brillante", "Grande polonaise brillante"),
+    )
+    component = replace(
+        parent, id="polonaise", slug="polonaise", titles=("Grande polonaise brillante",),
+        aliases=("Andante spianato et grande polonaise brillante, Op. 22: II. Grande polonaise",),
+    )
+    m = matcher([parent, component])
+    assert m.match("Andante spianato and Grande polonaise brillante", "F. Chopin", catalogue="Op. 22").work_id == "complete"
+    assert m.match("Grande polonaise brillante", "F. Chopin", catalogue="Op. 22").work_id is None
+
+
+@pytest.mark.parametrize("title", ["Suite", "Op. 71a", "Unknown Nutcracker programme"])
+def test_shared_catalogue_without_unique_exact_title_stays_ambiguous(title):
+    result = matcher(shared_catalogue_parent_and_component()).match(
+        title, "P. I. Tchaikovsky", catalogue="Op. 71a",
+    )
+    assert result.work_id is None
+    assert result.reason == "ambiguous"
+
+
+def test_exact_catalogue_title_does_not_resolve_duplicate_or_reviewed_identity():
+    parent, component = shared_catalogue_parent_and_component()
+    duplicate = replace(parent, id="duplicate", slug="duplicate")
+    assert matcher([parent, component, duplicate]).match(
+        "The Nutcracker Suite", "P. I. Tchaikovsky", catalogue="Op. 71a",
+    ).work_id is None
+    result = matcher([replace(parent, requires_review=True), component]).match(
+        "The Nutcracker Suite", "P. I. Tchaikovsky", catalogue="Op. 71a",
+    )
+    assert result.work_id is None
+
+
+@pytest.mark.parametrize("composer,catalogue,key", [
+    ("F. Chopin", "Op. 71a", None),
+    ("P. I. Tchaikovsky", "Op. 71", None),
+    ("P. I. Tchaikovsky", "Op. 71a", "C minor"),
+])
+def test_exact_title_never_overrides_composer_catalogue_or_key(composer, catalogue, key):
+    parent, component = shared_catalogue_parent_and_component()
+    works = [replace(w, titles=(*w.titles, "Suite in D major")) for w in (parent, component)]
+    assert matcher(works).match("The Nutcracker Suite", composer, catalogue=catalogue, key=key).work_id is None
+
+
 def test_bilingual_composer_lifespan_and_catalogue_alias_identify_work():
     result = matcher([BEETHOVEN]).match(
         "Violin Sonata No.8 in G major 바이올린 소나타 8번",

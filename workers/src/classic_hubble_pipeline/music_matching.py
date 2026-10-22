@@ -422,6 +422,13 @@ class MusicMatcher:
             else:
                 continue
             supported.append((work, identity_reason or match_reason))
+        if actual_catalogues and len(supported) > 1:
+            # Components can carry their parent's catalogue in an alias. Only a
+            # unique exact distinctive title may break that catalogue tie.
+            exact_ids = {work.id for work in exact}
+            named = [(work, reason) for work, reason in supported if work.id in exact_ids]
+            if len(named) == 1:
+                supported = [(named[0][0], "composer_catalogue_and_exact_title")]
         candidates = tuple(work.id for work, _ in supported)
         if len(candidates) == 1:
             work, reason = supported[0]
