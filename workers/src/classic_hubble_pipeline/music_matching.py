@@ -23,6 +23,13 @@ LATIN_NOTE_KEY = re.compile(
 )
 KOREAN_KEY = re.compile(r"(내림|올림)?\s*([가나다라마바사A-Ga-g])\s*(장|단)조")
 KOREAN_NOTES = dict(zip("다라마바사가나", "cdefgab"))
+QUALIFIED_STRAUSS_NAMES = {
+    "johann strauss i": 1,
+    "johann strauss ii": 2,
+    "johann strauss jr": 2,
+    "johann strauss junior": 2,
+    "johann strauss iii": 3,
+}
 GENERIC_TITLES = {
     "waltz",
     "왈츠",
@@ -205,6 +212,13 @@ def _genres(text: str) -> frozenset[str]:
 
 @lru_cache(maxsize=80_000)
 def _name_matches(actual: str, names: tuple[str, ...]) -> bool:
+    # Generation is identity evidence, not an initial that may expand I to II.
+    generation = QUALIFIED_STRAUSS_NAMES.get(_normalize(actual))
+    if generation is not None:
+        return any(
+            QUALIFIED_STRAUSS_NAMES.get(_normalize(name)) == generation
+            for name in names
+        )
     if _composer_matches(actual, names):
         return True
     tokens = _normalize(actual).split()

@@ -108,6 +108,50 @@ def test_bilingual_composer_lifespan_and_catalogue_alias_identify_work():
     assert result.work_id == BEETHOVEN.id
 
 
+@pytest.mark.parametrize("printed,canonical", [
+    ("Johann Strauss II", "Johann Strauss Jr"),
+    ("Johann Strauss Jr.", "Johann Strauss II"),
+    ("Johann Strauss Junior", "Johann Strauss Jr"),
+    ("Johann Strauß II (1825-1899)", "Johann Strauss Jr"),
+])
+def test_qualified_johann_strauss_son_names_are_equivalent(printed, canonical):
+    work = replace(BEETHOVEN, composers=(canonical,),
+                   titles=("Die Fledermaus",), catalogue="Op. 362", aliases=())
+    assert matcher([work]).match("Die Fledermaus", printed).work_id == work.id
+
+
+@pytest.mark.parametrize("printed,canonical", [
+    ("Johann Strauss I", "Johann Strauss II"),
+    ("Johann Strauss I", "Johann Strauss Jr"),
+    ("Johann Strauss III", "Johann Strauss Jr"),
+    ("Johann Strauss II", "Johann Strauss I"),
+    ("Johann Strauss Jr", "Richard Strauss"),
+    ("Johann Strauss II", "Josef Strauss"),
+    ("Johann Strauss II", "Johann Strauss"),
+])
+def test_qualified_strauss_names_do_not_drop_generation_or_first_name(printed, canonical):
+    work = replace(BEETHOVEN, composers=(canonical,),
+                   titles=("Die Fledermaus",), catalogue="Op. 362", aliases=())
+    assert matcher([work]).match("Die Fledermaus", printed).work_id is None
+
+
+def test_strauss_son_equivalence_preserves_identity_conflicts():
+    work = replace(BEETHOVEN, composers=("Johann Strauss Jr",),
+                   titles=("Die Fledermaus",), catalogue="Op. 362", aliases=())
+    assert matcher([work, replace(work, id="duplicate")]).match(
+        "Die Fledermaus", "Johann Strauss II",
+    ).work_id is None
+    assert matcher([work]).match(
+        "Die Fledermaus", "Johann Strauss II", catalogue="Op. 363",
+    ).work_id is None
+    father = replace(work, id="father", composers=("Johann Strauss I", "요한 슈트라우스 아버지"))
+    result = matcher([work, father]).match(
+        "Die Fledermaus", "Johann Strauss II 요한 슈트라우스 아버지",
+    )
+    assert result.work_id is None
+    assert result.reason == "conflicting_composers"
+
+
 def numbered_ballades():
     return [
         replace(
