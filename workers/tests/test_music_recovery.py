@@ -116,16 +116,30 @@ def test_biography_has_no_parent_performance_link():
     assert evaluate(data)["items"][0]["scoped_work_id"] is None
 
 
-def test_multi_date_series_poster_requires_performance_date_binding():
+@pytest.mark.parametrize("headers", [
+    ["2.26(목)", "3.26(목)", "4.23(목)"],
+    ["10월 21일(수)", "10월 22일(목)"],
+    ["2026. 10. 21.(수) & 10. 22.(목) 19:30"],
+    ["2026. 10. 21.(수)", "2026. 10. 22.(목)"],
+])
+def test_multi_date_series_poster_requires_performance_date_binding(headers):
     data, doc = response(), document()
     doc["lines"].extend(
-        {"text": text} for text in ["전곡 시리즈", "2.26(목)", "3.26(목)", "4.23(목)"]
+        {"text": text} for text in ["전곡 시리즈", *headers]
     )
     result = evaluate(data, doc)
     assert result["publishable"] is False
     assert result["items"][0]["suggested_work_id"] is None
     assert result["items"][0]["candidate_ids"] == [WORK.id]
     assert result["items"][0]["reason"] == "performance_date_binding_required"
+
+
+def test_repeated_date_in_different_notations_is_one_performance_date():
+    data, doc = response(), document()
+    doc["lines"].extend({"text": text} for text in [
+        "2026. 02. 26.(목)", "2월 26일(목)", "2.26(목)",
+    ])
+    assert evaluate(data, doc)["items"][0]["suggested_work_id"] == WORK.id
 
 
 def test_inline_movement_cannot_be_published_as_full_work_when_model_omits_movements():

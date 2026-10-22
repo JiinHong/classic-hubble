@@ -47,7 +47,7 @@ export type Work = {
 export type ProgramSource = {
   type: ConfidenceLevel;
   label: string;
-  confidence: number;
+  confidence: number | null;
 };
 
 export type ProgramItem = {

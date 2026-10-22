@@ -243,11 +243,13 @@ function mapPerformances(rows: PerformanceRow[]): Performance[] {
             composerName: item.composer_name ?? "",
             displayTitle: item.display_title,
             source: {
-              confidence: Number(item.confidence),
+              confidence: item.source_provider === "codex_vision" ? null : Number(item.confidence),
               label:
                 item.source_provider === "nol"
                   ? "NOL 원문"
-                  : (sourceLabels[item.source_type] ?? sourceLabels.unknown),
+                  : item.source_provider === "codex_vision"
+                    ? "이미지 판독"
+                    : (sourceLabels[item.source_type] ?? sourceLabels.unknown),
               type: item.source_type,
             },
             workSlug: firstRelation(item.works)?.slug ?? "",

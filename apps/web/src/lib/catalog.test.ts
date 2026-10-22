@@ -480,6 +480,7 @@ describe("targeted detail queries", () => {
             {
               display_title: "Another work",
               position: 2,
+              source_provider: "codex_vision",
               confidence: 1,
               source_type: "official",
               works: { slug: "another" },
@@ -530,6 +531,10 @@ describe("targeted detail queries", () => {
     const { getCatalogPerformanceById } = await import("./catalog");
     const result = await getCatalogPerformanceById("PF123456");
     expect(result.performance?.program).toHaveLength(2);
+    expect(result.performance?.program[1].source).toMatchObject({
+      confidence: null,
+      label: "이미지 판독",
+    });
     expect(from.mock.calls.map(([table]) => table)).toEqual(["performances"]);
     expect(filters).toContainEqual([
       "performances",

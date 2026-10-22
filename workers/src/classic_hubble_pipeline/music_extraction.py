@@ -203,9 +203,13 @@ def validate_response(
         raise ValueError("Extraction status and items disagree")
     lines = {row["line_id"]: row["text"] for row in request["input"]["lines"]}
     dates = {
-        match.groups()
+        (int(match[1]), int(match[2]))
         for line in lines.values()
-        if (match := re.match(r"^\s*(\d{1,2})[./](\d{1,2})\s*\(", line))
+        for match in re.finditer(
+            r"(?:^|&)\s*(?:20\d{2}\s*[./년]\s*)?"
+            r"(\d{1,2})\s*[./월]\s*(\d{1,2})\s*[.일]?\s*\(", line
+        )
+        if 1 <= int(match[1]) <= 12 and 1 <= int(match[2]) <= 31
     }
     multiple_dates = len(dates) > 1
     matching_works = (

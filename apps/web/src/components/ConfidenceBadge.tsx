@@ -26,7 +26,9 @@ export function ConfidenceBadge({ source }: ConfidenceBadgeProps) {
     >
       <Icon aria-hidden="true" className="size-3.5" />
       <span>{source.label}</span>
-      <span className="tabular-nums">{confidenceLabel(source.confidence)}</span>
+      {source.confidence !== null && (
+        <span className="tabular-nums">{confidenceLabel(source.confidence)}</span>
+      )}
     </span>
   );
 }

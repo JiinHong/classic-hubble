@@ -32,6 +32,50 @@ def test_bilingual_composer_lifespan_and_catalogue_alias_identify_work():
     assert result.work_id == BEETHOVEN.id
 
 
+def numbered_ballades():
+    return [
+        replace(
+            BEETHOVEN, id=f"chopin-{number}", slug=f"chopin-{number}",
+            titles=(f"Ballade No. {number} in {key}",),
+            composers=("Frederic Chopin",), catalogue=catalogue, aliases=(),
+        )
+        for number, key, catalogue in (
+            (1, "G minor", "Op. 23"),
+            (2, "F major", "Op. 38"),
+            (3, "A-flat major", "Op. 47"),
+        )
+    ]
+
+
+@pytest.mark.parametrize("number", [1, 2, 3])
+def test_numbered_ballades_plural_matches_only_its_number(number):
+    result = matcher(numbered_ballades()).match(f"Ballades No. {number}", "F. Chopin")
+    assert result.work_id == f"chopin-{number}"
+
+
+@pytest.mark.parametrize("title", ["Ballades", "Ballades No. 1,2,3", "Ballades No. 1-3", "Ballades No. 5"])
+def test_ballades_collection_or_missing_number_is_not_collapsed_to_one_work(title):
+    assert matcher(numbered_ballades()).match(title, "F. Chopin").work_id is None
+
+
+def test_ballades_plural_keeps_composer_catalogue_key_and_ambiguity_guards():
+    works = numbered_ballades()
+    m = matcher(works)
+    assert m.match("Ballades No. 1", "F. Mendelssohn").work_id is None
+    assert m.match("Ballades No. 1", "F. Chopin", catalogue="Op. 38").work_id is None
+    assert m.match("Ballades No. 1", "F. Chopin", key="F major").work_id is None
+    duplicate = replace(works[0], id="different-ballade")
+    assert matcher([*works, duplicate]).match("Ballades No. 1", "F. Chopin").work_id is None
+
+
+def test_ballades_plural_does_not_create_composerless_title_fallback():
+    works = [
+        replace(work, aliases=(f"Ballade No. {index}",))
+        for index, work in enumerate(numbered_ballades(), start=1)
+    ]
+    assert matcher(works).match("Ballades No. 1", None).work_id is None
+
+
 @pytest.mark.parametrize(
     "catalogue", ["Op.30 No.2", "Op.300 No.3", "Op.30 No.3; Op.31"]
 )
