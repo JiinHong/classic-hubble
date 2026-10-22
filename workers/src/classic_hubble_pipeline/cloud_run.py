@@ -25,9 +25,19 @@ def collect(
     repository: SupabaseRepository,
     *,
     as_of: date,
+    start_date: date | None = None,
+    end_date: date | None = None,
 ) -> dict[str, object]:
-    start, end = _shift_months(as_of, -3), _shift_months(as_of, 6)
-    key = f"catalog-v1:{as_of.isoformat()}"
+    if (start_date is None) != (end_date is None):
+        raise ValueError("COLLECTION_START and COLLECTION_END must be provided together")
+    if start_date is not None and end_date is not None:
+        if end_date < start_date:
+            raise ValueError("Collection end cannot precede the start")
+        start, end = start_date, end_date
+        key = f"catalog-range-v1:{start.isoformat()}:{end.isoformat()}"
+    else:
+        start, end = _shift_months(as_of, -3), _shift_months(as_of, 6)
+        key = f"catalog-v1:{as_of.isoformat()}"
     checkpoint = repository.load_collection_checkpoint(key) or {}
     if checkpoint.get("complete"):
         return {"status": "already_completed", "checkpoint": key}
@@ -68,7 +78,7 @@ def collect(
 
 
 def _terminated(signum: int, frame: object) -> None:
-    raise TimeoutError("Collection interrupted; resume with the same COLLECTION_DATE")
+    raise TimeoutError("Collection interrupted; resume with the same date/range settings")
 
 
 def main() -> int:
@@ -79,9 +89,15 @@ def main() -> int:
             if os.environ.get("COLLECTION_DATE")
             else datetime.now(KOREA_TIMEZONE).date()
         )
+        start = os.environ.get("COLLECTION_START")
+        end = os.environ.get("COLLECTION_END")
         with KopisClient(KopisSettings.from_env()) as client:
             with SupabaseRepository(SupabaseSettings.from_env()) as repository:
-                result = collect(KopisSyncService(client, repository), repository, as_of=as_of)
+                result = collect(
+                    KopisSyncService(client, repository), repository, as_of=as_of,
+                    start_date=date.fromisoformat(start) if start else None,
+                    end_date=date.fromisoformat(end) if end else None,
+                )
         print(json.dumps(result), flush=True)
         return 0 if result["status"] in {"completed", "already_completed"} else 1
     except Exception as error:

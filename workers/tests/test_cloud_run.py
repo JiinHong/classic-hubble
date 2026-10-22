@@ -99,3 +99,77 @@ def test_partial_failure_does_not_mark_the_checkpoint_complete():
     assert result["status"] == "failed"
     assert list(repo.checkpoints.values())[0]["complete"] is False
     assert list(repo.checkpoints.values())[0]["completed_ids"] == ["PF1"]
+
+
+def test_explicit_historical_range_is_not_replaced_by_recent_window():
+    service, repo = Service(), Repository()
+    result = module().collect(
+        service, repo, as_of=date(2026, 10, 22),
+        start_date=date(2024, 1, 1), end_date=date(2026, 10, 22),
+    )
+    call = service.calls[0]
+    assert call["start_date"] == date(2024, 1, 1)
+    assert call["end_date"] == date(2026, 10, 22)
+    assert call.get("limit") is None
+    assert result["checkpoint"] == "catalog-range-v1:2024-01-01:2026-10-22"
+
+
+def test_historical_resume_uses_range_not_execution_date():
+    repo = Repository()
+    with pytest.raises(RuntimeError, match="source unavailable"):
+        module().collect(
+            Service(fail=True), repo, as_of=date(2026, 10, 22),
+            start_date=date(2024, 1, 1), end_date=date(2026, 10, 22),
+        )
+    service = Service()
+    module().collect(
+        service, repo, as_of=date(2026, 10, 23),
+        start_date=date(2024, 1, 1), end_date=date(2026, 10, 22),
+    )
+    assert service.calls[0]["completed_ids"] == frozenset({"PF1"})
+
+
+def test_complete_recent_sweep_does_not_skip_historical_range():
+    service, repo = Service(), Repository()
+    module().collect(service, repo, as_of=date(2026, 10, 22))
+    module().collect(
+        service, repo, as_of=date(2026, 10, 22),
+        start_date=date(2024, 1, 1), end_date=date(2026, 10, 22),
+    )
+    assert len(service.calls) == 2
+    assert service.calls[1]["completed_ids"] == frozenset()
+
+
+@pytest.mark.parametrize("start,end", [
+    (date(2024, 1, 1), None),
+    (None, date(2026, 10, 22)),
+    (date(2026, 10, 23), date(2024, 1, 1)),
+])
+def test_invalid_explicit_range_makes_no_collection_or_checkpoint_writes(start, end):
+    service, repo = Service(), Repository()
+    with pytest.raises(ValueError):
+        module().collect(
+            service, repo, as_of=date(2026, 10, 22), start_date=start, end_date=end,
+        )
+    assert service.calls == []
+    assert repo.checkpoints == {}
+
+
+def test_cloud_entrypoint_passes_execution_range(monkeypatch):
+    from contextlib import nullcontext
+
+    target = module()
+    service, repo = Service(), Repository()
+    monkeypatch.setenv("COLLECTION_DATE", "2026-10-22")
+    monkeypatch.setenv("COLLECTION_START", "2024-01-01")
+    monkeypatch.setenv("COLLECTION_END", "2026-10-22")
+    monkeypatch.setenv("KOPIS_API_KEY", "test")
+    monkeypatch.setenv("SUPABASE_URL", "https://test.supabase.co")
+    monkeypatch.setenv("SUPABASE_SECRET_KEY", "test")
+    monkeypatch.setattr(target, "KopisClient", lambda settings: nullcontext(object()))
+    monkeypatch.setattr(target, "SupabaseRepository", lambda settings: nullcontext(repo))
+    monkeypatch.setattr(target, "KopisSyncService", lambda client, repository: service)
+    monkeypatch.setattr(target.signal, "signal", lambda *args: None)
+    assert target.main() == 0
+    assert service.calls[0]["start_date"] == date(2024, 1, 1)
+    assert service.calls[0]["end_date"] == date(2026, 10, 22)
