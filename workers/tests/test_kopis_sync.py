@@ -4,7 +4,6 @@ from dataclasses import replace
 from datetime import date
 
 import pytest
-
 from classic_hubble_pipeline.kopis import (
     KopisBookingLink,
     KopisFacilityDetail,
@@ -15,6 +14,7 @@ from classic_hubble_pipeline.kopis import (
 )
 from classic_hubble_pipeline.kopis_sync import (
     KopisSyncService,
+    _map_nol_program_items,
     map_performance,
     map_venue,
     split_sync_windows,
@@ -25,6 +25,43 @@ from classic_hubble_pipeline.nol import (
     NolTransportError,
 )
 from classic_hubble_pipeline.work_matching import CanonicalWork
+
+
+def test_new_nol_ingestion_uses_the_same_bilingual_matching_as_backfill():
+    text = "모차르트 | 바이올린 소나타 21번 K.304\nW. A. Mozart - Violin Sonata No. 21 K.304"
+    data = NolPerformanceData(
+        goods_code="26007299",
+        title="Recital",
+        venue_name="Hall",
+        program_status="confirmed",
+        program_source_url="https://tickets.interpark.com/goods/26007299",
+        program_image_urls=(),
+        program_items=(
+            NolProgramItem(
+                position=0,
+                display_title=text,
+                composer=None,
+                composer_lifespan=None,
+                work_title=text,
+            ),
+        ),
+        raw_summary={},
+        raw_play_db={},
+    )
+    works = [
+        CanonicalWork(
+            "w",
+            "wikidata-w",
+            ("Violin Sonata No. 21", "바이올린 소나타 21번"),
+            ("Wolfgang Amadeus Mozart", "모차르트"),
+            "K.304",
+            (),
+            True,
+        )
+    ]
+    rows = _map_nol_program_items(data, works)
+    assert rows[0]["work_id"] == "w"
+    assert rows[0]["display_title"] == text
 
 
 def performance_summary(performance_id: str = "PF300001") -> KopisPerformanceSummary:
@@ -419,7 +456,8 @@ def test_sync_writes_nol_raw_data_before_program_rows_and_fetches_one_goods_code
             return detail
 
     class FakeNolClient:
-        requests: list[str] = []
+        def __init__(self):
+            self.requests: list[str] = []
 
         def fetch(self, url):
             self.requests.append(url)

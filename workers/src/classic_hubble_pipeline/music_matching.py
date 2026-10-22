@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from collections import defaultdict
 from collections.abc import Sequence
 from functools import lru_cache
 
@@ -204,6 +205,27 @@ def _one_edit(left: str, right: str) -> bool:
     return any(large[:i] + large[i + 1 :] == small for i in range(len(large)))
 
 
+def _distinctive_title(text: str) -> bool:
+    """Require lexical identity, not just a genre, instrument, tempo or number."""
+    text = KOREAN_KEY.sub("", ENGLISH_KEY.sub("", CATALOGUE.sub("", text)))
+    text = _normalize(text)
+    text = re.sub(
+        r"\b(?:piano|violin|viola|cello|flute|clarinet|horn|keyboard|solo|strings|"
+        r"sonata|concerto|symphony|quartet|trio|no|nr|in|for|and|the|major|minor|"
+        r"variations?|waltz|prelude|etude|nocturne|minuet|adagio|allegro|andante|"
+        r"romance|romances|intermezzo|scherzo|overture|suite|pieces?|op)\b",
+        "",
+        text,
+    )
+    text = re.sub(
+        r"피아노|바이올린|비올라|첼로|플루트|협주곡|교향곡|소나타|사중주|삼중주|"
+        r"변주곡|왈츠|전주곡|연습곡|야상곡|미뉴에트|서곡|모음곡|작품|제|번",
+        "",
+        text,
+    )
+    return len(re.sub(r"[^a-z가-힣]", "", text)) >= 5
+
+
 class MusicMatcher:
     def __init__(self, works: Sequence[CanonicalWork]):
         self.works = tuple(works)
@@ -212,6 +234,13 @@ class MusicMatcher:
             names: tuple(work for work in works if work.composers == names)
             for names in self.composers
         }
+        self.by_title = defaultdict(dict)
+        for work in works:
+            for title in (*work.titles, *work.aliases):
+                if _distinctive_title(title) and not _name_matches(
+                    title, work.composers
+                ):
+                    self.by_title[_title_key(title)][work.id] = work
 
     def _composers(self, text: str | None):
         groups = [
@@ -295,25 +324,36 @@ class MusicMatcher:
         if len(actual_keys) > 1:
             return WorkMatch(None, (), "conflicting_keys")
         identities, reason = self._composers(composer)
+        exact = tuple(self.by_title.get(_title_key(title), {}).values())
+        identity_reason = None
         if not identities:
-            candidates = self._spelling_candidates(composer, actual_catalogues)
-            return WorkMatch(
-                None,
-                candidates,
-                "composer_spelling_candidate" if candidates else reason,
-            )
-        if len(identities) > 1:
-            return WorkMatch(None, (), "ambiguous_composer")
-        names = next(iter(identities))
-        if not actual_catalogues and (
-            _normalize(title) in GENERIC_TITLES
-            or all(_name_matches(part, names) for part in _variants(title))
-        ):
-            return WorkMatch(None, (), "insufficient_title")
+            if not (composer or "").strip() and exact:
+                pool = exact
+                identity_reason = "unique_distinctive_title"
+            else:
+                candidates = self._spelling_candidates(composer, actual_catalogues)
+                return WorkMatch(
+                    None,
+                    candidates or tuple(w.id for w in exact)[:3],
+                    "composer_spelling_candidate" if candidates else reason,
+                )
+        elif len(identities) > 1:
+            pool = tuple(w for w in exact if w.composers in identities)
+            if not pool:
+                return WorkMatch(None, (), "ambiguous_composer")
+            identity_reason = "surname_and_distinctive_title"
+        else:
+            names = next(iter(identities))
+            pool = self.by_composer[names]
+            if not actual_catalogues and (
+                _normalize(title) in GENERIC_TITLES
+                or all(_name_matches(part, names) for part in _variants(title))
+            ):
+                return WorkMatch(None, (), "insufficient_title")
         supported = []
         title_variants = _titles(title) | (_scoped_titles(title) if scoped else set())
         actual_numbers = _numbers(title)
-        for work in self.by_composer[names]:
+        for work in pool:
             expected_genres = frozenset().union(*(_genres(t) for t in work.titles))
             if (
                 _genres(title)
@@ -345,7 +385,7 @@ class MusicMatcher:
                 match_reason = "composer_and_alias"
             else:
                 continue
-            supported.append((work, match_reason))
+            supported.append((work, identity_reason or match_reason))
         candidates = tuple(work.id for work, _ in supported)
         if len(candidates) == 1:
             work, reason = supported[0]

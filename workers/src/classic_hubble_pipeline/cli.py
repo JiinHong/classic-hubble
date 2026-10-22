@@ -19,7 +19,6 @@ from .kopis import (
     KopisSyncWindow,
 )
 from .kopis_sync import KopisSyncService
-from .program_matching import match_stored_programs
 from .nol import (
     NolClient,
     NolConfigurationError,
@@ -27,13 +26,13 @@ from .nol import (
     NolPerformanceData,
     NolSettings,
 )
+from .program_matching import match_stored_programs
 from .supabase import (
     SupabaseConfigurationError,
     SupabaseError,
     SupabaseRepository,
     SupabaseSettings,
 )
-
 
 ClientFactory = Callable[[KopisSettings], AbstractContextManager[KopisClient]]
 RepositoryFactory = Callable[
@@ -63,7 +62,12 @@ def main(
         try:
             settings = SupabaseSettings.from_env(environ)
             with repository_factory(settings) as repository:
-                report = match_stored_programs(repository, apply=args.apply)
+                report = match_stored_programs(
+                    repository,
+                    apply=args.apply,
+                    batch_size=args.batch_size,
+                    after_id=args.after_id,
+                )
             _write_json(report, output)
             return 0
         except (SupabaseError, ValueError) as error:
@@ -109,6 +113,8 @@ def _build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Apply unambiguous links to previously unlinked rows.",
     )
+    match.add_argument("--batch-size", type=int, default=50)
+    match.add_argument("--after-id", help="Continue after the last scanned program ID.")
 
     check = subcommands.add_parser(
         "kopis-check",

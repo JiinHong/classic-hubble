@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import re
-from collections.abc import Callable, Mapping, Sequence, Set
-from dataclasses import dataclass
+from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Set as AbstractSet
+from dataclasses import dataclass, replace
 from datetime import date, datetime, time, timedelta
 from typing import Protocol
 from zoneinfo import ZoneInfo
@@ -17,9 +18,10 @@ from .kopis import (
     KopisSyncWindow,
     KopisTransportError,
 )
+from .music_matching import MusicMatcher
 from .nol import NolError, NolPerformanceData, extract_nol_goods_code
-from .work_matching import CanonicalWork, match_work
-
+from .program_matching import match_program_text
+from .work_matching import CanonicalWork
 
 KOREA_TIMEZONE = ZoneInfo("Asia/Seoul")
 TIME_PATTERN = re.compile(r"(?<!\d)([01]?\d|2[0-3]):([0-5]\d)")
@@ -233,7 +235,7 @@ class KopisSyncService:
         end_date: date,
         rows: int = 100,
         limit: int | None = None,
-        completed_ids: Set[str] = frozenset(),
+        completed_ids: AbstractSet[str] = frozenset(),
         on_performance_complete: Callable[[str], None] | None = None,
         continue_on_source_error: bool = False,
     ) -> KopisSyncResult:
@@ -258,6 +260,7 @@ class KopisSyncService:
         facility_cache: dict[str, tuple[str, dict[str, str]]] = {}
         seen_performances: set[str] = set()
         work_catalog: list[CanonicalWork] | None = None
+        program_matcher: MusicMatcher | None = None
         first_nol_error: str | None = None
         consecutive_source_errors = 0
 
@@ -397,8 +400,14 @@ class KopisSyncService:
                             counters["nol_records"] += 1
                             if work_catalog is None:
                                 work_catalog = self._repository.load_work_catalog()
+                                program_matcher = MusicMatcher(
+                                    [
+                                        replace(work, requires_review=False)
+                                        for work in work_catalog
+                                    ]
+                                )
                             program_items = _map_nol_program_items(
-                                nol_data, work_catalog
+                                nol_data, work_catalog, matcher=program_matcher
                             )
                             self._repository.replace_program_items(
                                 performance_id,
@@ -535,11 +544,20 @@ def _nol_raw_payload(nol_data: NolPerformanceData) -> dict[str, object]:
 
 
 def _map_nol_program_items(
-    nol_data: NolPerformanceData, works: Sequence[CanonicalWork]
+    nol_data: NolPerformanceData,
+    works: Sequence[CanonicalWork],
+    *,
+    matcher: MusicMatcher | None = None,
 ) -> list[dict[str, object]]:
+    matcher = matcher or MusicMatcher(
+        [replace(work, requires_review=False) for work in works]
+    )
     return [
         {
-            "work_id": match_work(item.work_title, item.composer, works).work_id,
+            "work_id": match_program_text(
+                {"display_title": item.work_title, "composer_name": item.composer},
+                matcher,
+            ).work_id,
             "display_title": item.work_title,
             "composer_name": item.composer,
             "source_type": "official",
