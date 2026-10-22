@@ -75,8 +75,22 @@ def download_source(
 
 
 def archive_sources(
-    repository: SupabaseRepository, store: R2Store, client: httpx.Client, *, as_of: date
+    repository: SupabaseRepository,
+    store: R2Store,
+    client: httpx.Client,
+    *,
+    as_of: date,
+    start_date: date | None = None,
+    end_date: date | None = None,
 ) -> dict[str, object]:
+    if (start_date is None) != (end_date is None):
+        raise ValueError("COLLECTION_START and COLLECTION_END must be provided together")
+    if start_date is not None and end_date is not None:
+        if end_date < start_date:
+            raise ValueError("Collection end cannot precede the start")
+        start, end = start_date, end_date
+    else:
+        start, end = _shift_months(as_of, -3), _shift_months(as_of, 6)
     run_id = repository.start_ingestion_run("r2")
     counters = {
         "sources": 0,
@@ -89,9 +103,7 @@ def archive_sources(
     }
     failure = None
     try:
-        performances = repository.load_source_performances(
-            start=_shift_months(as_of, -3), end=_shift_months(as_of, 6)
-        )
+        performances = repository.load_source_performances(start=start, end=end)
         sources: dict[str, set[str]] = {}
         for performance in performances:
             for url in performance["intro_image_urls"]:
@@ -191,6 +203,8 @@ def main() -> int:
             if os.environ.get("COLLECTION_DATE")
             else datetime.now(KOREA_TIMEZONE).date()
         )
+        start = os.environ.get("COLLECTION_START")
+        end = os.environ.get("COLLECTION_END")
         with (
             R2Store(R2Settings.from_env()) as store,
             SupabaseRepository(SupabaseSettings.from_env()) as repository,
@@ -200,7 +214,11 @@ def main() -> int:
                 headers={"User-Agent": "classic-hubble-pipeline/0.1"},
             ) as client,
         ):
-            result = archive_sources(repository, store, client, as_of=as_of)
+            result = archive_sources(
+                repository, store, client, as_of=as_of,
+                start_date=date.fromisoformat(start) if start else None,
+                end_date=date.fromisoformat(end) if end else None,
+            )
         print(json.dumps(result), flush=True)
         return 0 if result["status"] == "completed" else 1
     except Exception as error:  # noqa: BLE001 - CLI boundary must redact provider exceptions.

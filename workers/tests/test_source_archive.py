@@ -79,14 +79,18 @@ class Repository:
         self.urls = urls or [URL, URL]
         self.records = {}
         self.finished = []
+        self.started = []
+        self.queries = []
 
     def start_ingestion_run(self, provider):
+        self.started.append(provider)
         return "run-1"
 
     def finish_ingestion_run(self, run_id, **kwargs):
         self.finished.append(kwargs)
 
     def load_source_performances(self, **kwargs):
+        self.queries.append(kwargs)
         return [{"id": "p1", "intro_image_urls": self.urls}]
 
     def load_source_archives(self):
@@ -115,9 +119,83 @@ class Store:
         return StoredObject(key, digest, len(content), content_type, created)
 
 
-def run(repo, store, handler, day=21):
+def run(repo, store, handler, day=21, **kwargs):
     with httpx.Client(transport=httpx.MockTransport(handler)) as client:
-        return module().archive_sources(repo, store, client, as_of=date(2026, 10, day))
+        return module().archive_sources(
+            repo, store, client, as_of=date(2026, 10, day), **kwargs
+        )
+
+
+def test_default_archive_window_still_uses_calendar_months():
+    repo = Repository()
+    run(repo, Store(), lambda _: httpx.Response(200, content=IMAGE))
+    assert repo.queries == [{"start": date(2026, 7, 21), "end": date(2027, 4, 21)}]
+
+
+@pytest.mark.parametrize("start,end", [
+    (date(2024, 1, 1), date(2026, 10, 22)),
+    (date(2024, 2, 29), date(2024, 2, 29)),
+])
+def test_explicit_archive_window_replaces_recent_window(start, end):
+    repo = Repository()
+    result = run(
+        repo, Store(), lambda _: httpx.Response(200, content=IMAGE),
+        start_date=start, end_date=end,
+    )
+    assert repo.queries == [{"start": start, "end": end}]
+    assert result["status"] == "completed"
+    assert result["counters"]["archived"] == 1
+
+
+@pytest.mark.parametrize("start,end", [
+    (date(2024, 1, 1), None),
+    (None, date(2026, 10, 22)),
+    (date(2026, 10, 22), date(2024, 1, 1)),
+])
+def test_invalid_archive_window_fails_before_any_side_effect(start, end):
+    repo, store = Repository(), Store()
+    with pytest.raises(ValueError):
+        run(
+            repo, store, lambda _: pytest.fail("must not download"),
+            start_date=start, end_date=end,
+        )
+    assert repo.started == []
+    assert repo.queries == []
+    assert repo.records == {}
+    assert store.objects == {}
+
+
+def test_historical_archive_resumes_with_pinned_collection_date():
+    repo, store = Repository(), Store()
+    dates = {"start_date": date(2024, 1, 1), "end_date": date(2026, 10, 22)}
+    run(repo, store, lambda _: httpx.Response(200, content=IMAGE), day=22, **dates)
+    result = run(
+        repo, store, lambda _: pytest.fail("saved sources must be skipped"),
+        day=22, **dates,
+    )
+    assert result["counters"]["skipped"] == 1
+    assert result["counters"]["uploaded_bytes"] == 0
+    assert len(store.objects) == 1
+
+
+def test_archive_entrypoint_passes_execution_range(monkeypatch):
+    from contextlib import nullcontext
+
+    archive = module()
+    repo, store = Repository(), Store()
+    monkeypatch.setenv("COLLECTION_DATE", "2026-10-22")
+    monkeypatch.setenv("COLLECTION_START", "2024-01-01")
+    monkeypatch.setenv("COLLECTION_END", "2026-10-22")
+    monkeypatch.setattr(archive.R2Settings, "from_env", lambda: None)
+    monkeypatch.setattr(archive.SupabaseSettings, "from_env", lambda: None)
+    monkeypatch.setattr(archive, "R2Store", lambda _: nullcontext(store))
+    monkeypatch.setattr(archive, "SupabaseRepository", lambda _: nullcontext(repo))
+    with httpx.Client(
+        transport=httpx.MockTransport(lambda _: httpx.Response(200, content=IMAGE))
+    ) as client:
+        monkeypatch.setattr(archive.httpx, "Client", lambda **_: nullcontext(client))
+        assert archive.main() == 0
+    assert repo.queries == [{"start": date(2024, 1, 1), "end": date(2026, 10, 22)}]
 
 
 def test_archival_deduplicates_urls_and_resumes_same_day_without_fetch():
