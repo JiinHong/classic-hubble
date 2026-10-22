@@ -3,13 +3,13 @@ from __future__ import annotations
 import importlib
 import io
 import json
-from unittest.mock import patch
 from contextlib import nullcontext
 from datetime import date
+from unittest.mock import patch
 
+from classic_hubble_pipeline.cli import main
 from classic_hubble_pipeline.kopis import KopisPerformanceSummary
 from classic_hubble_pipeline.nol import NolPerformanceData, NolProgramItem
-from classic_hubble_pipeline.cli import main
 
 
 def test_program_match_cli_does_not_require_kopis_credentials_and_defaults_to_dry_run():
@@ -29,7 +29,9 @@ def test_program_match_cli_does_not_require_kopis_credentials_and_defaults_to_dr
             )
             == 0
         )
-    match.assert_called_once_with("repository", apply=False)
+    match.assert_called_once_with(
+        "repository", apply=False, batch_size=50, after_id=None
+    )
     assert json.loads(output.getvalue()) == {"updated": 0}
 
 

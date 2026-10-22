@@ -180,3 +180,58 @@ date binding; catalogue/alias data quality; selective re-extraction of malformed
 items; scoped-work UI/DB publication; and a resumable, budgeted worker plus an
 atomic source-freshness-checked publication transaction. No new production job
 is deployed by this change. Existing NOL/manual program entries must be preserved.
+
+## Incremental matching batches (2026-10-22)
+
+Matching improvements are regression-tested rules, not model training. For a
+missing composer, only an exact distinctive title/alias that uniquely identifies
+a catalogue entry is eligible. Explicit unknown/conflicting composers are not
+ignored. A shared surname can be resolved by an exact distinctive title, never
+by a catalogue number alone. Catalogue, key, genre and number conflicts still
+block a link. Uniqueness within this database is not proof of global uniqueness.
+
+Stored NOL text and new NOL ingestion now share `match_program_text`. It handles
+explicit composer-only lines, delimited composer prefixes, conventional movement
+labels and two bilingual headings that independently identify the same work.
+Composer initials such as `L.` and `C.` are not treated as movements. Multiple
+works, unknown extra lines and explicit excerpt/arrangement text remain unlinked.
+Raw titles and composer fields are retained; only the canonical identity is linked.
+This is not a verification of the performance's instrumentation or completeness.
+
+The stored-program command defaults to a read-only batch of 50 (maximum 200):
+
+```sh
+.venv/bin/classic-hubble-pipeline program-match --batch-size 50
+.venv/bin/classic-hubble-pipeline program-match --batch-size 50 --apply
+.venv/bin/classic-hubble-pipeline program-match --batch-size 50 --after-id LAST_SCANNED_ID
+```
+
+Continue with the returned `next_after_id` while `has_more` is true. Applying a
+batch removes matched rows from the unlinked set; an ID cursor avoids offset
+skips. Start without a cursor after changing rules to reconsider old failures.
+Apply checks that the row is still NOL, still unlinked, and its original title and
+composer have not changed. It does not overwrite existing links, create works,
+rewrite OCR/LLM evidence or send email. Keep each report in private storage for
+comparison and recovery. A conflict between preview and apply requires a new
+preview; the command's `updated` count can be lower than `matched`.
+
+Five batches (50/50/50/50/24) evaluated all 224 then-unlinked NOL entries against
+the same 12,435-work catalogue. The previous matcher linked none; the final rules
+linked 33 entries across 22 performances. All 33 writes were read back and their
+raw text was unchanged. The remaining 191 consist of 135 complex text blocks,
+37 unconfirmed composers, 10 non-program labels/notices and 9 without a candidate.
+`no_candidate` is a research queue, not proof that the work is absent: catalogue
+metadata, aliases or matching rules may still be responsible. Never create a
+new canonical work solely because the current matcher found no candidate.
+
+The same 53 saved v2 OCR/LLM results increased from 35 to 40 distinct document/work
+pairs across 17 documents (previously 15). All previous pairs were retained.
+There are 14 full-work suggestions and 27 scoped references; these OCR results
+were **not** published. This iteration made zero additional LLM calls. It did
+not measure held-out accuracy or validate the remaining unprocessed images.
+
+At this audit the public database contained 5,608 performances; the earliest
+non-null start date was 2024-11-09. A complete 2023-to-present backfill has not been
+verified and must not be described as already collected. Next iterations should
+separate complex blocks into source-grounded individual works, research missing
+catalogue entries/aliases, and expand OCR coverage before claiming full coverage.
