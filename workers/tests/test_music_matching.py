@@ -3,7 +3,7 @@ import importlib.util
 from dataclasses import replace
 
 import pytest
-from classic_hubble_pipeline.music_matching import MusicMatcher
+from classic_hubble_pipeline.music_matching import MusicMatcher, _titles
 from classic_hubble_pipeline.work_matching import CanonicalWork
 
 BEETHOVEN = CanonicalWork(
@@ -177,6 +177,40 @@ def test_duplicate_bilingual_catalogue_and_keys_are_not_conflicts():
         key="G major 사장조",
     )
     assert result.work_id == work.id
+
+
+@pytest.mark.parametrize("printed,canonical", [
+    ("B-flat장조", "B-flat major"),
+    ("A-flat장조", "A-flat major"),
+    ("c-sharp단조", "C-sharp minor"),
+    ("B♭장조", "B-flat major"),
+    ("C#단조", "C-sharp minor"),
+    ("내림B장조", "B-flat major"),
+    ("내림 B 장조 B-flat장조", "B-flat major"),
+    ("올림C단조", "C-sharp minor"),
+    ("올림 C 단조 C#단조", "C-sharp minor"),
+])
+def test_latin_accidental_with_korean_mode_preserves_key_identity(printed, canonical):
+    work = replace(BEETHOVEN, titles=(f"Violin Sonata No. 8 in {canonical}",),
+                   catalogue="Op. 29", aliases=())
+    result = matcher([work]).match(
+        "Violin Sonata No. 8", "Beethoven", catalogue="Op. 29", key=printed,
+    )
+    assert result.work_id == work.id
+
+
+@pytest.mark.parametrize("key", ["B-flat장조", "B major B-flat장조", "B-flat단조"])
+def test_hybrid_key_never_drops_accidental_or_conflict(key):
+    work = replace(BEETHOVEN, titles=("Violin Sonata No. 8 in B major",),
+                   catalogue="Op. 29", aliases=())
+    assert matcher([work]).match(
+        "Violin Sonata No. 8", "Beethoven", catalogue="Op. 29", key=key,
+    ).work_id is None
+
+
+@pytest.mark.parametrize("key", ["내림B장조", "내림 B 장조", "올림C단조", "올림 C 단조"])
+def test_stripping_korean_key_does_not_leave_accidental_prefix(key):
+    assert "violin sonata no 8" in _titles(f"Violin Sonata No. 8 {key}")
 
 
 @pytest.mark.parametrize("key", ["in c minor 다단조", "G major 다단조"])

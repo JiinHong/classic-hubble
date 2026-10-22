@@ -17,8 +17,8 @@ from .work_matching import (
 )
 
 LIFESPAN = re.compile(r"\(?\b\d{4}\s*[-–—~]\s*\d{4}\b\)?")
-ENGLISH_KEY = re.compile(
-    r"(?<![a-z])(?:in\s*)?([a-g])\s*([- ]?(?:flat|sharp)|[#♭♯])?\s*(major|minor)\b",
+LATIN_NOTE_KEY = re.compile(
+    r"(?<![a-z])(?:in\s*)?([a-g])\s*([- ]?(?:flat|sharp)|[#♭♯])?\s*(major|minor|장조|단조)\b",
     re.IGNORECASE,
 )
 KOREAN_KEY = re.compile(r"(내림|올림)?\s*([가나다라마바사A-Ga-g])\s*(장|단)조")
@@ -57,10 +57,6 @@ def _variants(text: str) -> tuple[str, ...]:
 @lru_cache(maxsize=80_000)
 def _keys(text: str) -> frozenset[str]:
     result = set()
-    for note, accidental, mode in ENGLISH_KEY.findall(text):
-        modifier = accidental.strip("- ").lower()
-        modifier = "b" if modifier in {"flat", "♭"} else "#" if modifier else ""
-        result.add(note.lower() + modifier + ":" + mode.lower())
     for accidental, note, mode in KOREAN_KEY.findall(text):
         modifier = "b" if accidental == "내림" else "#" if accidental else ""
         result.add(
@@ -69,6 +65,12 @@ def _keys(text: str) -> frozenset[str]:
             + ":"
             + ("major" if mode == "장" else "minor")
         )
+    # Consume Korean accidentals first so "내림B장조" is not also read as B natural.
+    for note, accidental, mode in LATIN_NOTE_KEY.findall(KOREAN_KEY.sub(" ", text)):
+        modifier = accidental.strip("- ").lower()
+        modifier = "b" if modifier in {"flat", "♭"} else "#" if modifier else ""
+        mode = {"장조": "major", "단조": "minor"}.get(mode, mode.lower())
+        result.add(note.lower() + modifier + ":" + mode)
     return frozenset(result)
 
 
@@ -158,8 +160,8 @@ def _titles(text: str) -> frozenset[str]:
     for value in flattened:
         result.add(_title_key(value))
         stripped = CATALOGUE.sub("", value)
-        stripped = ENGLISH_KEY.sub("", stripped)
         stripped = KOREAN_KEY.sub("", stripped)
+        stripped = LATIN_NOTE_KEY.sub("", stripped)
         if stripped.strip(" ,;:()"):
             result.add(_title_key(stripped))
     # Split numbered ballades retain their printed plural. Add this equivalent
@@ -229,7 +231,7 @@ def _one_edit(left: str, right: str) -> bool:
 
 def _distinctive_title(text: str) -> bool:
     """Require lexical identity, not just a genre, instrument, tempo or number."""
-    text = KOREAN_KEY.sub("", ENGLISH_KEY.sub("", CATALOGUE.sub("", text)))
+    text = LATIN_NOTE_KEY.sub("", KOREAN_KEY.sub("", CATALOGUE.sub("", text)))
     text = _normalize(text)
     text = re.sub(
         r"\b(?:piano|violin|viola|cello|flute|clarinet|horn|keyboard|solo|strings|"
