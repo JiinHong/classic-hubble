@@ -349,9 +349,15 @@ class MusicMatcher:
                     self.by_title[_title_key(title)][work.id] = work
 
     def _composers(self, text: str | None):
+        # Keep the observed Korean compound surname intact; titles stay literal.
+        text = re.sub(
+            r"[가-힣]+(?:\s*-\s*[가-힣]+)+",
+            lambda match: re.sub(r"[\s-]", "", match[0]),
+            text or "",
+        )
         groups = [
             {names for names in self.composers if _name_matches(part, names)}
-            for part in _variants(text or "")
+            for part in _variants(text)
         ]
         recognized = [group for group in groups if group]
         if recognized:

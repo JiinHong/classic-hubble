@@ -143,6 +143,11 @@ The original model response and evidence remain unchanged in the evaluation set.
 - Structured matching supports bilingual names, lifespans, initials, Korean
   spacing/number styles, quoted nicknames, bilingual keys, catalogue members in
   aliases, and multiple catalogue systems recorded for the same work.
+- In composer fields only, a Korean compound surname such as
+  `림스키-코르사코프` is compared as `림스키코르사코프`. The joined name must
+  match an existing composer identity; fragments and conflicting names are not
+  inferred. Raw quotes, title parsing, legacy matching and publication guards
+  are unchanged.
 - Composer ambiguity, conflicting numbers/keys, multiple matches and generic or
   composer-only titles do not auto-link. One-character OCR composer typos produce
   candidates only. Imported canonical IDs can link without human approval when
