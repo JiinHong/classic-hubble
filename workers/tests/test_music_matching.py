@@ -81,6 +81,37 @@ def test_unconfirmed_or_conflicting_generic_catalogue_numbers_remain_unlinked(ca
     assert matcher([work]).match("Work", "Composer", catalogue=catalogue).work_id is None
 
 
+@pytest.mark.parametrize("title", ["Fantasy", "Fantasia", "Fantaisie", "Fantasie", "Phantasy"])
+@pytest.mark.parametrize("composer", [None, "Gabriel Faure"])
+def test_generic_fantasy_label_does_not_identify_a_work(title, composer):
+    work = CanonicalWork(
+        "faure", "faure", ("Fantaisie in G for piano and orchestra in G major",),
+        ("Gabriel Faure",), None, (title, "Fantaisie, Op. 111"),
+    )
+    assert matcher([work]).match(title, composer).work_id is None
+
+
+def test_fantasy_genre_and_instrumentation_are_not_distinctive_without_composer():
+    work = CanonicalWork(
+        "faure", "faure", ("Fantaisie for piano and orchestra",), ("Gabriel Faure",), None,
+    )
+    assert matcher([work]).match(work.titles[0], None).work_id is None
+
+
+def test_fantasy_with_explicit_composer_and_catalogue_remains_supported():
+    work = CanonicalWork(
+        "faure", "faure", ("Fantaisie in G for piano and orchestra",),
+        ("Gabriel Faure",), None, ("Fantasy", "Fantaisie, Op. 111"),
+    )
+    assert matcher([work]).match("Fantasy", "Gabriel Faure", catalogue="Op.111").work_id == "faure"
+
+
+@pytest.mark.parametrize("title", ["Wanderer Fantasy", "Carmen Fantasy"])
+def test_named_fantasies_remain_distinctive(title):
+    work = CanonicalWork("w", "w", (title,), ("Composer",), None)
+    assert matcher([work]).match(title, None).work_id == "w"
+
+
 def donizetti_work():
     return CanonicalWork(
         "donizetti-elixir", "donizetti-elixir", ("사랑의 묘약", "L'elisir d'amore"),
