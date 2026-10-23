@@ -212,6 +212,7 @@ def _genres(text: str) -> frozenset[str]:
         "quintet": r"\bquintets?\b|오중주|(?<!\d)5\s*중주",
         "trio": r"\btrios?\b|삼중주",
         "canzone": r"\bcanzone\b",
+        "romance": r"\bromances?\b",
     }
     return frozenset(
         name
