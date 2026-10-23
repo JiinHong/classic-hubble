@@ -12,6 +12,7 @@ from urllib.parse import urlsplit, urlunsplit
 
 import httpx
 
+from .avif import decode_still_avif
 from .bitmap import bitmap_dimensions
 from .cloud_run import _shift_months, _terminated
 from .kopis_sync import KOREA_TIMEZONE
@@ -76,6 +77,13 @@ def download_source(
         except ValueError as error:
             raise SourceDownloadError(str(error)) from None
         return data, "image/bmp"
+    if data[4:12] == b"ftypavif":
+        try:
+            with decode_still_avif(data):
+                pass
+        except ValueError as error:
+            raise SourceDownloadError(str(error)) from None
+        return data, "image/avif"
     raise SourceDownloadError(
         "Unsupported source signature; HTML and unknown files are not archived"
     )
