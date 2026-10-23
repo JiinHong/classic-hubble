@@ -138,6 +138,30 @@ def test_actual_poster_weekday_conflict_blocks_before_network_and_write(monkeypa
     assert not writes
 
 
+@pytest.mark.parametrize("weekday,expected", [("TUE 6PM", "published"), ("FRI 6PM", "date_binding_required")])
+def test_wrapped_poster_date_reuses_normalized_sql_contract(weekday, expected, monkeypatch):
+    repo, store, target, writes = setup()
+    target["starts_on"] = target["ends_on"] = "2024-08-27"
+    repo.cached.clear()
+    data = reading(store)
+    data["lines"].extend({"text": text, "page_index": 0} for text in ("2024. 08. 27.", weekday))
+    run(repo, store, data, apply=True)
+    before = copy.deepcopy(repo.cached)
+    def download(*args):
+        assert expected == "published", "Conflicting weekday must block before download"
+        return store.source, "image/png"
+    monkeypatch.setattr(module(), "download_source", download)
+    with httpx.Client() as client:
+        assert module().publish(repo, store, client, "p1", apply=True)["status"] == expected
+    assert repo.cached == before
+    if expected == "published":
+        assert len(writes) == 1
+        assert writes[0]["p_evaluation"]["performance_date"] == "2024-08-27"
+        assert writes[0]["p_evaluation"]["matching"]["source_warnings"] == []
+    else:
+        assert not writes
+
+
 @pytest.mark.parametrize("date_text", [
     "2026. 10. 22 TUR 7:30 PM",  # The original PF299019 really prints TUR.
     "2026.10.22 THU 19:30",

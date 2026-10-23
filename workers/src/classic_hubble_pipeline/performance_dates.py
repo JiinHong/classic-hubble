@@ -3,7 +3,7 @@
 import re
 from datetime import date
 
-DATE_BINDING_VERSION = "concert-date-headings-v4"
+DATE_BINDING_VERSION = "concert-date-headings-v5"
 _DATE = re.compile(
     r"(?:(20\d{2})\s*[./년]\s*)?(\d{1,2})\s*[./월]\s*(\d{1,2})(?!\d)"
 )
@@ -19,6 +19,27 @@ _SUFFIX = re.compile(
 _CONTINUATION = re.compile(r"(?:&|~|[-–—]|,|및|부터)\s*(?=\d)")
 _WEEKDAYS = {day: index for index, day in enumerate(("mon", "tue", "wed", "thu", "fri", "sat", "sun"))}
 _WEEKDAYS.update({day: index for index, day in enumerate("월화수목금토일")})
+_CLOCK_ONLY = re.compile(
+    r"\s*(?:\d{1,2}:\d{2}(?:\s*(?:AM|PM))?|\d{1,2}\s*(?:AM|PM))?\s*",
+    re.IGNORECASE,
+)
+
+
+def _wrapped_headings(lines):
+    """Recognize adjacent date/weekday lines without changing source evidence."""
+    for index, line in enumerate(lines):
+        stripped = line.strip()
+        match = _DATE.match(stripped)
+        if (
+            match and match[1] and stripped[match.end():].strip() in {"", ".", "일"}
+            and index + 1 < len(lines)
+        ):
+            following = lines[index + 1]
+            suffix = _SUFFIX.match(following)
+            if suffix and _CLOCK_ONLY.fullmatch(following[suffix.end():]):
+                yield stripped + " " + following.strip()
+                continue
+        yield line
 
 
 def _line_dates(line, fallback_year):
@@ -58,7 +79,7 @@ def date_headings(lines, *, fallback_year=None):
     TUR is a literal observed poster typo, not a corrected or inferred date.
     A yearless heading inherits the target year or the sole explicit source year.
     """
-    lines = tuple(lines)
+    lines = tuple(_wrapped_headings(tuple(lines)))
     found, invalid = set(), False
     for line in lines:
         try:

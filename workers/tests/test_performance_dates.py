@@ -33,3 +33,33 @@ def test_explicit_source_year_is_not_overridden_by_target_year():
 
 def test_observed_tur_typo_is_not_guessed_to_be_tuesday():
     assert date_headings(["2026.10.22 TUR"]) == ({(2026, 10, 22)}, False)
+
+
+@pytest.mark.parametrize("suffix", ["TUE 6PM", "TUE", "(Tue) 18:00", "[화] 18:00"])
+def test_observed_full_date_and_adjacent_weekday_line(suffix):
+    lines = ["KookHWA 26th Concert", "2024. 08. 27.", suffix, "고양 아람누리 음악당"]
+    assert date_headings(lines) == ({(2024, 8, 27)}, False)
+    assert lines[1] == "2024. 08. 27."
+
+
+@pytest.mark.parametrize("lines", [
+    ["2024. 08. 27.", "FRI 6PM"],
+    ["2024. 08. 27.", "", "TUE 6PM"],
+    ["2024. 08. 27.", "Programme", "TUE 6PM"],
+    ["2024. 08. 27.", "TUE rehearsal biography"],
+    ["2024. 08. 27. Graduated", "TUE 6PM"],
+    ["08. 27.", "TUE 6PM"],
+    ["2024. 02. 30.", "FRI 6PM"],
+])
+def test_wrapped_heading_does_not_guess_across_conflict_or_unrelated_text(lines):
+    assert date_headings(lines)[1] is True
+
+
+def test_wrapped_heading_does_not_hide_another_date():
+    dates, invalid = date_headings(["2024. 08. 27.", "TUE 6PM", "2024. 08. 28 WED"])
+    assert dates == {(2024, 8, 27), (2024, 8, 28)}
+    assert invalid is False
+
+
+def test_wrapped_heading_retains_explicit_year_against_target_year():
+    assert date_headings(["2024. 08. 27.", "TUE 6PM"], fallback_year=2026) == ({(2024, 8, 27)}, False)
