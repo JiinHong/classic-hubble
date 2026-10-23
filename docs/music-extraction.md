@@ -306,6 +306,11 @@ Korean/full-year date headings and ampersand-separated dates now trigger the
 multi-date guard. This is still not a general date parser.
 Publication also requires a transcribed date heading matching the performance
 date. Missing or conflicting dates remain private, even when the works match.
+An explicit full-year date on its own line may use the immediately following
+weekday-only or weekday-and-clock line. Blank/intervening text, yearless wrapped
+dates and weekday contradictions remain unresolved. Source lines are not joined
+or rewritten in the saved observation; the normalized date still has to match
+the SQL-locked performance date.
 
 Before apply, the publisher verifies archived bytes and immutable reading hashes,
 re-runs matching, and downloads the original URL to compare the live hash. One
