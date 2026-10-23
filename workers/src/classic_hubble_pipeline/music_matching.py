@@ -49,6 +49,11 @@ GENERIC_TITLES = {
     "야상곡",
     "minuet",
     "미뉴에트",
+    "fantasy",
+    "fantasia",
+    "fantaisie",
+    "fantasie",
+    "phantasy",
 }
 
 
@@ -257,7 +262,8 @@ def _distinctive_title(text: str) -> bool:
         r"\b(?:piano|violin|viola|cello|flute|clarinet|horn|keyboard|solo|strings|"
         r"sonata|concerto|symphony|quartet|quintet|trio|no|nr|in|for|and|the|major|minor|"
         r"variations?|waltz|prelude|etude|nocturne|minuet|adagio|allegro|andante|"
-        r"romance|romances|intermezzo|scherzo|overture|suite|pieces?|op)\b",
+        r"romance|romances|intermezzo|scherzo|overture|suite|pieces?|op|orchestra|"
+        r"fantasy|fantasia|fantaisie|fantasie|phantasy)\b",
         "",
         text,
     )
