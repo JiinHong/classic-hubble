@@ -275,6 +275,14 @@ def _name_matches(actual: str, names: tuple[str, ...]) -> bool:
         )
     if _composer_matches(actual, names):
         return True
+    abbreviation = re.fullmatch(r"([A-Za-z]{2})\.\s*([A-Za-z]+)", actual.strip())
+    if abbreviation:
+        prefix, surname = (part.lower() for part in abbreviation.groups())
+        for name in names:
+            expected = _normalize(name).split()
+            # Ch. Gounod is explicit abbreviation evidence; bare Ch is not.
+            if len(expected) == 2 and expected[0].startswith(prefix) and surname == expected[1]:
+                return True
     tokens = _normalize(actual).split()
     if len(tokens) >= 2 and all(re.fullmatch(r"[a-z]+", t) for t in tokens):
         for name in names:
