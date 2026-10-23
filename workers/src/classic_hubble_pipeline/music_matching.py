@@ -483,6 +483,7 @@ class MusicMatcher:
             ):
                 return WorkMatch(None, (), "insufficient_title")
         supported = []
+        number_conflict = False
         title_variants = _titles(title) | (_scoped_titles(title) if scoped else set())
         actual_numbers = _numbers(title)
         actual_genres = _genres(title)
@@ -515,6 +516,8 @@ class MusicMatcher:
                 and expected_numbers
                 and not actual_numbers.issubset(expected_numbers)
             ):
+                if identities and actual_catalogues and self._catalogue_match(actual_catalogues, work):
+                    number_conflict = True
                 continue
             expected_keys = frozenset().union(*(_keys(t) for t in work.titles))
             if (
@@ -592,6 +595,8 @@ class MusicMatcher:
                 candidates,
                 "catalog_review_required" if work.requires_review else reason,
             )
+        if not candidates and number_conflict:
+            return WorkMatch(None, (), "title_number_conflict")
         return WorkMatch(
             None, candidates[:3], "ambiguous" if candidates else "no_candidate"
         )

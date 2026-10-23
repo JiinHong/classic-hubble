@@ -408,6 +408,11 @@ raw text was unchanged. The remaining 191 consist of 135 complex text blocks,
 `no_candidate` is a research queue, not proof that the work is absent: catalogue
 metadata, aliases or matching rules may still be responsible. Never create a
 new canonical work solely because the current matcher found no candidate.
+`title_number_conflict` specifically means a recognized composer's catalogue
+identity exists but a printed work number contradicts its canonical titles.
+The source stays unlinked; the diagnostic does not repair numbering conventions
+or discard a conflicting bilingual number. A valid supported candidate still
+takes precedence, and missing catalogue identities remain `no_candidate`.
 
 The same 53 saved v2 OCR/LLM results increased from 35 to 40 distinct document/work
 pairs across 17 documents (previously 15). All previous pairs were retained.
