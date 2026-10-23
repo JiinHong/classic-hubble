@@ -22,6 +22,44 @@ def matcher(works):
     return importlib.import_module(name).MusicMatcher(works)
 
 
+@pytest.mark.parametrize("code", ["WAB 106", "WAB.106", "wab106"])
+def test_grounded_wab_number_matches_only_explicit_canonical_identity(code):
+    work = CanonicalWork(
+        "bruckner-6", "bruckner-6", ("Symphony No. 6 in A major",),
+        ("Anton Bruckner",), "WAB 106",
+    )
+    assert matcher([work]).match(
+        "Symphony No. 6", "Anton Bruckner", catalogue=code, key="A major",
+    ).work_id == work.id
+
+
+def test_wab_number_embedded_in_title_matches():
+    work = CanonicalWork("w", "w", ("Symphony No. 6",), ("Bruckner",), "WAB 106")
+    assert matcher([work]).match("Symphony No. 6, WAB 106", "Bruckner").work_id == "w"
+
+
+@pytest.mark.parametrize("code", ["WAB 107", "WAB 106; WAB 107", "WAB 106,1", "WAB 106/1"])
+def test_conflicting_or_versioned_wab_does_not_fall_back_to_exact_title(code):
+    work = CanonicalWork("w", "w", ("Symphony No. 6",), ("Bruckner",), "WAB 106")
+    assert matcher([work]).match("Symphony No. 6", "Bruckner", catalogue=code).work_id is None
+
+
+@pytest.mark.parametrize("suffix", [",1", "/1", "-107", ".1"])
+def test_versioned_wab_in_title_is_not_reduced_to_parent(suffix):
+    work = CanonicalWork("w", "w", ("Symphony No. 6",), ("Bruckner",), "WAB 106")
+    assert matcher([work]).match("Symphony No. 6 WAB 106" + suffix, "Bruckner").work_id is None
+
+
+def test_wab_requires_catalogue_evidence_on_canonical_work():
+    work = CanonicalWork("w", "w", ("Symphony No. 6",), ("Bruckner",), None)
+    assert matcher([work]).match("Symphony No. 6", "Bruckner", catalogue="WAB 106").work_id is None
+
+
+def test_unsupported_wab_does_not_modify_legacy_catalogue_parser():
+    from classic_hubble_pipeline.work_matching import CATALOGUE
+    assert CATALOGUE.search("WAB 106") is None
+
+
 @pytest.mark.parametrize("printed", ["Bb Major", "Bb장조", "Bb Major Bb장조"])
 def test_ascii_flat_key_in_archived_prokofiev_program_matches(printed):
     work = CanonicalWork(
