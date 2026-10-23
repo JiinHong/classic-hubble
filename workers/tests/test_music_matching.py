@@ -53,6 +53,34 @@ def test_ascii_flat_key_is_removed_for_composer_scoped_title_comparison():
     assert matcher([work]).match("Sonata in Eb minor", "Composer").work_id == "w"
 
 
+@pytest.mark.parametrize("catalogue", ["Op.37 작품번호 37", "작품번호37 Op. 37"])
+def test_matching_bilingual_catalogue_labels_in_archived_concerto_program(catalogue):
+    work = CanonicalWork(
+        "beethoven-3", "beethoven-3", ("Piano Concerto No. 3 in C minor",),
+        ("Ludwig van Beethoven", "베토벤"), "Op. 37",
+    )
+    assert matcher([work]).match(
+        "Piano Concerto No. 3", "Beethoven", catalogue=catalogue,
+    ).work_id == work.id
+
+
+@pytest.mark.parametrize("code", ["WoO 23", "K. 23", "BWV 23"])
+def test_generic_korean_number_does_not_assume_an_opus_scheme(code):
+    work = CanonicalWork("w", "w", ("Work",), ("Composer",), code)
+    assert matcher([work]).match(
+        "Work", "Composer", catalogue=code + " 작품번호 23",
+    ).work_id == "w"
+
+
+@pytest.mark.parametrize("catalogue", [
+    "작품번호 37", "Op.37 작품번호 38", "Op.37 No.2 작품번호 37",
+    "Op.37 작품번호37/2", "Op.37 작품번호37a", "Op.37 작품번호37번",
+])
+def test_unconfirmed_or_conflicting_generic_catalogue_numbers_remain_unlinked(catalogue):
+    work = CanonicalWork("w", "w", ("Work",), ("Composer",), "Op.37")
+    assert matcher([work]).match("Work", "Composer", catalogue=catalogue).work_id is None
+
+
 def donizetti_work():
     return CanonicalWork(
         "donizetti-elixir", "donizetti-elixir", ("사랑의 묘약", "L'elisir d'amore"),

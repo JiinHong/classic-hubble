@@ -352,6 +352,15 @@ class MusicMatcher:
     ) -> WorkMatch:
         title = _catalogue_ocr(title)
         catalogue = _catalogue_ocr(catalogue) if catalogue else None
+        if catalogue:
+            # A generic translated number confirms an explicit code, never its scheme.
+            numbers = {re.sub(r"^[a-z]+", "", c) for c in _catalogues(catalogue)}
+            catalogue = re.sub(
+                r"(?<!\w)작품\s*번호\s*(\d+[a-z]?)(?!\w)",
+                lambda m: "" if m[1].lower() in numbers else m[0],
+                catalogue,
+                flags=re.IGNORECASE,
+            )
         actual_catalogues = _catalogues(title + " " + (catalogue or ""))
         if catalogue and (
             not _catalogues(catalogue) or CATALOGUE.sub("", catalogue).strip(" ,;:()")
