@@ -37,6 +37,11 @@ QUALIFIED_STRAUSS_NAMES = {
 }
 # PF301618 prints this full Korean spelling beside Gaetano Donizetti.
 FULL_NAME_TRANSLITERATIONS = {"가에타노도니제티": "gaetano donizetti"}
+# Publisher/venue-backed forms; never infer omitted personal names or OCR typos.
+VERIFIED_COMPOSER_NAME_FORMS = {
+    "antonin dvorak": ("안토닌 드보르작",),
+    "mikhail ivanovich glinka": ("Mikhail Glinka",),
+}
 GENERIC_TITLES = {
     "waltz",
     "왈츠",
@@ -263,6 +268,10 @@ def _concerto_instruments(text: str) -> frozenset[str]:
 
 @lru_cache(maxsize=80_000)
 def _name_matches(actual: str, names: tuple[str, ...]) -> bool:
+    names = names + tuple(
+        form for name in names
+        for form in VERIFIED_COMPOSER_NAME_FORMS.get(_normalize(name), ())
+    )
     alias = FULL_NAME_TRANSLITERATIONS.get(_normalize(actual).replace(" ", ""))
     if alias is not None and any(_normalize(name) == alias for name in names):
         return True

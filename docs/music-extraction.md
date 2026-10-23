@@ -414,6 +414,15 @@ The source stays unlinked; the diagnostic does not repair numbering conventions
 or discard a conflicting bilingual number. A valid supported candidate still
 takes precedence, and missing catalogue identities remain `no_candidate`.
 
+Two observed composer name forms have explicit primary-source support:
+`드보르작` / `안토닌 드보르작` for Antonin Dvorak ([Daejeon venue programme](https://daejeon.go.kr/okr2019/pblcFcltView.do?menuSeq=8900&pageIndex=1&pblprfrInfoId=2078))
+and `Mikhail Glinka` for the canonical Mikhail Ivanovich Glinka
+([Edition Silvertrust](https://www.editionsilvertrust.com/glinka-sextet.htm)).
+Grounded matching accepts these names and their existing initial conventions
+only for those exact canonical identities. It does not infer arbitrary omitted
+middle names, repair `Dvork`, or override conflicting bilingual composers.
+Printed evidence remains unchanged; normal work-number, key and scope checks apply.
+
 The same 53 saved v2 OCR/LLM results increased from 35 to 40 distinct document/work
 pairs across 17 documents (previously 15). All previous pairs were retained.
 There are 14 full-work suggestions and 27 scoped references; these OCR results
