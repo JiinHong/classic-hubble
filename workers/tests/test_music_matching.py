@@ -22,6 +22,37 @@ def matcher(works):
     return importlib.import_module(name).MusicMatcher(works)
 
 
+@pytest.mark.parametrize("printed", ["Bb Major", "Bb장조", "Bb Major Bb장조"])
+def test_ascii_flat_key_in_archived_prokofiev_program_matches(printed):
+    work = CanonicalWork(
+        "prokofiev-5", "prokofiev-5", ("Symphony No. 5 in B-flat major",),
+        ("Sergei Prokofiev", "프로코피예프"), "Op. 100",
+    )
+    result = matcher([work]).match(
+        "Symphony No.5 교향곡5번", "S.Prokofiev 프로코피예프",
+        catalogue="Op.100", key=printed,
+    )
+    assert result.work_id == work.id
+
+
+@pytest.mark.parametrize("printed", ["Bb Major", "Bb장조"])
+def test_ascii_flat_cannot_match_natural_key_with_same_catalogue(printed):
+    work = CanonicalWork("w", "w", ("Symphony No. 5 in B major",), ("Prokofiev",), "Op.100")
+    assert matcher([work]).match("Symphony No.5", "Prokofiev", catalogue="Op.100", key=printed).work_id is None
+
+
+def test_mixed_ascii_flat_and_natural_keys_are_conflicting():
+    work = CanonicalWork("w", "w", ("Symphony No. 5 in B major",), ("Prokofiev",), "Op.100")
+    result = matcher([work]).match("Symphony No.5", "Prokofiev", catalogue="Op.100", key="Bb Major B major")
+    assert result.work_id is None
+    assert result.reason == "conflicting_keys"
+
+
+def test_ascii_flat_key_is_removed_for_composer_scoped_title_comparison():
+    work = CanonicalWork("w", "w", ("Sonata in E-flat minor",), ("Composer",), None)
+    assert matcher([work]).match("Sonata in Eb minor", "Composer").work_id == "w"
+
+
 def donizetti_work():
     return CanonicalWork(
         "donizetti-elixir", "donizetti-elixir", ("사랑의 묘약", "L'elisir d'amore"),
