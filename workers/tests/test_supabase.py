@@ -542,3 +542,24 @@ def test_unreviewed_catalog_imports_do_not_auto_link():
     assert works[1].requires_review is False
     assert works[2].requires_review is True
     assert works[3].requires_review is True
+
+
+def test_private_correction_repository_scopes_lookup_and_uses_atomic_rpc():
+    payload = {"p_key": "key", "p_expected_reading": {"reading_sha256": "old"}}
+    def handler(request):
+        if request.method == "GET":
+            assert request.url.path == "/rest/v1/provider_records"
+            assert dict(request.url.params) == {
+                "id": "eq.proposal", "provider": "eq.codex_vision",
+                "entity_type": "eq.direct_reading_correction_proposal",
+                "select": "payload", "limit": "1",
+            }
+            return httpx.Response(200, json=[{"payload": {"source_sha256": "source"}}])
+        assert request.method == "POST"
+        assert request.url.path == "/rest/v1/rpc/revise_private_direct_reading"
+        assert json.loads(request.content) == payload
+        return httpx.Response(200, json={"status": "stale", "published_items": 0})
+    with httpx.Client(transport=httpx.MockTransport(handler)) as client:
+        repo = SupabaseRepository(SupabaseSettings("https://test.supabase.co", "test"), http_client=client)
+        assert repo.load_vision_correction("proposal") == {"source_sha256": "source"}
+        assert repo.revise_direct_vision(payload) == {"status": "stale", "published_items": 0}
