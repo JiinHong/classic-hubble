@@ -14,7 +14,7 @@ Original bytes go to `classic-hubble-sources` in Cloudflare R2. The account-leve
 S3 endpoint is configured separately from the bucket, with region `auto`. URLs
 from KOPIS are fetched on its HTTPS apex host; redirects and unrelated hosts are
 rejected. Files are streamed with a 32 MiB per-file limit. Supported signatures
-are JPEG, PNG, GIF, WebP, PDF and validated 24-bit Windows BMP; HTML error pages
+are JPEG, PNG, GIF, WebP, PDF, validated still AVIF and 24-bit Windows BMP; HTML error pages
 are not saved as images. BMP support is limited to a 40-byte information header,
 uncompressed RGB, no color table, consistent declared/actual size and complete
 DWORD-padded pixel rows. Other BMP variants remain explicit failures. Original
@@ -25,6 +25,17 @@ same-size `view.png` from a supported BMP. This requires the existing Pillow
 image dependency and records the derived view's hash, dimensions, source hash
 and conversion version in the private reading request. The original path and
 identity remain unchanged. The OCR worker can read supported BMP bytes directly.
+
+Still AVIF is identified from its `ftypavif` major brand, even when KOPIS labels
+the URL or HTTP content type as JPEG. The existing Pillow AVIF decoder must be
+available; the worker does not install a codec or silently accept an undecodable
+file. It validates the file-type box, single-frame pixel decoding and the
+40-million-pixel limit. AVIF sequences and other major brands remain unsupported.
+The original byte cap and source-host restrictions are unchanged. Original AVIF
+bytes stay in R2; direct-reading preparation creates a PNG view with EXIF
+orientation applied and transparency composited over white, matching the OCR
+input convention. Its dimensions, source hash, view hash and conversion method
+are recorded separately. This does not relax any publication or date rules.
 
 The worker performs no OCR or text-LLM requests. It does not update reviewed
 programs, send notifications or prove a semantic program change. Those stages

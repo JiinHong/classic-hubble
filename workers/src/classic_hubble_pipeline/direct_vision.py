@@ -17,6 +17,7 @@ from typing import Literal
 
 from pydantic import Field, ValidationError
 
+from .avif import decode_still_avif
 from .bitmap import bitmap_dimensions
 from .music_extraction import (
     MAX_RESPONSE_BYTES,
@@ -33,7 +34,8 @@ PIPELINE_VERSION = "codex-direct-vision-v1"
 METHOD = "chat_model_direct_image_reading"
 EXTENSIONS = {
     "image/png": ".png", "image/jpeg": ".jpg", "image/webp": ".webp",
-    "image/gif": ".gif", "image/bmp": ".bmp", "application/pdf": ".pdf",
+    "image/gif": ".gif", "image/bmp": ".bmp", "image/avif": ".avif",
+    "application/pdf": ".pdf",
 }
 
 
@@ -175,6 +177,7 @@ def prepare(repository, store, source_sha: str, output: Path) -> dict:
     raw = _original(store, identity)
     view = None
     if sources[0]["content_type"] == "image/bmp":
+        view_method = "bmp-rgb-to-png-v1"
         width, height = bitmap_dimensions(raw)
         # Pillow is optional for catalog-only installs, required for image views.
         from PIL import Image
@@ -184,6 +187,13 @@ def prepare(repository, store, source_sha: str, output: Path) -> dict:
                 raise ValueError("Invalid bitmap view")
             buffer = io.BytesIO()
             bitmap.convert("RGB").save(buffer, format="PNG")
+            view = buffer.getvalue()
+    elif sources[0]["content_type"] == "image/avif":
+        view_method = "avif-exif-rgba-white-png-v1"
+        with decode_still_avif(raw) as decoded:
+            width, height = decoded.size
+            buffer = io.BytesIO()
+            decoded.save(buffer, format="PNG")
             view = buffer.getvalue()
     output.mkdir(mode=0o700, exist_ok=False)
     path = output / ("original" + EXTENSIONS[sources[0]["content_type"]])
@@ -206,7 +216,7 @@ def prepare(repository, store, source_sha: str, output: Path) -> dict:
     if view is not None:
         bundle["derived_views"] = [{
             "filename": "view.png", "sha256": hashlib.sha256(view).hexdigest(),
-            "source_sha256": source_sha, "method": "bmp-rgb-to-png-v1",
+            "source_sha256": source_sha, "method": view_method,
             "width": width, "height": height,
         }]
         files.append((output / "view.png", view))
