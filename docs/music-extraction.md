@@ -148,6 +148,11 @@ The original model response and evidence remain unchanged in the evaluation set.
   match an existing composer identity; fragments and conflicting names are not
   inferred. Raw quotes, title parsing, legacy matching and publication guards
   are unchanged.
+- Explicit two-letter dotted abbreviations such as `Ch. Gounod` may match the
+  given-name prefix and exact surname of an existing two-word Latin name.
+  Undotted fragments, surname edits and omitted middle personal names are not
+  inferred. Multiple composer identities and bilingual conflicts remain guarded;
+  recognizing a composer does not establish a missing work or full-work scope.
 - Composer ambiguity, conflicting numbers/keys, multiple matches and generic or
   composer-only titles do not auto-link. One-character OCR composer typos produce
   candidates only. Imported canonical IDs can link without human approval when
