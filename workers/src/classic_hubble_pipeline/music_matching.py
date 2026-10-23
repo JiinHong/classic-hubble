@@ -25,9 +25,9 @@ LATIN_NOTE_KEY = re.compile(
 )
 KOREAN_KEY = re.compile(r"(내림|올림)?\s*([가나다라마바사]|[A-Ga-g][b#♭♯]?)\s*(장|단)조")
 KOREAN_NOTES = dict(zip("다라마바사가나", "cdefgab"))
-# Observed in the same recital and confirmed against bilingual publisher titles.
-GERMAN_NOTES = {"es": "eb", "cis": "c#", "fis": "f#"}
-GERMAN_NOTE_KEY = re.compile(r"(?<!\w)(es|cis|fis)\s*-\s*(dur|moll)\b", re.IGNORECASE)
+# Observed in recital programs and confirmed against bilingual publisher titles.
+GERMAN_NOTES = {"es": "eb", "cis": "c#", "fis": "f#", "b": "bb", "g": "g", "f": "f", "as": "ab"}
+GERMAN_NOTE_KEY = re.compile(r"(?<!\w)(es|cis|fis|b|g|f|as)\s*-\s*(dur|moll)\b", re.IGNORECASE)
 QUALIFIED_STRAUSS_NAMES = {
     "johann strauss i": 1,
     "johann strauss ii": 2,
