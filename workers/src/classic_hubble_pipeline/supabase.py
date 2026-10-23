@@ -207,6 +207,22 @@ class SupabaseRepository:
         rows = response.json()
         return rows[0] if rows else None
 
+    def load_vision_correction(self, proposal_id: str) -> dict[str, Any] | None:
+        rows = self._request(
+            "GET", "provider_records",
+            params={"id": f"eq.{proposal_id}", "provider": "eq.codex_vision",
+                    "entity_type": "eq.direct_reading_correction_proposal",
+                    "select": "payload", "limit": "1"},
+            prefer="return=representation",
+        ).json()
+        return rows[0]["payload"] if rows else None
+
+    def revise_direct_vision(self, payload: Mapping[str, object]) -> dict[str, Any]:
+        return self._request(
+            "POST", "rpc/revise_private_direct_reading", json=dict(payload),
+            prefer="return=representation",
+        ).json()
+
     def load_vision_source(self, url: str) -> dict[str, Any] | None:
         response = self._request(
             "GET", "provider_records",

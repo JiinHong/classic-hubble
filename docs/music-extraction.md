@@ -326,6 +326,31 @@ withheld suggestions from ambiguous multi-date sources, not deleted public
 links. Candidates remain available for performance-specific date binding. This
 replay makes no additional model API calls and is not an accuracy benchmark.
 
+## Private Reading Corrections
+
+`vision_revision.promote_correction(repository, store, proposal_id, apply=False)`
+previews a persisted `direct_reading_correction_proposal`. It verifies the private
+R2 proposal, original bytes, old observation and corrected grounded reading.
+`apply=True` saves a new immutable evidence object and invokes
+`revise_private_direct_reading` to compare the expected old pointer, proposal and
+current source associations in one transaction. A private `direct_reading_revision`
+receipt retains both pointers. The original object and original observation are
+never overwritten, and the normal importer still rejects conflicting readings.
+
+This operation corrects private evidence only. It never publishes programme rows
+or changes matching/date/scope rules. Any source with a prior publication audit
+is refused with `published_source_requires_reconciliation`, even if its public
+rows were later removed. Reading-row locks serialize revision with publication;
+the publisher rejects a stale observation. Repeated promotion returns `unchanged`
+without another upload; competing proposals return `stale` rather than overwrite
+one another. Keep proposals immutable and use the revision receipt to determine
+which correction became active, not the proposal's original pending status.
+
+Run `workers/tests/test_vision_revision.py` and the rollback-only
+`supabase/tests/direct_vision_revision.sql` when changing this contract. Apply the
+revision migration before using the helper. Both RPCs remain service-role-only;
+there is no new scheduled worker, separate OCR engine or model API call.
+
 ## Incremental matching batches (2026-10-22)
 
 Matching improvements are regression-tested rules, not model training. For a
