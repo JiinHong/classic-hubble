@@ -59,6 +59,16 @@ begin
   -- Python grounds the transcription; SQL requires its normalized date to match
   -- the locked performance, including the year. Neither a missing nor wrong
   -- evaluation date may reuse an otherwise valid publication payload.
+  -- Python's weekday/date conflict must remain a blocking source warning in SQL,
+  -- even when a caller supplies the correct normalized performance_date.
+  begin
+    perform public.publish_direct_vision_program(pid, target, src, rd,
+      jsonb_set(ev, '{matching,source_warnings}', '["unresolved_performance_dates"]'), items);
+    raise exception 'TEST: contradictory weekday warning unexpectedly accepted';
+  exception when others then
+    if sqlerrm <> 'Incomplete publication evidence' then raise; end if;
+  end;
+
   begin
     perform public.publish_direct_vision_program(pid, target, src, rd, ev - 'performance_date', items);
     raise exception 'TEST: missing date unexpectedly accepted';
