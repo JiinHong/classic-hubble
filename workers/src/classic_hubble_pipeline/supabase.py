@@ -547,7 +547,8 @@ class SupabaseRepository:
                     "offset": str(len(rows)),
                     "limit": str(page_size),
                 },
-                prefer="count=exact",
+                # Pagination ends on a short page; a full-table count is unused.
+                prefer="",
             )
             page = response.json()
             if not isinstance(page, list):
