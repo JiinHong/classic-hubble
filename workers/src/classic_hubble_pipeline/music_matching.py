@@ -202,6 +202,7 @@ def _genres(text: str) -> frozenset[str]:
         "concerto": r"\bconcertos?\b|협주곡",
         "symphony": r"\bsymphon(?:y|ies)\b|교향곡",
         "quartet": r"\bquartets?\b|사중주",
+        "quintet": r"\bquintets?\b|오중주|(?<!\d)5\s*중주",
         "trio": r"\btrios?\b|삼중주",
         "canzone": r"\bcanzone\b",
     }
@@ -254,14 +255,14 @@ def _distinctive_title(text: str) -> bool:
     text = _normalize(text)
     text = re.sub(
         r"\b(?:piano|violin|viola|cello|flute|clarinet|horn|keyboard|solo|strings|"
-        r"sonata|concerto|symphony|quartet|trio|no|nr|in|for|and|the|major|minor|"
+        r"sonata|concerto|symphony|quartet|quintet|trio|no|nr|in|for|and|the|major|minor|"
         r"variations?|waltz|prelude|etude|nocturne|minuet|adagio|allegro|andante|"
         r"romance|romances|intermezzo|scherzo|overture|suite|pieces?|op)\b",
         "",
         text,
     )
     text = re.sub(
-        r"피아노|바이올린|비올라|첼로|플루트|협주곡|교향곡|소나타|사중주|삼중주|"
+        r"피아노|바이올린|비올라|첼로|플루트|협주곡|교향곡|소나타|사중주|오중주|삼중주|"
         r"변주곡|왈츠|전주곡|연습곡|야상곡|미뉴에트|서곡|모음곡|작품|제|번",
         "",
         text,
@@ -396,12 +397,17 @@ class MusicMatcher:
         supported = []
         title_variants = _titles(title) | (_scoped_titles(title) if scoped else set())
         actual_numbers = _numbers(title)
+        actual_genres = _genres(title)
         for work in pool:
             expected_genres = frozenset().union(*(_genres(t) for t in work.titles))
+            # PF301008 exposed quintet aliases on the namesake song. An alias
+            # or catalogue number cannot supply missing primary quintet identity.
+            if "quintet" in actual_genres and "quintet" not in expected_genres:
+                continue
             if (
-                _genres(title)
+                actual_genres
                 and expected_genres
-                and not _genres(title).issubset(expected_genres)
+                and not actual_genres.issubset(expected_genres)
             ):
                 continue
             expected_numbers = frozenset().union(*(_numbers(t) for t in work.titles))
