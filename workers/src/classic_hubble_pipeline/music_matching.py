@@ -438,6 +438,23 @@ class MusicMatcher:
             else:
                 continue
             supported.append((work, identity_reason or match_reason))
+        if actual_catalogues and supported:
+            pool_ids = {work.id for work in pool}
+            # A known name and a different work's number are conflicting evidence.
+            # Literal language segments retain counts such as "3 Fantasiestucke".
+            # Do not infer scoped parent names for this contradiction check.
+            literal_titles = {_title_key(title)}.union(
+                *(_titles(part) for part in _variants(title))
+            )
+            for variant in literal_titles:
+                named = [
+                    work for work in self.by_title.get(variant, {}).values()
+                    if work.id in pool_ids
+                ]
+                if named and not any(
+                    self._catalogue_match(actual_catalogues, work) for work in named
+                ):
+                    return WorkMatch(None, (), "title_catalogue_conflict")
         if actual_catalogues and len(supported) > 1:
             # Components can carry their parent's catalogue in an alias. Only a
             # unique exact distinctive title may break that catalogue tie.

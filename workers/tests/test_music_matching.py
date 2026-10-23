@@ -22,6 +22,85 @@ def matcher(works):
     return importlib.import_module(name).MusicMatcher(works)
 
 
+def bach_catalogue_conflict_works():
+    goldberg = CanonicalWork(
+        "goldberg", "goldberg", ("Goldberg Variations in G major",),
+        ("Johann Sebastian Bach",), "BWV 988",
+        ("Goldberg Variations", "골드베르크 변주곡"),
+    )
+    prelude = replace(
+        goldberg, id="prelude", slug="prelude",
+        titles=("Prelude, Fugue and Allegro in E-flat major, BWV 998",),
+        catalogue="BWV 998", aliases=("BWV 998",),
+    )
+    return goldberg, prelude
+
+
+@pytest.mark.parametrize("title,catalogue", [
+    ("Goldberg Variations", "BWV 998"),
+    ("Goldberg Variations, BWV 998", None),
+    ("골드베르크 변주곡", "BWV 998"),
+    ("Goldberg Variations 골드베르크 변주곡", "BWV 998"),
+])
+@pytest.mark.parametrize("scoped", [False, True])
+def test_known_distinctive_title_rejects_another_works_catalogue(title, catalogue, scoped):
+    result = matcher(bach_catalogue_conflict_works()).match(
+        title, "J. S. Bach", catalogue=catalogue, scoped=scoped,
+    )
+    assert result.work_id is None
+    assert result.candidate_ids == ()
+    assert result.reason == "title_catalogue_conflict"
+
+
+@pytest.mark.parametrize("title,catalogue,expected", [
+    ("Goldberg Variations", "BWV 988", "goldberg"),
+    ("골드베르크 변주곡", "BWV 988", "goldberg"),
+    ("BWV 998", None, "prelude"),
+    ("Prelude, Fugue and Allegro", "BWV 998", "prelude"),
+])
+def test_consistent_titles_and_catalogue_only_labels_still_match(title, catalogue, expected):
+    assert matcher(bach_catalogue_conflict_works()).match(
+        title, "J. S. Bach", catalogue=catalogue,
+    ).work_id == expected
+
+
+def test_distinctive_title_guard_stays_composer_scoped_and_allows_shared_titles():
+    goldberg, prelude = bach_catalogue_conflict_works()
+    namesake = replace(goldberg, composers=("Another Composer",))
+    assert matcher([namesake, prelude]).match(
+        "Goldberg Variations", "J. S. Bach", catalogue="BWV 998",
+    ).work_id == prelude.id
+    same_title = replace(prelude, aliases=("Goldberg Variations",))
+    assert matcher([goldberg, same_title]).match(
+        "Goldberg Variations", "J. S. Bach", catalogue="BWV 998",
+    ).work_id == prelude.id
+
+
+def test_title_conflict_guard_does_not_drop_a_bilingual_leading_count():
+    twelve = CanonicalWork(
+        "op12", "op12", ("Fantasiestucke, Op. 12",), ("Robert Schumann",),
+        "Op. 12", ("Fantasiestucke",),
+    )
+    eleven = replace(
+        twelve, id="op111", slug="op111", titles=("Drei Fantasiestucke",),
+        catalogue=None, aliases=("Three Fantasiestucke, Op. 111",),
+    )
+    result = matcher([twelve, eleven]).match(
+        "세개의 환상소곡집 3 Fantasiestucke", "R. Schumann", catalogue="Op. 111",
+    )
+    assert result.work_id == "op111"
+
+
+def test_missing_catalogue_metadata_is_not_reported_as_a_source_conflict():
+    goldberg, _ = bach_catalogue_conflict_works()
+    incomplete = replace(goldberg, catalogue=None)
+    result = matcher([incomplete]).match(
+        "Goldberg Variations", "J. S. Bach", catalogue="BWV 988",
+    )
+    assert result.work_id is None
+    assert result.reason == "no_candidate"
+
+
 def shared_catalogue_parent_and_component():
     parent = CanonicalWork(
         "suite", "suite", ("Nutcracker Suite",), ("Pyotr Ilyich Tchaikovsky",),

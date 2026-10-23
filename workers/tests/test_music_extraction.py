@@ -84,6 +84,39 @@ def test_grounded_program_is_only_a_private_suggestion():
     assert report["publishable"] is False
 
 
+@pytest.mark.parametrize("scope", ["full_work", "excerpt"])
+def test_automatic_matching_preserves_conflicting_source_without_linking(scope):
+    doc = document()
+    doc["lines"][1]["text"] = "J. S. Bach"
+    doc["lines"][2]["text"] = "Goldberg Variations, BWV 998"
+    data = response()
+    entry = data["items"][0]
+    entry.update(
+        composer=quote(1, "J. S. Bach"), title=quote(2, "Goldberg Variations"),
+        catalogue=quote(2, "BWV 998"), key=None, scope=scope,
+    )
+    original = copy.deepcopy(data)
+    goldberg = CanonicalWork(
+        "goldberg", "goldberg", ("Goldberg Variations",),
+        ("Johann Sebastian Bach",), "BWV 988", requires_review=True,
+    )
+    other = replace(
+        goldberg, id="prelude", slug="prelude",
+        titles=("Prelude, Fugue and Allegro",), catalogue="BWV 998",
+    )
+    result = module().validate_response(
+        data, doc, "b" * 64, [goldberg, other], automatic=True,
+    )
+    item = result["items"][0]
+    assert item["suggested_work_id"] is None
+    assert item["scoped_work_id"] is None
+    assert item["candidate_ids"] == []
+    assert item["identity_reason"] == "title_catalogue_conflict"
+    assert item["fields"]["catalogue"] == "BWV 998"
+    assert item["evidence"]["catalogue"] == quote(2, "BWV 998")
+    assert data == original
+
+
 @pytest.mark.parametrize("field", ["composer", "title", "catalogue", "key"])
 def test_invented_field_is_rejected(field):
     data = response()
