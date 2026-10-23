@@ -221,6 +221,37 @@ def _genres(text: str) -> frozenset[str]:
 
 
 @lru_cache(maxsize=80_000)
+def _concerto_instruments(text: str) -> frozenset[str]:
+    genre = re.search(r"\bconcertos?\b|협주곡", text, re.IGNORECASE)
+    if not genre:
+        return frozenset()
+    phrase = text[:genre.start()]
+    following = re.search(r"\bfor\s+(.+)", text[genre.end():], re.IGNORECASE)
+    if following:
+        phrase += " " + re.split(
+            r"\b(?:and|with)\s+(?:the\s+)?(?:string\s+)?orchestra\b",
+            following[1], flags=re.IGNORECASE,
+        )[0]
+    patterns = {
+        "piano": r"\bpianos?\b|피아노",
+        "violin": r"\bviolins?\b|바이올린",
+        "viola": r"\bviolas?\b|비올라",
+        "cello": r"\b(?:cello|celli|cellos|violoncello|violoncelli)\b|첼로",
+        "flute": r"\bflutes?\b|플루트",
+        "clarinet": r"\bclarinets?\b|클라리넷",
+        "oboe": r"\boboes?\b|오보에",
+        "bassoon": r"\bbassoons?\b|바순",
+        "horn": r"\bhorns?\b|호른",
+        "trumpet": r"\btrumpets?\b|트럼펫",
+        "harp": r"\bharps?\b|하프",
+    }
+    return frozenset(
+        name for name, pattern in patterns.items()
+        if re.search(pattern, phrase, re.IGNORECASE)
+    )
+
+
+@lru_cache(maxsize=80_000)
 def _name_matches(actual: str, names: tuple[str, ...]) -> bool:
     alias = FULL_NAME_TRANSLITERATIONS.get(_normalize(actual).replace(" ", ""))
     if alias is not None and any(_normalize(name) == alias for name in names):
@@ -427,7 +458,18 @@ class MusicMatcher:
         title_variants = _titles(title) | (_scoped_titles(title) if scoped else set())
         actual_numbers = _numbers(title)
         actual_genres = _genres(title)
+        actual_instruments = _concerto_instruments(title)
         for work in pool:
+            # A catalogue match cannot change an explicitly named solo instrument.
+            # Primary titles, not possibly misleading aliases, supply this guard.
+            expected_instruments = frozenset().union(
+                *(_concerto_instruments(t) for t in work.titles)
+            )
+            if (
+                actual_instruments and expected_instruments
+                and not actual_instruments.issubset(expected_instruments)
+            ):
+                continue
             expected_genres = frozenset().union(*(_genres(t) for t in work.titles))
             # PF301008 exposed quintet aliases on the namesake song. An alias
             # or catalogue number cannot supply missing primary quintet identity.
