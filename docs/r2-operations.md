@@ -14,7 +14,17 @@ Original bytes go to `classic-hubble-sources` in Cloudflare R2. The account-leve
 S3 endpoint is configured separately from the bucket, with region `auto`. URLs
 from KOPIS are fetched on its HTTPS apex host; redirects and unrelated hosts are
 rejected. Files are streamed with a 32 MiB per-file limit. Supported signatures
-are JPEG, PNG, GIF, WebP and PDF; HTML error pages are not saved as images.
+are JPEG, PNG, GIF, WebP, PDF and validated 24-bit Windows BMP; HTML error pages
+are not saved as images. BMP support is limited to a 40-byte information header,
+uncompressed RGB, no color table, consistent declared/actual size and complete
+DWORD-padded pixel rows. Other BMP variants remain explicit failures. Original
+BMP bytes and their hash are preserved; no PNG replaces the archived original.
+
+For direct viewing, `direct_vision.prepare` can additionally export a lossless,
+same-size `view.png` from a supported BMP. This requires the existing Pillow
+image dependency and records the derived view's hash, dimensions, source hash
+and conversion version in the private reading request. The original path and
+identity remain unchanged. The OCR worker can read supported BMP bytes directly.
 
 The worker performs no OCR or text-LLM requests. It does not update reviewed
 programs, send notifications or prove a semantic program change. Those stages

@@ -12,6 +12,7 @@ from urllib.parse import urlsplit, urlunsplit
 
 import httpx
 
+from .bitmap import bitmap_dimensions
 from .cloud_run import _shift_months, _terminated
 from .kopis_sync import KOREA_TIMEZONE
 from .r2 import MAX_SOURCE_BYTES, R2Settings, R2Store
@@ -69,6 +70,12 @@ def download_source(
             return data, kind
     if data.startswith(b"RIFF") and data[8:12] == b"WEBP":
         return data, "image/webp"
+    if data.startswith(b"BM"):
+        try:
+            bitmap_dimensions(data)
+        except ValueError as error:
+            raise SourceDownloadError(str(error)) from None
+        return data, "image/bmp"
     raise SourceDownloadError(
         "Unsupported source signature; HTML and unknown files are not archived"
     )

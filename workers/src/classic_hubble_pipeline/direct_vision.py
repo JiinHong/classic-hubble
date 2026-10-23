@@ -8,6 +8,7 @@ This module stores private evidence only; it cannot publish concert programs.
 from __future__ import annotations
 
 import hashlib
+import io
 import os
 import re
 from datetime import UTC, datetime, timedelta
@@ -16,6 +17,7 @@ from typing import Literal
 
 from pydantic import Field, ValidationError
 
+from .bitmap import bitmap_dimensions
 from .music_extraction import (
     MAX_RESPONSE_BYTES,
     MAX_TEXT_CHARS,
@@ -31,7 +33,7 @@ PIPELINE_VERSION = "codex-direct-vision-v1"
 METHOD = "chat_model_direct_image_reading"
 EXTENSIONS = {
     "image/png": ".png", "image/jpeg": ".jpg", "image/webp": ".webp",
-    "image/gif": ".gif", "application/pdf": ".pdf",
+    "image/gif": ".gif", "image/bmp": ".bmp", "application/pdf": ".pdf",
 }
 
 
@@ -171,6 +173,18 @@ def prepare(repository, store, source_sha: str, output: Path) -> dict:
     if cached is not None:
         return _cached_summary(repository, identity, cached)
     raw = _original(store, identity)
+    view = None
+    if sources[0]["content_type"] == "image/bmp":
+        width, height = bitmap_dimensions(raw)
+        # Pillow is optional for catalog-only installs, required for image views.
+        from PIL import Image
+
+        with Image.open(io.BytesIO(raw)) as bitmap:
+            if bitmap.format != "BMP" or bitmap.size != (width, height):
+                raise ValueError("Invalid bitmap view")
+            buffer = io.BytesIO()
+            bitmap.convert("RGB").save(buffer, format="PNG")
+            view = buffer.getvalue()
     output.mkdir(mode=0o700, exist_ok=False)
     path = output / ("original" + EXTENSIONS[sources[0]["content_type"]])
     bundle = {
@@ -188,13 +202,23 @@ def prepare(repository, store, source_sha: str, output: Path) -> dict:
             "scope. Do not invent confidence, coordinates, work IDs or model API IDs."
         ),
     }
-    for destination, content in (
-        (path, raw), (output / "reading-request.json", json_bytes(bundle))
-    ):
+    files = [(path, raw)]
+    if view is not None:
+        bundle["derived_views"] = [{
+            "filename": "view.png", "sha256": hashlib.sha256(view).hexdigest(),
+            "source_sha256": source_sha, "method": "bmp-rgb-to-png-v1",
+            "width": width, "height": height,
+        }]
+        files.append((output / "view.png", view))
+    files.append((output / "reading-request.json", json_bytes(bundle)))
+    for destination, content in files:
         fd = os.open(destination, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
         with os.fdopen(fd, "wb") as handle:
             handle.write(content)
-    return {"mode": "prepared", **identity, "path": str(path.resolve())}
+    result = {"mode": "prepared", **identity, "path": str(path.resolve())}
+    if view is not None:
+        result["view_path"] = str((output / "view.png").resolve())
+    return result
 
 
 def _validate(raw, source_sha):
