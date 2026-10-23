@@ -423,6 +423,13 @@ only for those exact canonical identities. It does not infer arbitrary omitted
 middle names, repair `Dvork`, or override conflicting bilingual composers.
 Printed evidence remains unchanged; normal work-number, key and scope checks apply.
 
+Full-work sonata matching also checks explicitly named instruments against primary
+canonical titles. Muczynski's flute Sonata Op.14 must not satisfy an alto-saxophone
+sonata merely because the supplied opus agrees. Piano accompaniment is optional
+in instrument labels, but a piano sonata is not a flute or violin sonata. Missing
+canonical instrumentation is not invented. Scoped parent candidates remain private
+and retain their arrangement/movement evidence; this guard does not publish them.
+
 The same 53 saved v2 OCR/LLM results increased from 35 to 40 distinct document/work
 pairs across 17 documents (previously 15). All previous pairs were retained.
 There are 14 full-work suggestions and 27 scoped references; these OCR results

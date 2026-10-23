@@ -236,8 +236,9 @@ def _genres(text: str) -> frozenset[str]:
 
 
 @lru_cache(maxsize=80_000)
-def _concerto_instruments(text: str) -> frozenset[str]:
-    genre = re.search(r"\bconcertos?\b|협주곡", text, re.IGNORECASE)
+def _work_instruments(text: str, *, sonata: bool = False) -> frozenset[str]:
+    pattern = r"\bsonatas?\b|소나타" if sonata else r"\bconcertos?\b|협주곡"
+    genre = re.search(pattern, text, re.IGNORECASE)
     if not genre:
         return frozenset()
     phrase = text[:genre.start()]
@@ -260,10 +261,18 @@ def _concerto_instruments(text: str) -> frozenset[str]:
         "trumpet": r"\btrumpets?\b|트럼펫",
         "harp": r"\bharps?\b|하프",
     }
-    return frozenset(
+    if sonata:
+        patterns["saxophone"] = r"\b(?:saxophones?|sax)\b|색소폰|색서폰|삭소폰"
+    instruments = frozenset(
         name for name, pattern in patterns.items()
         if re.search(pattern, phrase, re.IGNORECASE)
     )
+    # Sonata titles often omit piano accompaniment; it cannot identify the soloist.
+    return instruments - {"piano"} if sonata and len(instruments) > 1 else instruments
+
+
+def _concerto_instruments(text: str) -> frozenset[str]:
+    return _work_instruments(text)
 
 
 @lru_cache(maxsize=80_000)
@@ -497,6 +506,7 @@ class MusicMatcher:
         actual_numbers = _numbers(title)
         actual_genres = _genres(title)
         actual_instruments = _concerto_instruments(title)
+        sonata_instruments = _work_instruments(title, sonata=True) if not scoped else frozenset()
         for work in pool:
             # A catalogue match cannot change an explicitly named solo instrument.
             # Primary titles, not possibly misleading aliases, supply this guard.
@@ -506,6 +516,14 @@ class MusicMatcher:
             if (
                 actual_instruments and expected_instruments
                 and not actual_instruments.issubset(expected_instruments)
+            ):
+                continue
+            expected_sonata_instruments = frozenset().union(
+                *(_work_instruments(t, sonata=True) for t in work.titles)
+            )
+            if (
+                sonata_instruments and expected_sonata_instruments
+                and not sonata_instruments.issubset(expected_sonata_instruments)
             ):
                 continue
             expected_genres = frozenset().union(*(_genres(t) for t in work.titles))
