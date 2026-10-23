@@ -121,6 +121,23 @@ def test_korean_month_day_uses_the_target_year():
         assert module().publish(repo, store, client, "p1")["status"] == "ready"
 
 
+def test_actual_poster_weekday_conflict_blocks_before_network_and_write(monkeypatch):
+    repo, store, target, writes = setup()
+    target["starts_on"] = target["ends_on"] = "2024-02-06"
+    repo.cached.clear()
+    data = reading(store)
+    data["lines"].append({
+        "text": "2024년 2월 6일 금요일 19:30 부산문화회관 중극장", "page_index": 0,
+    })
+    run(repo, store, data, apply=True)
+    before = copy.deepcopy(repo.cached)
+    monkeypatch.setattr(module(), "download_source", lambda *args: pytest.fail("No download for conflicting weekday"))
+    with httpx.Client() as client:
+        assert module().publish(repo, store, client, "p1", apply=True)["status"] == "date_binding_required"
+    assert repo.cached == before
+    assert not writes
+
+
 @pytest.mark.parametrize("date_text", [
     "2026. 10. 22 TUR 7:30 PM",  # The original PF299019 really prints TUR.
     "2026.10.22 THU 19:30",
