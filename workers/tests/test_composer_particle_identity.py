@@ -40,3 +40,39 @@ def test_omitted_particle_does_not_override_catalogue():
 
 def test_legacy_name_matching_is_unchanged():
     assert _composer_matches("P. Sarasate", ("Pablo de Sarasate",)) is False
+
+
+def beethoven(identity="Ludwig van Beethoven", work_id="beethoven"):
+    return CanonicalWork(work_id, work_id, ("Romance No.2 in F major",), (identity,), "Op.50")
+
+
+@pytest.mark.parametrize("printed", ["L.Beethoven", "L. Beethoven", "Ludwig Beethoven"])
+def test_observed_beethoven_name_can_omit_middle_van(printed):
+    result = MusicMatcher([beethoven()]).match("Romance No.2 in F major", printed, catalogue="Op.50")
+    assert result.work_id == "beethoven"
+
+
+@pytest.mark.parametrize("printed", ["L.v.Beethoven", "L. van Beethoven", "Ludwig van Beethoven", "Beethoven"])
+def test_existing_beethoven_spellings_are_preserved(printed):
+    result = MusicMatcher([beethoven()]).match("Romance No.2 in F major", printed, catalogue="Op.50")
+    assert result.work_id == "beethoven"
+
+
+@pytest.mark.parametrize("printed", ["R.Beethoven", "Louis Beethoven", "Ludwig Maria Beethoven"])
+def test_omitting_van_does_not_discard_conflicting_given_names(printed):
+    assert MusicMatcher([beethoven()]).match("Romance No.2 in F major", printed, catalogue="Op.50").work_id is None
+
+
+def test_beethoven_initial_collision_is_not_forced():
+    matcher = MusicMatcher([beethoven(), beethoven("Louis van Beethoven", "other")])
+    assert matcher.match("Romance No.2 in F major", "L.Beethoven", catalogue="Op.50").work_id is None
+
+
+def test_beethoven_omitted_particle_keeps_catalogue_constraint():
+    assert MusicMatcher([beethoven()]).match("Romance No.2 in F major", "L.Beethoven", catalogue="Op.51").work_id is None
+
+
+def test_beethoven_middle_personal_name_and_legacy_rules_are_unchanged():
+    result = MusicMatcher([beethoven("Ludwig Maria Beethoven")]).match("Romance No.2 in F major", "L.Beethoven", catalogue="Op.50")
+    assert result.work_id is None
+    assert _composer_matches("L.Beethoven", ("Ludwig van Beethoven",)) is False
