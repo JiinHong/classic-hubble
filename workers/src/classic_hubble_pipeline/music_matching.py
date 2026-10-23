@@ -30,6 +30,8 @@ QUALIFIED_STRAUSS_NAMES = {
     "johann strauss junior": 2,
     "johann strauss iii": 3,
 }
+# PF301618 prints this full Korean spelling beside Gaetano Donizetti.
+FULL_NAME_TRANSLITERATIONS = {"가에타노도니제티": "gaetano donizetti"}
 GENERIC_TITLES = {
     "waltz",
     "왈츠",
@@ -212,6 +214,9 @@ def _genres(text: str) -> frozenset[str]:
 
 @lru_cache(maxsize=80_000)
 def _name_matches(actual: str, names: tuple[str, ...]) -> bool:
+    alias = FULL_NAME_TRANSLITERATIONS.get(_normalize(actual).replace(" ", ""))
+    if alias is not None and any(_normalize(name) == alias for name in names):
+        return True
     # Generation is identity evidence, not an initial that may expand I to II.
     generation = QUALIFIED_STRAUSS_NAMES.get(_normalize(actual))
     if generation is not None:

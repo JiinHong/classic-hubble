@@ -22,6 +22,56 @@ def matcher(works):
     return importlib.import_module(name).MusicMatcher(works)
 
 
+def donizetti_work():
+    return CanonicalWork(
+        "donizetti-elixir", "donizetti-elixir", ("사랑의 묘약", "L'elisir d'amore"),
+        ("Gaetano Donizetti", "가에타노 도니체티"), None,
+    )
+
+
+@pytest.mark.parametrize("composer", [
+    "가에타노 도니제티", "가에타노도니제티",
+    "가에타노 도니제티 (Gaetano Donizetti)",
+    "가에타노 도니체티", "Gaetano Donizetti",
+])
+def test_donizetti_source_backed_full_name_transliteration(composer):
+    work = donizetti_work()
+    assert matcher([work]).match("사랑의 묘약", composer).work_id == work.id
+
+
+@pytest.mark.parametrize("composer", ["도니제티", "가에타노 도니저티", "조반니 도니제티"])
+def test_donizetti_alias_does_not_enable_fuzzy_or_surname_matching(composer):
+    result = matcher([donizetti_work()]).match("사랑의 묘약", composer)
+    assert result.work_id is None
+    assert result.reason == "composer_unconfirmed"
+
+
+@pytest.mark.parametrize("names", [("Giovanni Donizetti",), ("Donizetti",)])
+def test_donizetti_alias_requires_full_canonical_identity(names):
+    work = replace(donizetti_work(), composers=names)
+    assert matcher([work]).match("사랑의 묘약", "가에타노 도니제티").work_id is None
+
+
+def test_donizetti_alias_keeps_conflicting_bilingual_composers_unmatched():
+    result = matcher([donizetti_work(), BEETHOVEN]).match(
+        "사랑의 묘약", "가에타노 도니제티 (Ludwig van Beethoven)",
+    )
+    assert result.work_id is None
+    assert result.reason == "conflicting_composers"
+
+
+def test_donizetti_alias_keeps_duplicate_and_review_guards():
+    work = donizetti_work()
+    duplicate = matcher([work, replace(work, id="duplicate")]).match(
+        "사랑의 묘약", "가에타노 도니제티",
+    )
+    assert duplicate.work_id is None and duplicate.reason == "ambiguous"
+    review = matcher([replace(work, requires_review=True)]).match(
+        "사랑의 묘약", "가에타노 도니제티",
+    )
+    assert review.work_id is None and review.reason == "catalog_review_required"
+
+
 def bach_catalogue_conflict_works():
     goldberg = CanonicalWork(
         "goldberg", "goldberg", ("Goldberg Variations in G major",),
