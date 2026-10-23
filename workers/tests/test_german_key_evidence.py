@@ -9,6 +9,11 @@ CASES = [
     ("Es-Dur", "E flat major", "eb:major"),
     ("cis-Moll", "C sharp minor", "c#:minor"),
     ("fis-Moll", "F sharp minor", "f#:minor"),
+    ("B-Dur", "B flat major", "bb:major"),
+    ("g-moll", "G minor", "g:minor"),
+    ("F-Dur", "F major", "f:major"),
+    ("As-Dur", "A flat major", "ab:major"),
+    ("f-moll", "F minor", "f:minor"),
 ]
 
 
@@ -31,7 +36,7 @@ def test_recognized_german_key_cannot_override_conflicting_mode(printed, english
     assert MusicMatcher([work]).match("Klaviersonate", "Composer", catalogue="Op.11", key=printed).work_id is None
 
 
-@pytest.mark.parametrize("printed", ["fisis-Moll", "cis-Mol", "Es-D", "H-Dur", "B-Dur", "abcfis-Moll"])
+@pytest.mark.parametrize("printed", ["fisis-Moll", "cis-Mol", "Es-D", "H-Dur", "B-D", "abcfis-Moll", "asas-Dur", "abg-moll"])
 def test_unverified_or_malformed_german_spelling_stays_unresolved(printed):
     work = CanonicalWork("w", "w", ("Piano Sonata in F sharp minor",), ("Composer",), "Op.11")
     result = MusicMatcher([work]).match("Klaviersonate", "Composer", catalogue="Op.11", key=printed)
@@ -49,6 +54,19 @@ def test_canonical_german_key_also_constrains_english_evidence():
     matcher = MusicMatcher([work])
     assert matcher.match("Piano Sonata", "Composer", catalogue="Op.11", key="F sharp minor").work_id == "w"
     assert matcher.match("Piano Sonata", "Composer", catalogue="Op.11", key="F minor").work_id is None
+
+
+def test_german_b_dur_never_means_english_b_natural():
+    work = CanonicalWork("w", "w", ("Partita in B major",), ("Bach",), "BWV825")
+    result = MusicMatcher([work]).match("Partita", "Bach", catalogue="BWV825", key="B-Dur")
+    assert result.work_id is None and result.reason == "no_candidate"
+    assert _keys("B-Dur") != _keys("B major")
+
+
+def test_b_flat_and_b_natural_in_one_reference_remain_conflicting():
+    work = CanonicalWork("w", "w", ("Partita in B flat major",), ("Bach",), "BWV825")
+    result = MusicMatcher([work]).match("Partita in B major", "Bach", catalogue="BWV825", key="B-Dur")
+    assert result.work_id is None and result.reason == "conflicting_keys"
 
 
 @pytest.mark.parametrize("printed,english,normalized", CASES)
