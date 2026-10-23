@@ -25,6 +25,9 @@ LATIN_NOTE_KEY = re.compile(
 )
 KOREAN_KEY = re.compile(r"(내림|올림)?\s*([가나다라마바사]|[A-Ga-g][b#♭♯]?)\s*(장|단)조")
 KOREAN_NOTES = dict(zip("다라마바사가나", "cdefgab"))
+# Observed in the same recital and confirmed against bilingual publisher titles.
+GERMAN_NOTES = {"es": "eb", "cis": "c#", "fis": "f#"}
+GERMAN_NOTE_KEY = re.compile(r"(?<!\w)(es|cis|fis)\s*-\s*(dur|moll)\b", re.IGNORECASE)
 QUALIFIED_STRAUSS_NAMES = {
     "johann strauss i": 1,
     "johann strauss ii": 2,
@@ -73,6 +76,12 @@ def _variants(text: str) -> tuple[str, ...]:
 @lru_cache(maxsize=80_000)
 def _keys(text: str) -> frozenset[str]:
     result = set()
+    for note, mode in GERMAN_NOTE_KEY.findall(text):
+        result.add(
+            GERMAN_NOTES[note.lower()]
+            + ":"
+            + ("major" if mode.lower() == "dur" else "minor")
+        )
     for accidental, note, mode in KOREAN_KEY.findall(text):
         modifier = "b" if accidental == "내림" else "#" if accidental else ""
         result.add(
