@@ -18,10 +18,10 @@ from .work_matching import (
 
 LIFESPAN = re.compile(r"\(?\b\d{4}\s*[-–—~]\s*\d{4}\b\)?")
 LATIN_NOTE_KEY = re.compile(
-    r"(?<![a-z])(?:in\s*)?([a-g])\s*([- ]?(?:flat|sharp)|[#♭♯])?\s*(major|minor|장조|단조)\b",
+    r"(?<![a-z])(?:in\s*)?([a-g])\s*([- ]?(?:flat|sharp)|[b#♭♯])?\s*(major|minor|장조|단조)\b",
     re.IGNORECASE,
 )
-KOREAN_KEY = re.compile(r"(내림|올림)?\s*([가나다라마바사A-Ga-g])\s*(장|단)조")
+KOREAN_KEY = re.compile(r"(내림|올림)?\s*([가나다라마바사]|[A-Ga-g][b#♭♯]?)\s*(장|단)조")
 KOREAN_NOTES = dict(zip("다라마바사가나", "cdefgab"))
 QUALIFIED_STRAUSS_NAMES = {
     "johann strauss i": 1,
@@ -69,7 +69,7 @@ def _keys(text: str) -> frozenset[str]:
     for accidental, note, mode in KOREAN_KEY.findall(text):
         modifier = "b" if accidental == "내림" else "#" if accidental else ""
         result.add(
-            KOREAN_NOTES.get(note, note.lower())
+            KOREAN_NOTES.get(note, note.lower()).replace("♭", "b").replace("♯", "#")
             + modifier
             + ":"
             + ("major" if mode == "장" else "minor")
@@ -77,7 +77,7 @@ def _keys(text: str) -> frozenset[str]:
     # Consume Korean accidentals first so "내림B장조" is not also read as B natural.
     for note, accidental, mode in LATIN_NOTE_KEY.findall(KOREAN_KEY.sub(" ", text)):
         modifier = accidental.strip("- ").lower()
-        modifier = "b" if modifier in {"flat", "♭"} else "#" if modifier else ""
+        modifier = "b" if modifier in {"flat", "b", "♭"} else "#" if modifier else ""
         mode = {"장조": "major", "단조": "minor"}.get(mode, mode.lower())
         result.add(note.lower() + modifier + ":" + mode)
     return frozenset(result)
@@ -352,6 +352,15 @@ class MusicMatcher:
     ) -> WorkMatch:
         title = _catalogue_ocr(title)
         catalogue = _catalogue_ocr(catalogue) if catalogue else None
+        if catalogue:
+            # A generic translated number confirms an explicit code, never its scheme.
+            numbers = {re.sub(r"^[a-z]+", "", c) for c in _catalogues(catalogue)}
+            catalogue = re.sub(
+                r"(?<!\w)작품\s*번호\s*(\d+[a-z]?)(?!\w)",
+                lambda m: "" if m[1].lower() in numbers else m[0],
+                catalogue,
+                flags=re.IGNORECASE,
+            )
         actual_catalogues = _catalogues(title + " " + (catalogue or ""))
         if catalogue and (
             not _catalogues(catalogue) or CATALOGUE.sub("", catalogue).strip(" ,;:()")

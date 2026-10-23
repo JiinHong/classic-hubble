@@ -89,12 +89,16 @@ def normalize_record(
     opus.discard(None)
     codes = set()
     for code in record["catalogues"]:
+        explicit = CODE.fullmatch(code["value"].strip())
         prefix = (
-            SCHEMES.get(code.get("scheme"), "")
-            if not CODE.fullmatch(code["value"].strip())
-            else ""
+            explicit.group(1) if explicit else SCHEMES.get(code.get("scheme"), "")
         )
-        parsed = catalogue_code(code["value"], prefix, code.get("ordinal", ""))
+        value = explicit.group(2) if explicit else code["value"]
+        # K can name different catalogues; a slash may denote another edition.
+        # Do not import an ambiguous source code as a numbered member.
+        if prefix.lower() in {"k", "kv"} and "/" in value:
+            continue
+        parsed = catalogue_code(value, prefix, code.get("ordinal", ""))
         if parsed:
             codes.add(parsed)
     candidates = opus or codes

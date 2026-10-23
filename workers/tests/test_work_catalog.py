@@ -23,6 +23,20 @@ def record(**overrides):
     }
 
 
+@pytest.mark.parametrize(
+    ("value", "scheme"),
+    [("K. 331/300i", ""), ("KV 331 / 300i", ""), ("K. 331/1", ""),
+     ("331/300i", "Köchel catalogue"), ("331/1", "Kirkpatrick catalogue")],
+)
+def test_ambiguous_k_slash_is_not_imported_as_a_numbered_member(value, scheme):
+    item = catalog.normalize_record(
+        record(opus=[], catalogues=[{"value": value, "scheme": scheme}],
+               aliases={"en": [value]}), REGISTRY,
+    )
+    assert item["catalogue"] is None
+    assert value in {a["alias"] for a in item["aliases"]}
+
+
 def test_source_work_uses_stable_id_and_real_bilingual_aliases():
     item = catalog.normalize_record(record(), REGISTRY)
     assert item["source_id"] == "Q188709"
