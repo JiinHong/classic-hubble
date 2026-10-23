@@ -279,6 +279,10 @@ def _name_matches(actual: str, names: tuple[str, ...]) -> bool:
     if len(tokens) >= 2 and all(re.fullmatch(r"[a-z]+", t) for t in tokens):
         for name in names:
             expected = _normalize(name).split()
+            # Observed P. Sarasate omits only the middle particle in Pablo de Sarasate.
+            if len(tokens) == 2 and len(expected) == 3 and expected[1] == "de":
+                if _composer_matches(actual, (f"{expected[0]} {expected[2]}",)):
+                    return True
             if len(expected) > len(tokens) and tokens[-1] == expected[-1]:
                 if _composer_matches(actual, (" ".join(expected[-len(tokens) :]),)):
                     return True
@@ -539,6 +543,18 @@ class MusicMatcher:
                 *(_titles(part) for part in _variants(title))
             )
             for variant in literal_titles:
+                primary_named = [
+                    work for work in self.by_title.get(variant, {}).values()
+                    if not work.requires_review
+                    and any(_title_key(t) == variant for t in work.titles)
+                    and actual_catalogues.issubset(_catalogues(work.catalogue or ""))
+                ]
+                # Both primary title and catalogue must identify the foreign work;
+                # a title alone (e.g. Requiem) cannot assert exclusive ownership.
+                if identities and primary_named and not any(
+                    work.composers in identities for work in primary_named
+                ):
+                    return WorkMatch(None, (), "title_composer_conflict")
                 named = [
                     work for work in self.by_title.get(variant, {}).values()
                     if work.id in pool_ids
