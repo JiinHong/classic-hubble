@@ -22,6 +22,26 @@ def matcher(works):
     return importlib.import_module(name).MusicMatcher(works)
 
 
+@pytest.mark.parametrize("title", ["Allegro con brio", "IV. Finale", "4. Allegro con brio"])
+@pytest.mark.parametrize("composer", [None, "Ludwig van Beethoven"])
+def test_bare_movement_labels_do_not_identify_unrelated_component(title, composer):
+    work = CanonicalWork(
+        "component", "component", (title,), ("Ludwig van Beethoven",), None,
+    )
+    assert matcher([work]).match(title, composer).work_id is None
+
+
+def test_tempo_title_with_explicit_catalogue_can_still_identify_work():
+    work = CanonicalWork("w", "w", ("Allegro con brio",), ("Beethoven",), "Op. 22")
+    assert matcher([work]).match("Allegro con brio", "Beethoven", catalogue="Op. 22").work_id == "w"
+
+
+@pytest.mark.parametrize("title", ["Adagio for Strings", "Adagio and Allegro", "Finale from The Firebird"])
+def test_named_work_not_reduced_to_bare_movement_label(title):
+    work = CanonicalWork("w", "w", (title,), ("Example Composer",), None)
+    assert matcher([work]).match(title, "Example Composer").work_id == "w"
+
+
 @pytest.mark.parametrize("code", ["WAB 106", "WAB.106", "wab106"])
 def test_grounded_wab_number_matches_only_explicit_canonical_identity(code):
     work = CanonicalWork(

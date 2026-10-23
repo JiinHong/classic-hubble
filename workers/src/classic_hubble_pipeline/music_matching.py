@@ -256,8 +256,17 @@ def _one_edit(left: str, right: str) -> bool:
     return any(large[:i] + large[i + 1 :] == small for i in range(len(large)))
 
 
+def _bare_movement_label(text: str) -> bool:
+    text = _normalize(LATIN_NOTE_KEY.sub("", KOREAN_KEY.sub("", text)))
+    return bool(re.fullmatch(
+        r"(?:(?:[ivxlcdm]+|\d+)\s+)?(?:allegro con brio|finale)", text,
+    ))
+
+
 def _distinctive_title(text: str) -> bool:
     """Require lexical identity, not just a genre, instrument, tempo or number."""
+    if _bare_movement_label(text):
+        return False
     text = LATIN_NOTE_KEY.sub("", KOREAN_KEY.sub("", CATALOGUE.sub("", text)))
     text = _normalize(text)
     text = re.sub(
@@ -380,6 +389,8 @@ class MusicMatcher:
             for m in CATALOGUE.finditer(title)
         ):
             return WorkMatch(None, (), "complex_catalogue")
+        if not actual_catalogues and _bare_movement_label(title):
+            return WorkMatch(None, (), "insufficient_title")
         actual_keys = _keys(title) | _keys(key or "")
         if key and not _keys(key):
             return WorkMatch(None, (), "key_requires_review")
