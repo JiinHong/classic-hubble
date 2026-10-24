@@ -16,8 +16,8 @@ from .work_matching import (
     _normalize,
 )
 
-# WAB support is limited to grounded matching, not legacy ingestion or import.
-CATALOGUE = re.compile(LEGACY_CATALOGUE.pattern + r"|\bWAB\.?\s*\d+\b", re.IGNORECASE)
+# Additional schemes require grounded evidence, not legacy ingestion or import.
+CATALOGUE = re.compile(LEGACY_CATALOGUE.pattern + r"|\b(?:WAB|FWV)\.?\s*\d+\b", re.IGNORECASE)
 LIFESPAN = re.compile(r"\(?\b\d{4}\s*[-–—~]\s*\d{4}\b\)?")
 LATIN_NOTE_KEY = re.compile(
     r"(?<![a-z])(?:in\s*)?([a-g])\s*([- ]?(?:flat|sharp)|[b#♭♯])?\s*(major|minor|장조|단조)\b",
@@ -462,7 +462,7 @@ class MusicMatcher:
             return WorkMatch(None, (), "unsupported_catalogue")
         if any(
             re.match(r"\s*[-–—/,]\s*\d", title[m.end() :])
-            or (m[0].lower().startswith("wab") and re.match(r"\.\s*\d", title[m.end() :]))
+            or (m[0].lower().startswith(("wab", "fwv")) and re.match(r"\.\s*\d", title[m.end() :]))
             for m in CATALOGUE.finditer(title)
         ):
             return WorkMatch(None, (), "complex_catalogue")
