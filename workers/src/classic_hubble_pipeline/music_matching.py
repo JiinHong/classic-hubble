@@ -425,7 +425,9 @@ class MusicMatcher:
         actual: frozenset[str], work: CanonicalWork, *,
         title: str | None = None, keys: frozenset[str] = frozenset(),
     ) -> bool:
-        primary = _catalogues(work.catalogue or "")
+        # A missing catalogue column must not let an alias widen a numbered
+        # component's primary title into the entire collection (PF253175).
+        primary = _catalogues(work.catalogue or "") or _catalogues(" ".join(work.titles))
         known = set(primary)
         roots = {_root(value) for value in primary}
         schemes = {_scheme(value) for value in primary}
