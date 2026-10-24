@@ -18,6 +18,9 @@ describe("performance presentation", () => {
   });
 
   it("explains each deterministic program publication state", () => {
+    expect(programPublicationMessage("partially_confirmed")).toBe(
+      "프로그램 일부 확인: 근거가 확인된 작품만 표시합니다.",
+    );
     expect(programPublicationMessage("confirmed")).toBe(
       "공연 원문에서 확인한 프로그램입니다.",
     );

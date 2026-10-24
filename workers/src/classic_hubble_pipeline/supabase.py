@@ -240,6 +240,21 @@ class SupabaseRepository:
             prefer="return=representation",
         ).json()
 
+    def load_paddle_review(self, key: str) -> dict[str, Any] | None:
+        rows = self._request(
+            "GET", "provider_records",
+            params={"provider": "eq.paddle_review", "entity_type": "eq.program_selection",
+                    "provider_id": f"eq.{key}", "select": "payload", "limit": "1"},
+            prefer="return=representation",
+        ).json()
+        return rows[0]["payload"] if rows else None
+
+    def publish_paddle_program(self, payload: Mapping[str, object]) -> dict[str, Any]:
+        return self._request(
+            "POST", "rpc/publish_paddle_program", json=dict(payload),
+            prefer="return=representation",
+        ).json()
+
     def save_direct_vision_result(
         self, key: str, payload: Mapping[str, object], run_id: str
     ) -> bool:
