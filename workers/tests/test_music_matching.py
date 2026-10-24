@@ -516,6 +516,40 @@ def test_strauss_son_equivalence_preserves_identity_conflicts():
     assert result.reason == "conflicting_composers"
 
 
+@pytest.mark.parametrize("printed", ["J. Strauss II", "J.Strauss II", "J. Strauß II", "J. Strauss Jr."])
+def test_initial_strauss_generation_matches_existing_blue_danube(printed):
+    work = replace(BEETHOVEN, composers=("Johann Strauss Jr",),
+                   titles=("The Blue Danube in D major",), catalogue="Op.314",
+                   aliases=("An der schönen blauen Donau",))
+    result = matcher([work]).match("An der schönen, blauen Donau", printed, catalogue="Op.314")
+    assert result.work_id == work.id
+
+
+@pytest.mark.parametrize("printed,canonical", [
+    ("J. Strauss I", "Johann Strauss II"),
+    ("J. Strauss I", "Johann Strauss Jr"),
+    ("J. Strauss III", "Johann Strauss Jr"),
+    ("J. Strauss II", "Johann Strauss I"),
+    ("J. Strauss II", "Josef Strauss"),
+    ("J. Strauss II", "Richard Strauss"),
+    ("J. Strauss II", "Johann Strauss"),
+    ("R. Strauss II", "Johann Strauss Jr"),
+])
+def test_initial_strauss_generation_never_expands_roman_numeral(printed, canonical):
+    work = replace(BEETHOVEN, composers=(canonical,),
+                   titles=("The Blue Danube",), catalogue="Op.314", aliases=())
+    assert matcher([work]).match("The Blue Danube", printed, catalogue="Op.314").work_id is None
+
+
+def test_initial_strauss_generation_keeps_catalogue_and_duplicate_guards():
+    work = replace(BEETHOVEN, composers=("Johann Strauss Jr",),
+                   titles=("The Blue Danube",), catalogue="Op.314", aliases=())
+    assert matcher([work]).match("The Blue Danube", "J. Strauss II", catalogue="Op.315").work_id is None
+    assert matcher([work, replace(work, id="duplicate")]).match(
+        "The Blue Danube", "J. Strauss II", catalogue="Op.314",
+    ).work_id is None
+
+
 def numbered_ballades():
     return [
         replace(
