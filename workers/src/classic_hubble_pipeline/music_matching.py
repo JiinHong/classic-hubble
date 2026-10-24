@@ -286,7 +286,10 @@ def _name_matches(actual: str, names: tuple[str, ...]) -> bool:
     if alias is not None and any(_normalize(name) == alias for name in names):
         return True
     # Generation is identity evidence, not an initial that may expand I to II.
-    generation = QUALIFIED_STRAUSS_NAMES.get(_normalize(actual))
+    qualified = _normalize(actual)
+    if re.fullmatch(r"j strauss (?:i{1,3}|jr|junior)", qualified):
+        qualified = "johann " + qualified[2:]
+    generation = QUALIFIED_STRAUSS_NAMES.get(qualified)
     if generation is not None:
         return any(
             QUALIFIED_STRAUSS_NAMES.get(_normalize(name)) == generation
