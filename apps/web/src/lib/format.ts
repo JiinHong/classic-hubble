@@ -53,6 +53,7 @@ export const confidenceLabel = (confidence: number) =>
 export const programPublicationMessage = (status: ProgramPublicationStatus) =>
   ({
     confirmed: "공연 원문에서 확인한 프로그램입니다.",
+    partially_confirmed: "프로그램 일부 확인: 근거가 확인된 작품만 표시합니다.",
     image_only:
       "상세 정보가 이미지로만 제공되어 곡명을 아직 구조화하지 못했습니다.",
     not_published: "예매처에 프로그램 정보가 아직 공개되지 않았습니다.",

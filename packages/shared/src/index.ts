@@ -8,6 +8,7 @@ export type ConfidenceLevel =
 export type ProgramPublicationStatus =
   | "unknown"
   | "confirmed"
+  | "partially_confirmed"
   | "image_only"
   | "not_published"
   | "selected_on_day"
