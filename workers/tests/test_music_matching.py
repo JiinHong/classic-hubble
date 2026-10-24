@@ -802,6 +802,57 @@ def test_polluted_sibling_catalogue_alias_cannot_override_specific_primary_code(
     )
 
 
+@pytest.fixture
+def brahms_clarinet_sonatas():
+    return [CanonicalWork(
+        f"brahms-{number}", f"brahms-{number}",
+        (f"Sonata for Clarinet and Piano no. {number} in {key}",),
+        ("Johannes Brahms",), f"Op. 120 No. {number}",
+    ) for number, key in [(1, "F minor"), (2, "E-flat major")]]
+
+
+@pytest.mark.parametrize("number,key", [(1, "f minor"), (2, "E-flat Major")])
+def test_numbered_sonata_primary_title_and_key_disambiguate_opus_root(brahms_clarinet_sonatas, number, key):
+    result = matcher(brahms_clarinet_sonatas).match(
+        f"Sonata for Clarinet and Piano No.{number}", "J.Brahms", catalogue="Op. 120", key=key,
+    )
+    assert result.work_id == f"brahms-{number}"
+    assert result.reason == "composer_and_catalogue"
+
+
+@pytest.mark.parametrize("title,composer,code,key", [
+    ("Sonata for Clarinet and Piano", "J.Brahms", "Op.120", "E-flat Major"),
+    ("Sonata for Clarinet and Piano No.2", "J.Brahms", "Op.120", None),
+    ("Sonata for Clarinet and Piano No.2", None, "Op.120", "E-flat Major"),
+    ("Sonata for Clarinet and Piano No.2", "J.Brahms", "Op.120", "F minor"),
+    ("Sonata for Clarinet and Piano No.2", "J.Brahms", "Op.120 No.1", "E-flat Major"),
+    ("Sonata for Clarinet and Piano No.2", "J.Brahms", "Op.121", "E-flat Major"),
+    ("Sonata for Clarinet and Piano No.2", "J.Brahms", "Op.120; Op.121", "E-flat Major"),
+    ("Sonatas for Clarinet and Piano No.1, No.2", "J.Brahms", "Op.120", "E-flat Major"),
+    ("Sonata for Viola and Piano No.2", "J.Brahms", "Op.120", "E-flat Major"),
+    ('Other Sonata No.2 "Sonata for Clarinet and Piano No.2"', "J.Brahms", "Op.120", "E-flat Major"),
+])
+def test_opus_root_needs_complete_uncontradicted_primary_identity(brahms_clarinet_sonatas, title, composer, code, key):
+    assert matcher(brahms_clarinet_sonatas).match(title, composer, catalogue=code, key=key).work_id is None
+
+
+def test_opus_root_does_not_use_alias_to_supply_specific_number(brahms_clarinet_sonatas):
+    work = replace(brahms_clarinet_sonatas[1], titles=("Sonata in E-flat major",), aliases=brahms_clarinet_sonatas[1].titles)
+    assert matcher([work]).match("Sonata for Clarinet and Piano No.2", "J.Brahms", catalogue="Op.120", key="E-flat Major").work_id is None
+
+
+def test_opus_root_does_not_resolve_duplicate_primary_identities(brahms_clarinet_sonatas):
+    work = brahms_clarinet_sonatas[1]
+    duplicate = replace(work, id="other", slug="other")
+    assert matcher([work, duplicate]).match("Sonata for Clarinet and Piano No.2", "J.Brahms", catalogue="Op.120", key="E-flat Major").work_id is None
+
+
+def test_opus_root_does_not_promote_scoped_or_unreviewed_work(brahms_clarinet_sonatas):
+    work = brahms_clarinet_sonatas[1]
+    assert matcher([work]).match("Sonata for Clarinet and Piano No.2", "J.Brahms", catalogue="Op.120", key="E-flat Major", scoped=True).work_id is None
+    assert matcher([replace(work, requires_review=True)]).match("Sonata for Clarinet and Piano No.2", "J.Brahms", catalogue="Op.120", key="E-flat Major").work_id is None
+
+
 def test_catalogue_cannot_override_explicitly_conflicting_work_genre():
     assert (
         matcher([BEETHOVEN])

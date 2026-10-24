@@ -417,7 +417,10 @@ class MusicMatcher:
         )[:3]
 
     @staticmethod
-    def _catalogue_match(actual: frozenset[str], work: CanonicalWork) -> bool:
+    def _catalogue_match(
+        actual: frozenset[str], work: CanonicalWork, *,
+        title: str | None = None, keys: frozenset[str] = frozenset(),
+    ) -> bool:
         primary = _catalogues(work.catalogue or "")
         known = set(primary)
         roots = {_root(value) for value in primary}
@@ -433,7 +436,26 @@ class MusicMatcher:
                     continue
                 if not roots or _root(value) in roots or _scheme(value) not in schemes:
                     known.add(value)
-        return bool(actual) and actual.issubset(known)
+        if actual and actual.issubset(known):
+            return True
+        # Op.120 alone is a collection. A numbered sonata needs its complete
+        # primary title and explicit matching key before using that root code.
+        if not title or len(actual) != 1 or len(primary) != 1 or len(keys) != 1:
+            return False
+        root = next(iter(actual))
+        if not re.fullmatch(r"op\d+", root) or not re.fullmatch(root + r"no\d+", next(iter(primary))):
+            return False
+        numbers = _numbers(title)
+        if len(numbers) != 1 or _genres(title) != frozenset({"sonata"}):
+            return False
+
+        def identity(text):
+            return _title_key(LATIN_NOTE_KEY.sub("", KOREAN_KEY.sub("", CATALOGUE.sub("", text))))
+
+        return any(
+            _numbers(t) == numbers and _keys(t) == keys and identity(t) == identity(title)
+            for t in work.titles
+        )
 
     def match(
         self,
@@ -507,6 +529,14 @@ class MusicMatcher:
         actual_genres = _genres(title)
         actual_instruments = _concerto_instruments(title)
         sonata_instruments = _work_instruments(title, sonata=True) if not scoped else frozenset()
+
+        def catalogue_matches(work):
+            return self._catalogue_match(
+                actual_catalogues, work,
+                title=title if len(identities) == 1 and not scoped else None,
+                keys=actual_keys,
+            )
+
         for work in pool:
             # A catalogue match cannot change an explicitly named solo instrument.
             # Primary titles, not possibly misleading aliases, supply this guard.
@@ -543,7 +573,7 @@ class MusicMatcher:
                 and expected_numbers
                 and not actual_numbers.issubset(expected_numbers)
             ):
-                if identities and actual_catalogues and self._catalogue_match(actual_catalogues, work):
+                if identities and actual_catalogues and catalogue_matches(work):
                     number_conflict = True
                 continue
             expected_keys = frozenset().union(*(_keys(t) for t in work.titles))
@@ -554,7 +584,7 @@ class MusicMatcher:
             ):
                 continue
             if actual_catalogues:
-                if not self._catalogue_match(actual_catalogues, work):
+                if not catalogue_matches(work):
                     continue
                 # An opera-wide catalogue may also occur on an aria row. A shared
                 # catalogue alone must not turn another excerpt into that aria.
@@ -604,7 +634,7 @@ class MusicMatcher:
                     if work.id in pool_ids
                 ]
                 if named and not any(
-                    self._catalogue_match(actual_catalogues, work) for work in named
+                    catalogue_matches(work) for work in named
                 ):
                     return WorkMatch(None, (), "title_catalogue_conflict")
         if actual_catalogues and len(supported) > 1:
