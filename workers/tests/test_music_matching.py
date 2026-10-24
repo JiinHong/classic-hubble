@@ -234,6 +234,33 @@ def bach_catalogue_conflict_works():
     return goldberg, prelude
 
 
+@pytest.mark.parametrize("title", ["Polonaise in A-Flat Major", "Polonaise", "폴로네즈 내림가장조"])
+def test_generic_polonaise_namesake_cannot_contradict_explicit_opus(title):
+    heroic = CanonicalWork(
+        "heroic", "heroic", ('Polonaise in A-flat major "Heroic", Op. 53',),
+        ("Frederic Chopin",), "Op. 53", ("Heroic Polonaise",),
+    )
+    early = replace(heroic, id="early", slug="early", catalogue=None,
+                    titles=("Polonaise in A-flat major, B.5",), aliases=(title,))
+    result = matcher([heroic, early]).match(title, "Chopin", catalogue="Op.53")
+    assert result.work_id == heroic.id
+    assert result.reason == "composer_and_catalogue"
+
+
+@pytest.mark.parametrize("title", ["Polonaise in A-Flat Major", "Polonaise", "폴로네즈 내림가장조"])
+def test_generic_polonaise_without_composer_is_not_unique_identity(title):
+    work = CanonicalWork("w", "w", (title,), ("Frederic Chopin",), None)
+    assert matcher([work]).match(title, None).work_id is None
+
+
+def test_distinctive_heroic_name_still_rejects_wrong_catalogue():
+    heroic = CanonicalWork("heroic", "heroic", ("Heroic Polonaise",), ("Chopin",), "Op.53")
+    other = replace(heroic, id="other", slug="other", titles=("Another Polonaise",), catalogue="Op.26")
+    result = matcher([heroic, other]).match("Heroic Polonaise", "Chopin", catalogue="Op.26")
+    assert result.work_id is None
+    assert result.reason == "title_catalogue_conflict"
+
+
 @pytest.mark.parametrize("title,catalogue", [
     ("Goldberg Variations", "BWV 998"),
     ("Goldberg Variations, BWV 998", None),
