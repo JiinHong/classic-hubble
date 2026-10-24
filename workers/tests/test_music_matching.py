@@ -80,6 +80,49 @@ def test_unsupported_wab_does_not_modify_legacy_catalogue_parser():
     assert CATALOGUE.search("WAB 106") is None
 
 
+@pytest.mark.parametrize("code", ["FWV 21", "FWV.21", "FwV21"])
+def test_franck_fwv_matches_explicit_canonical_identity(code):
+    work = CanonicalWork(
+        "franck", "franck", ("Prelude, Chorale and Fugue",),
+        ("Cesar Franck",), "FWV 21",
+    )
+    assert matcher([work]).match(
+        "Prelude, Choral et Fugue", "C. Franck", catalogue=code,
+    ).work_id == work.id
+    assert matcher([work]).match(
+        "Prelude, Choral et Fugue " + code, "C. Franck",
+    ).work_id == work.id
+
+
+@pytest.mark.parametrize("code", [
+    "FWV 22", "FWV 21; FWV 22", "FWV 21,1", "FWV 21/1",
+    "FWV 21-22", "FWV 21.1", "FWV 21a",
+])
+def test_fwv_conflict_or_component_cannot_fall_back_to_exact_title(code):
+    work = CanonicalWork("w", "w", ("Prelude, Choral et Fugue",), ("Cesar Franck",), "FWV 21")
+    assert matcher([work]).match(work.titles[0], "C. Franck", catalogue=code).work_id is None
+    assert matcher([work]).match(work.titles[0] + " " + code, "C. Franck").work_id is None
+
+
+@pytest.mark.parametrize("composer", ["J. S. Bach", "A. Franck"])
+def test_fwv_does_not_override_conflicting_composer(composer):
+    work = CanonicalWork("w", "w", ("Prelude, Choral et Fugue",), ("Cesar Franck",), "FWV 21")
+    assert matcher([work]).match(work.titles[0], composer, catalogue="FWV 21").work_id is None
+
+
+def test_fwv_without_composer_retains_title_only_reason_not_composer_match():
+    work = CanonicalWork("w", "w", ("Prelude, Choral et Fugue",), ("Cesar Franck",), "FWV 21")
+    result = matcher([work]).match(work.titles[0], None, catalogue="FWV 21")
+    assert result.reason == "unique_distinctive_title"
+
+
+def test_fwv_requires_canonical_catalogue_evidence_and_leaves_legacy_unchanged():
+    from classic_hubble_pipeline.work_matching import CATALOGUE
+    work = CanonicalWork("w", "w", ("Prelude, Choral et Fugue",), ("Cesar Franck",), None)
+    assert matcher([work]).match(work.titles[0], "C. Franck", catalogue="FWV 21").work_id is None
+    assert CATALOGUE.search("FWV 21") is None
+
+
 @pytest.mark.parametrize("printed", ["Bb Major", "Bb장조", "Bb Major Bb장조"])
 def test_ascii_flat_key_in_archived_prokofiev_program_matches(printed):
     work = CanonicalWork(

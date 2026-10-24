@@ -3,6 +3,7 @@ import hashlib
 import importlib
 import importlib.util
 import json
+from dataclasses import replace
 
 import pytest
 
@@ -104,6 +105,19 @@ def test_partial_dry_run_recomputes_grounded_matches_not_saved_ids():
     assert result["program_status"] == "partially_confirmed"
     assert not repo.writes
     assert repo.reviews[key]["method"] == "reviewed_paddle_text"
+
+
+def test_fwv_title_only_identity_is_not_public_without_composer_evidence():
+    from test_music_extraction import quote
+    title = "Prelude, Choral et Fugue"
+    repo, store, data = setup(lambda d: d["lines"][2].update(text=title + ", FWV 21"))
+    work = replace(WORK, titles=(title,), composers=("Cesar Franck",), catalogue="FWV 21", aliases=())
+    repo.load_work_catalog = lambda: [work]
+    data["items"][0].update(composer=None, title=quote(2, title), catalogue=quote(2, "FWV 21"), key=None)
+    key = save(repo, store, data)
+    result = module().publish(repo, store, None, "p1", key)
+    assert result["status"] == "no_eligible_items"
+    assert result["items"] == 0 and not repo.writes
 
 
 def test_apply_retains_ocr_provenance_and_checks_live_bytes(monkeypatch):
