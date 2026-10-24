@@ -344,14 +344,14 @@ def _distinctive_title(text: str) -> bool:
         r"\b(?:piano|violin|viola|cello|flute|clarinet|horn|keyboard|solo|strings|"
         r"sonata|concerto|symphony|quartet|quintet|trio|no|nr|in|for|and|the|major|minor|"
         r"variations?|waltz|prelude|etude|nocturne|minuet|adagio|allegro|andante|"
-        r"romance|romances|intermezzo|scherzo|overture|suite|pieces?|op|orchestra|"
+        r"romance|romances|intermezzo|scherzo|polonaises?|overture|suite|pieces?|op|orchestra|"
         r"fantasy|fantasia|fantaisie|fantasie|phantasy)\b",
         "",
         text,
     )
     text = re.sub(
         r"피아노|바이올린|비올라|첼로|플루트|협주곡|교향곡|소나타|사중주|오중주|삼중주|"
-        r"변주곡|왈츠|전주곡|연습곡|야상곡|미뉴에트|서곡|모음곡|작품|제|번",
+        r"변주곡|왈츠|전주곡|연습곡|야상곡|미뉴에트|폴로네즈|서곡|모음곡|작품|제|번",
         "",
         text,
     )

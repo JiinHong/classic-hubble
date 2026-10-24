@@ -445,7 +445,7 @@ describe("targeted detail queries", () => {
     vi.resetModules();
   });
 
-  function database(fail = false) {
+  function database(fail = false, observationProvider = "codex_vision") {
     const rows: Record<string, Record<string, unknown>[]> = {
       works: [
         {
@@ -480,7 +480,7 @@ describe("targeted detail queries", () => {
             {
               display_title: "Another work",
               position: 2,
-              source_provider: "codex_vision",
+              source_provider: observationProvider,
               confidence: 1,
               source_type: "official",
               works: { slug: "another" },
@@ -541,6 +541,16 @@ describe("targeted detail queries", () => {
       "kopis_performance_id",
       "PF123456",
     ]);
+  });
+
+  it("labels verified Paddle evidence without inventing an accuracy percentage", async () => {
+    database(false, "paddleocr");
+    const { getCatalogPerformanceById } = await import("./catalog");
+    const result = await getCatalogPerformanceById("PF123456");
+    expect(result.performance?.program[1].source).toMatchObject({
+      confidence: null,
+      label: "OCR 근거 확인",
+    });
   });
 
   it("reads a component and its related works, preserving parent names and all concert program items", async () => {
