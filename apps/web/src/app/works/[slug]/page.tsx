@@ -15,7 +15,7 @@ type WorkPageProps = {
 
 export default async function WorkPage({ params }: WorkPageProps) {
   const { slug } = await params;
-  const { performances, work } = await getCatalogWorkBySlug(slug);
+  const { performances, pastPerformances, work } = await getCatalogWorkBySlug(slug);
 
   if (!work) {
     notFound();
@@ -60,8 +60,11 @@ export default async function WorkPage({ params }: WorkPageProps) {
               </dd>
             </div>
             <div className="rounded-lg bg-stone-50 p-4">
-              <dt className="text-xs font-black text-stone-500">예정 공연</dt>
-              <dd className="mt-1 text-sm font-bold text-stone-950">{performances.length}건</dd>
+              <dt className="text-xs font-black text-stone-500">연결된 공연</dt>
+              <dd className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-sm font-bold text-stone-950">
+                <span>예정 {performances.length}건</span>
+                <span>과거·종료 {pastPerformances.length}건</span>
+              </dd>
             </div>
           </dl>
         </div>
@@ -84,21 +87,30 @@ export default async function WorkPage({ params }: WorkPageProps) {
 
       <WorkRelations work={work} />
 
-      <section className="mt-8">
-        <div className="mb-4">
-          <h2 className="text-2xl font-black tracking-normal text-stone-950">예정 공연</h2>
-          {!performances.length && <p className="mt-2 text-sm text-stone-500">현재 확인된 예정 공연이 없습니다.</p>}
-        </div>
-        <div className="grid gap-4 lg:grid-cols-2">
-          {performances.map((performance, index) => (
-            <PerformanceCard
-              eager={index === 0}
-              key={performance.id}
-              performance={performance}
-            />
-          ))}
-        </div>
-      </section>
+      {[
+        { id: "upcoming", title: "예정 공연", items: performances, empty: "현재 확인된 예정 공연이 없습니다." },
+        { id: "past", title: "과거·종료 공연", items: pastPerformances, empty: "연결된 과거·종료 공연이 없습니다." },
+      ].map((group) => (
+        <section aria-labelledby={`${group.id}-heading`} className="mt-8" key={group.id}>
+          <div className="mb-4">
+            <div className="flex flex-wrap items-baseline gap-2">
+              <h2 id={`${group.id}-heading`} className="text-2xl font-black tracking-normal text-stone-950">{group.title}</h2>
+              <span className="text-sm font-semibold tabular-nums text-stone-500">{group.items.length}건</span>
+            </div>
+            {!group.items.length && <p className="mt-2 text-sm text-stone-500">{group.empty}</p>}
+          </div>
+          <div className="grid gap-4 lg:grid-cols-2">
+            {group.items.map((performance, index) => (
+              <PerformanceCard
+                eager={index === 0 && (group.id === "upcoming" || !performances.length)}
+                key={performance.id}
+                performance={performance}
+                showYear
+              />
+            ))}
+          </div>
+        </section>
+      ))}
     </main>
   );
 }

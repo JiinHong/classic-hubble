@@ -432,9 +432,19 @@ async function readCatalogSnapshot(): Promise<CatalogSnapshot> {
 }
 
 export async function getCatalogWorkBySlug(slug: string) {
-  const selection = await getCatalogSelection([slug]);
+  const selection = await getCatalogSelection([slug], { includePast: true });
+  const performances = getUpcomingPerformancesFromList(selection.performances);
+  const upcomingIds = new Set(performances.map((performance) => performance.id));
+  const pastPerformances = selection.performances
+    .filter((performance) => !upcomingIds.has(performance.id))
+    .sort(
+      (a, b) =>
+        (b.endDate ?? b.date).localeCompare(a.endDate ?? a.date) ||
+        `${b.date} ${b.time}`.localeCompare(`${a.date} ${a.time}`),
+    );
   return {
-    performances: selection.performances,
+    performances,
+    pastPerformances,
     work: selection.works[0] ?? null,
   };
 }
@@ -466,7 +476,10 @@ for (const { parent_slug, child_slug } of workComponents) {
   }
 }
 
-export async function getCatalogSelection(slugs: string[]) {
+export async function getCatalogSelection(
+  slugs: string[],
+  { includePast = false }: { includePast?: boolean } = {},
+) {
   if (!slugs.length) return { works: [], performances: [] };
   const selected = new Set(slugs);
   const related = new Set(slugs);
@@ -511,7 +524,10 @@ export async function getCatalogSelection(slugs: string[]) {
       rows.push(...page);
       if (page.length < 1000) break;
     }
-    return getUpcomingPerformancesFromList(mapPerformances(rows));
+    const performances = mapPerformances(rows);
+    return includePast
+      ? performances
+      : getUpcomingPerformancesFromList(performances);
   };
   const [rows, performances] = await Promise.all([
     readWorks(),

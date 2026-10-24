@@ -11,12 +11,14 @@ import { ConfidenceBadge } from "./ConfidenceBadge";
 type PerformanceCardProps = {
   compact?: boolean;
   eager?: boolean;
+  showYear?: boolean;
   performance: Performance;
 };
 
 export function PerformanceCard({
   compact = false,
   eager = false,
+  showYear = false,
   performance,
 }: PerformanceCardProps) {
   const primaryProgram = performance.program[0];
@@ -70,7 +72,7 @@ export function PerformanceCard({
           <div className="flex items-center gap-2">
             <CalendarDays aria-hidden="true" className="size-4 text-emerald-700" />
             <dt className="sr-only">일시</dt>
-            <dd>{formatPerformanceDate(performance)}</dd>
+            <dd>{formatPerformanceDate(performance, showYear)}</dd>
           </div>
           <div className="flex items-center gap-2">
             <MapPin aria-hidden="true" className="size-4 text-sky-700" />
