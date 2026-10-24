@@ -41,6 +41,7 @@ FULL_NAME_TRANSLITERATIONS = {"가에타노도니제티": "gaetano donizetti"}
 VERIFIED_COMPOSER_NAME_FORMS = {
     "antonin dvorak": ("안토닌 드보르작",),
     "mikhail ivanovich glinka": ("Mikhail Glinka",),
+    "sergei rachmaninoff": ("Sergei Rachmaninov",),
 }
 GENERIC_TITLES = {
     "waltz",

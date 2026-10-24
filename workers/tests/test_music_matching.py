@@ -22,6 +22,23 @@ def matcher(works):
     return importlib.import_module(name).MusicMatcher(works)
 
 
+@pytest.mark.parametrize("composer", ["S. Rachmaninov", "S.Rachmaninov", "Sergei Rachmaninov", "Rachmaninov"])
+def test_publisher_verified_rachmaninov_form_retains_identity(composer):
+    work = CanonicalWork("r", "r", ("Piano Sonata No. 1 in D minor",), ("Sergei Rachmaninoff",), "Op.28")
+    assert matcher([work]).match("Piano Sonata No. 1 in d minor", composer, catalogue="Op.28").work_id == "r"
+
+
+@pytest.mark.parametrize("composer", ["A. Rachmaninov", "Rachmaninof", "S. Rachmaninof"])
+def test_rachmaninov_form_does_not_accept_wrong_initial_or_unverified_typo(composer):
+    work = CanonicalWork("r", "r", ("Piano Sonata No. 1 in D minor",), ("Sergei Rachmaninoff",), "Op.28")
+    assert matcher([work]).match("Piano Sonata No. 1 in d minor", composer, catalogue="Op.28").work_id is None
+
+
+def test_rachmaninov_alias_keeps_catalogue_conflicts_blocked():
+    work = CanonicalWork("r", "r", ("Piano Sonata No. 1 in D minor",), ("Sergei Rachmaninoff",), "Op.28")
+    assert matcher([work]).match(work.titles[0], "S.Rachmaninov", catalogue="Op.29").work_id is None
+
+
 @pytest.mark.parametrize("title", ["Allegro con brio", "IV. Finale", "4. Allegro con brio"])
 @pytest.mark.parametrize("composer", [None, "Ludwig van Beethoven"])
 def test_bare_movement_labels_do_not_identify_unrelated_component(title, composer):
