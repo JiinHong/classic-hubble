@@ -10,4 +10,10 @@ describe("PerformanceCard", () => {
 
     expect(screen.getByRole("img").getAttribute("loading")).toBe("eager");
   });
+
+  it("includes the year when requested without changing the concert link", () => {
+    render(<PerformanceCard showYear performance={{ ...performances[0], date: "2024-11-24", endDate: undefined }} />);
+    expect(screen.getByText(/2024년 11월 24일/)).toBeTruthy();
+    expect(screen.getByRole("link", { name: performances[0].title }).getAttribute("href")).toBe(`/performances/${performances[0].id}`);
+  });
 });

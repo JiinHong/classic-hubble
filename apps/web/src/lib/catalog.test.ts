@@ -440,6 +440,7 @@ describe("getCatalogSnapshot", () => {
 
 describe("targeted detail queries", () => {
   afterEach(() => {
+    vi.useRealTimers();
     mocks.configured.value = true;
     mocks.createSupabaseClient.mockReset();
     vi.resetModules();
@@ -499,7 +500,10 @@ describe("targeted detail queries", () => {
       const query = {
         select: vi.fn(() => query),
         order: vi.fn(() => query),
-        range: vi.fn(async () => result()),
+        range: vi.fn(async (start: number, end: number) => ({
+          ...result(),
+          data: filtered.slice(start, end + 1),
+        })),
         eq: vi.fn((column: string, value: string) => {
           filters.push([table, column, value]);
           filtered = filtered.filter((row) => row[column] === value);
@@ -523,7 +527,7 @@ describe("targeted detail queries", () => {
       return query;
     });
     mocks.createSupabaseClient.mockReturnValue({ from });
-    return { from, filters };
+    return { from, filters, rows };
   }
 
   it("reads only the requested performance, without loading the work catalog", async () => {
@@ -585,5 +589,60 @@ describe("targeted detail queries", () => {
     expect((await getCatalogPerformanceById("missing")).performance).toBeNull();
     database(true);
     await expect(getCatalogPerformanceById("PF123456")).rejects.toThrow();
+  });
+
+  it("splits work history from upcoming concerts without changing watchlist selections", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-10-23T15:30:00Z")); // October 24 in Seoul.
+    const { rows } = database();
+    const template = rows.performances[0];
+    rows.performances = [
+      { ...template, kopis_performance_id: "old", starts_at: "2024-11-24T07:00:00Z", status: "closed" },
+      { ...template, kopis_performance_id: "yesterday", starts_at: "2026-10-23T10:00:00Z", status: "open" },
+      { ...template, kopis_performance_id: "ongoing", starts_at: "2024-01-01T10:00:00Z", ends_on: "2026-10-24", status: "open" },
+      { ...template, kopis_performance_id: "today", starts_at: "2026-10-23T15:00:00Z" },
+      { ...template, kopis_performance_id: "tomorrow", starts_at: "2026-10-25T10:00:00Z" },
+      { ...template, kopis_performance_id: "cancelled", starts_at: "2026-11-01T10:00:00Z", status: "closed" },
+      { ...template, kopis_performance_id: "ended-series", starts_at: "2023-01-01T10:00:00Z", ends_on: "2026-10-22", status: "closed" },
+    ];
+    const { getCatalogWorkBySlug, getCatalogSelection } = await import("./catalog");
+    const detail = await getCatalogWorkBySlug("component-wikidata-q3565331-3");
+    expect(detail.performances.map((p) => p.id)).toEqual(["today", "tomorrow", "ongoing"]);
+    expect(detail.pastPerformances.map((p) => p.id)).toEqual(["cancelled", "yesterday", "ended-series", "old"]);
+    expect(detail.pastPerformances.at(-1)?.program).toHaveLength(2);
+    expect(detail.work?.upcomingPerformanceIds).toEqual(["today", "tomorrow", "ongoing"]);
+    const watchlist = await getCatalogSelection(["component-wikidata-q3565331-3"]);
+    expect(watchlist.performances).toEqual(detail.performances);
+    expect(watchlist).not.toHaveProperty("pastPerformances");
+  });
+
+  it("keeps linked history beyond the first API page without duplicating concerts", async () => {
+    const { rows } = database();
+    const template = rows.performances[0];
+    rows.performances = Array.from({ length: 1001 }, (_, i) => ({
+      ...template,
+      kopis_performance_id: `old-${i}`,
+      starts_at: "2024-11-24T07:00:00Z",
+      status: "closed",
+    }));
+    const { getCatalogWorkBySlug } = await import("./catalog");
+    const detail = await getCatalogWorkBySlug("component-wikidata-q3565331-3");
+    expect(detail.pastPerformances).toHaveLength(1001);
+    expect(new Set(detail.pastPerformances.map((p) => p.id)).size).toBe(1001);
+    expect(detail.performances).toEqual([]);
+  });
+
+  it("distinguishes empty or missing work history from a failed database query", async () => {
+    const { rows } = database();
+    rows.performances = [];
+    const { getCatalogWorkBySlug } = await import("./catalog");
+    expect(await getCatalogWorkBySlug("component-wikidata-q3565331-3")).toMatchObject({
+      performances: [], pastPerformances: [], work: { slug: "component-wikidata-q3565331-3" },
+    });
+    expect(await getCatalogWorkBySlug("missing")).toEqual({
+      performances: [], pastPerformances: [], work: null,
+    });
+    database(true);
+    await expect(getCatalogWorkBySlug("component-wikidata-q3565331-3")).rejects.toThrow();
   });
 });

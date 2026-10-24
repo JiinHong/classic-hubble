@@ -6,6 +6,7 @@ import type {
 
 export const formatPerformanceDate = (
   performance: Pick<Performance, "date" | "endDate" | "time">,
+  showYear = false,
 ) => {
   if (performance.endDate && performance.endDate !== performance.date) {
     return `${performance.date.replaceAll("-", ".")} ~ ${performance.endDate.replaceAll("-", ".")}`;
@@ -19,7 +20,7 @@ export const formatPerformanceDate = (
     timeZone: "UTC",
   }).format(date);
 
-  return `${formatted} ${performance.time}`;
+  return `${showYear ? `${year}년 ` : ""}${formatted} ${performance.time}`;
 };
 
 export const statusLabel = (status: Performance["status"]) =>

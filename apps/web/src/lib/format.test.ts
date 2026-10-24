@@ -17,6 +17,15 @@ describe("performance presentation", () => {
     expect(confidenceLabel(0.824)).toBe("82%");
   });
 
+  it("can include the year when displaying historical concerts", () => {
+    expect(formatPerformanceDate({ date: "2024-11-24", time: "16:00" }, true)).toBe(
+      "2024년 11월 24일 (일) 16:00",
+    );
+    expect(formatPerformanceDate({ date: "2024-11-24", endDate: "2024-11-25", time: "16:00" }, true)).toBe(
+      "2024.11.24 ~ 2024.11.25",
+    );
+  });
+
   it("explains each deterministic program publication state", () => {
     expect(programPublicationMessage("partially_confirmed")).toBe(
       "프로그램 일부 확인: 근거가 확인된 작품만 표시합니다.",
