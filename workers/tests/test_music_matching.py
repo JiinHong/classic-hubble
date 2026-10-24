@@ -22,6 +22,51 @@ def matcher(works):
     return importlib.import_module(name).MusicMatcher(works)
 
 
+@pytest.fixture
+def mazurka_collection_and_member():
+    collection = CanonicalWork("set", "set", ("Mazurkas, Op. 17",), ("Chopin",), "Op. 17", ("4 Mazurkas, Op. 17",))
+    member = CanonicalWork(
+        "member", "member", ("Mazurka no. 13 in A minor, op. 17 no. 4",),
+        ("Chopin",), None, ("Mazurkas, piano, op. 17. No. 4",),
+    )
+    return collection, member
+
+
+def test_collection_number_does_not_leak_from_member_alias(mazurka_collection_and_member):
+    assert matcher(mazurka_collection_and_member).match("4 Mazurkas", "Chopin", catalogue="Op.17").work_id == "set"
+
+
+def test_collection_without_collection_row_does_not_become_member(mazurka_collection_and_member):
+    assert matcher([mazurka_collection_and_member[1]]).match("4 Mazurkas", "Chopin", catalogue="Op.17").work_id is None
+
+
+def test_exact_member_from_primary_title_remains_matchable(mazurka_collection_and_member):
+    assert matcher(mazurka_collection_and_member).match("Mazurka in A minor", "Chopin", catalogue="Op.17 No.4", key="A minor").work_id == "member"
+
+
+@pytest.mark.parametrize("code", ["Op.17 No.3", "Op.18 No.4"])
+def test_primary_title_member_does_not_allow_different_number(mazurka_collection_and_member, code):
+    assert matcher([mazurka_collection_and_member[1]]).match("Mazurka", "Chopin", catalogue=code).work_id is None
+
+
+def test_member_guard_preserves_duplicate_collection_ambiguity(mazurka_collection_and_member):
+    collection, member = mazurka_collection_and_member
+    result = matcher([collection, member, replace(collection, id="duplicate")]).match("4 Mazurkas", "Chopin", catalogue="Op.17")
+    assert result.work_id is None
+    assert result.reason == "ambiguous"
+
+
+def test_member_guard_keeps_composer_conflicts_blocked(mazurka_collection_and_member):
+    assert matcher(mazurka_collection_and_member).match("4 Mazurkas", "Schumann", catalogue="Op.17").work_id is None
+
+
+def test_member_guard_does_not_promote_unreviewed_catalogue(mazurka_collection_and_member):
+    works = [replace(w, requires_review=True) for w in mazurka_collection_and_member]
+    result = matcher(works).match("4 Mazurkas", "Chopin", catalogue="Op.17")
+    assert result.work_id is None
+    assert result.reason == "catalog_review_required"
+
+
 @pytest.mark.parametrize("composer", ["S. Rachmaninov", "S.Rachmaninov", "Sergei Rachmaninov", "Rachmaninov"])
 def test_publisher_verified_rachmaninov_form_retains_identity(composer):
     work = CanonicalWork("r", "r", ("Piano Sonata No. 1 in D minor",), ("Sergei Rachmaninoff",), "Op.28")
