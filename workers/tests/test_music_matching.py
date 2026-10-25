@@ -84,6 +84,52 @@ def test_rachmaninov_alias_keeps_catalogue_conflicts_blocked():
     assert matcher([work]).match(work.titles[0], "S.Rachmaninov", catalogue="Op.29").work_id is None
 
 
+@pytest.fixture
+def tchaikovsky_violin_concerto():
+    return CanonicalWork(
+        "tchaikovsky-op35", "tchaikovsky-op35", ("Violin Concerto in D major",),
+        ("Pyotr Ilyich Tchaikovsky",), "Op.35",
+    )
+
+
+@pytest.mark.parametrize("composer", [
+    "Peter Ilyich Tchaikovsky", "PETER ILYICH TCHAIKOVSKY", "Pyotr Ilyich Tchaikovsky",
+])
+def test_publisher_verified_peter_tchaikovsky_form(composer, tchaikovsky_violin_concerto):
+    work = tchaikovsky_violin_concerto
+    assert matcher([work]).match(work.titles[0], composer, catalogue="Op.35").work_id == work.id
+
+
+@pytest.mark.parametrize("composer", ["Paul Ilyich Tchaikovsky", "Peter Ilyich Tchaikovskv", "A. I. Tchaikovsky"])
+def test_peter_tchaikovsky_form_rejects_unverified_names(composer, tchaikovsky_violin_concerto):
+    work = tchaikovsky_violin_concerto
+    assert matcher([work]).match(work.titles[0], composer, catalogue="Op.35").work_id is None
+
+
+@pytest.mark.parametrize("catalogue,key", [("Op.36", "D major"), ("Op.35", "D minor")])
+def test_peter_tchaikovsky_form_preserves_identity_conflicts(catalogue, key, tchaikovsky_violin_concerto):
+    work = tchaikovsky_violin_concerto
+    assert matcher([work]).match(
+        work.titles[0], "Peter Ilyich Tchaikovsky", catalogue=catalogue, key=key,
+    ).work_id is None
+
+
+def test_peter_tchaikovsky_form_preserves_duplicate_ambiguity(tchaikovsky_violin_concerto):
+    work = tchaikovsky_violin_concerto
+    result = matcher([work, replace(work, id="duplicate")]).match(
+        work.titles[0], "Peter Ilyich Tchaikovsky", catalogue="Op.35",
+    )
+    assert result.work_id is None
+    assert result.reason == "ambiguous"
+
+
+def test_peter_tchaikovsky_form_preserves_catalogue_review(tchaikovsky_violin_concerto):
+    work = replace(tchaikovsky_violin_concerto, requires_review=True)
+    result = matcher([work]).match(work.titles[0], "Peter Ilyich Tchaikovsky", catalogue="Op.35")
+    assert result.work_id is None
+    assert result.reason == "catalog_review_required"
+
+
 @pytest.mark.parametrize("title", ["Allegro con brio", "IV. Finale", "4. Allegro con brio"])
 @pytest.mark.parametrize("composer", [None, "Ludwig van Beethoven"])
 def test_bare_movement_labels_do_not_identify_unrelated_component(title, composer):
