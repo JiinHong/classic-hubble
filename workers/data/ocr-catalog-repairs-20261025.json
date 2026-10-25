@@ -1,0 +1,21 @@
+{
+  "repairs": [
+    {
+      "slug": "reviewed-liszt-transcendental-etudes-s139",
+      "composer": "Franz Liszt",
+      "new": true,
+      "title": "Transcendental Studies",
+      "title_ko": null,
+      "catalogue": "S. 139",
+      "aliases": [
+        "Transcendental Etudes",
+        "Transcendental Études",
+        "Études d’exécution transcendante"
+      ],
+      "source_url": "https://www.henle.de/us/Transcendental-Studies/HN-717",
+      "corroboration_url": "https://www.deutschegrammophon.com/en/catalogue/products/transcendental-trifonov-plays-liszt-2643",
+      "verified_at": "2026-10-25",
+      "reason": "Henle HN717 identifies Liszt's 1852 collection of twelve piano studies; Deutsche Grammophon identifies the collection as Etudes d'execution transcendante S.139, separately from S.141, S.144 and S.145. Existing catalogue contains the individual studies but lacks this complete collection. Add only the collection; preserve existing member identities. OCR source 0c6af264 explicitly advertises the complete set."
+    }
+  ]
+}
