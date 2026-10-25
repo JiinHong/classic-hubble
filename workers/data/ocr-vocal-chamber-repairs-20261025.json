@@ -1,0 +1,56 @@
+{
+  "repairs": [
+    {
+      "slug": "reviewed-schumann-dichterliebe-op48",
+      "composer": "Robert Schumann",
+      "new": true,
+      "title": "Dichterliebe",
+      "title_ko": null,
+      "catalogue": "Op. 48",
+      "aliases": ["Dichterliebe, Op. 48"],
+      "source_url": "https://www.henle.de/de/Dichterliebe-op.-48/HN-549",
+      "corroboration_url": "https://www.e-rara.ch/mab/content/titleinfo/30064158",
+      "verified_at": "2026-10-25",
+      "reason": "Henle HN549 and the Basel library's digitized Peters score identify Robert Schumann's voice-and-piano song cycle Op.48. Add the complete cycle, not one of its songs or the four omitted songs printed as an appendix. Existing OCR source 118c3076 names Dichterliebe Op.48 without an excerpt restriction. Canonical DB has no corresponding title, alias or catalogue entry."
+    },
+    {
+      "slug": "reviewed-bruckner-locus-iste-wab23",
+      "composer": "Anton Bruckner",
+      "new": true,
+      "title": "Locus iste",
+      "title_ko": null,
+      "catalogue": "WAB 23",
+      "aliases": ["Locus iste, WAB 23"],
+      "source_url": "https://www.carus-verlag.com/musiknoten-und-aufnahmen/anton-bruckner-locus-iste-305820.html",
+      "corroboration_url": "https://api-brucknerlex.acdh.oeaw.ac.at/article/d1e9284",
+      "verified_at": "2026-10-25",
+      "reason": "Carus and the Austrian Academy Bruckner lexicon identify Locus iste as the C-major SATB a-cappella motet WAB23. Existing OCR source 0db56c91 explicitly names A. Bruckner and Locus iste in its current choral programme. No corresponding canonical title/alias/catalogue exists; do not identify instrumental arrangements with this original choral work."
+    },
+    {
+      "slug": "reviewed-schubert-der-tanz-d826",
+      "composer": "Franz Schubert",
+      "new": true,
+      "title": "Der Tanz",
+      "title_ko": null,
+      "catalogue": "D 826",
+      "aliases": ["Der Tanz, D 826"],
+      "source_url": "https://schubert-online.at/activpage/werke_einzelansicht.php?herkunft=gattungeinzelansicht&lang=E&top=1&werke_id=42",
+      "corroboration_url": "https://www.breitkopf.com/assets/haendler/samples/9790004412589.pdf",
+      "verified_at": "2026-10-25",
+      "reason": "Schubert-Online's autograph record identifies Der Tanz D826 for SATB voices and piano, corroborated by Breitkopf's choral edition. Add this named vocal composition, not a generic piano dance. Source 0db56c91 pairs Der Tanz with F.Schubert in a current choral programme; no matching canonical title/alias/catalogue exists."
+    },
+    {
+      "slug": "reviewed-widor-flute-suite-op34",
+      "composer": "Charles-Marie Widor",
+      "new": true,
+      "title": "Suite for Flute and Piano",
+      "title_ko": null,
+      "catalogue": "Op. 34",
+      "aliases": ["Suite op. 34 for Flute and Piano", "Suite für Flöte und Klavier"],
+      "source_url": "https://www.henle.de/de/Suite-op.-34-fuer-Floete-und-Klavier/HN-1218",
+      "corroboration_url": "https://www.halleonard.com/product/51481218/suite-op-34",
+      "verified_at": "2026-10-25",
+      "reason": "Henle HN1218 and Hal Leonard identify Widor's four-movement Op.34 suite for flute and piano. Source 06844837 explicitly pairs C.M.Widor with Suite for Flute and Piano without selecting a movement. Add only the complete flute-and-piano suite, not a violin suite or an orchestral transcription. No matching canonical title/alias/catalogue exists."
+    }
+  ]
+}

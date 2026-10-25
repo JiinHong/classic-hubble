@@ -130,6 +130,25 @@ def test_peter_tchaikovsky_form_preserves_catalogue_review(tchaikovsky_violin_co
     assert result.reason == "catalog_review_required"
 
 
+@pytest.mark.parametrize("title", ["Suite for Violin and Piano", "Violin Suite", "바이올린 모음곡", "Suite for Piano"])
+def test_suite_catalogue_does_not_override_explicit_instrument_conflict(title):
+    work = CanonicalWork("w", "w", ("Suite for Flute and Piano",), ("Charles-Marie Widor",), "Op.34")
+    assert matcher([work]).match(title, "C.M.Widor", catalogue="Op.34").work_id is None
+
+
+@pytest.mark.parametrize("title", ["Suite for Flute and Piano", "Flute Suite", "플루트 모음곡", "Suite"])
+def test_suite_instrument_guard_allows_agreement_or_omission(title):
+    work = CanonicalWork("w", "w", ("Suite for Flute and Piano",), ("Charles-Marie Widor",), "Op.34")
+    assert matcher([work]).match(title, "C.M.Widor", catalogue="Op.34").work_id == "w"
+
+
+def test_suite_instrument_guard_uses_primary_title_not_conflicting_alias():
+    work = CanonicalWork(
+        "w", "w", ("Suite for Flute and Piano",), ("Charles-Marie Widor",), "Op.34", ("Violin Suite",),
+    )
+    assert matcher([work]).match("Violin Suite", "C.M.Widor", catalogue="Op.34").work_id is None
+
+
 @pytest.mark.parametrize("title", ["Allegro con brio", "IV. Finale", "4. Allegro con brio"])
 @pytest.mark.parametrize("composer", [None, "Ludwig van Beethoven"])
 def test_bare_movement_labels_do_not_identify_unrelated_component(title, composer):
