@@ -3,13 +3,13 @@
 import re
 from datetime import date
 
-DATE_BINDING_VERSION = "concert-date-headings-v5"
+DATE_BINDING_VERSION = "concert-date-headings-v6"
 _DATE = re.compile(
     r"(?:(20\d{2})\s*[./년]\s*)?(\d{1,2})\s*[./월]\s*(\d{1,2})(?!\d)"
 )
 _ENGLISH_DAY = (
     r"(?:Mon(?:day)?|Tue(?:s(?:day)?)?|Wed(?:nesday)?|Thu(?:r(?:s(?:day)?)?)?"
-    r"|Fri(?:day)?|Sat(?:urday)?|Sun(?:day)?|TUR)"
+    r"|Fri(?:day)?|Sat(?:urday)?|Sun(?:day)?|TH|TUR)"
 )
 _DAY = rf"(?:[월화수목금토일](?:요일)?|{_ENGLISH_DAY})"
 _SUFFIX = re.compile(
@@ -19,9 +19,13 @@ _SUFFIX = re.compile(
 _CONTINUATION = re.compile(r"(?:&|~|[-–—]|,|및|부터)\s*(?=\d)")
 _WEEKDAYS = {day: index for index, day in enumerate(("mon", "tue", "wed", "thu", "fri", "sat", "sun"))}
 _WEEKDAYS.update({day: index for index, day in enumerate("월화수목금토일")})
+_WEEKDAYS["th"] = 3
 _CLOCK_ONLY = re.compile(
     r"\s*(?:\d{1,2}:\d{2}(?:\s*(?:AM|PM))?|\d{1,2}\s*(?:AM|PM))?\s*",
     re.IGNORECASE,
+)
+_FULL_DATE_CLOCK = re.compile(
+    r"(20\d{2})\s*\.\s*(\d{1,2})\s*\.\s*(\d{1,2})\s*\.\s*(\d{1,2}):(\d{2})"
 )
 
 
@@ -29,6 +33,14 @@ def _wrapped_headings(lines):
     """Recognize adjacent date/weekday lines without changing source evidence."""
     for index, line in enumerate(lines):
         stripped = line.strip()
+        if _FULL_DATE_CLOCK.fullmatch(stripped) and index + 1 < len(lines):
+            following = lines[index + 1]
+            suffix = _SUFFIX.match(following)
+            if suffix:
+                # This extra layout is unsupported; keep the weekday visible
+                # to validation instead of accepting a possible contradiction.
+                yield stripped + " " + following.strip()
+                continue
         match = _DATE.match(stripped)
         if (
             match and match[1] and stripped[match.end():].strip() in {"", ".", "일"}
@@ -53,6 +65,16 @@ def _line_dates(line, fallback_year):
             raise ValueError("Incomplete date heading")
         suffix = _SUFFIX.match(remaining, match.end())
         if not suffix:
+            # Observed poster form 2024.08.30.19:00 has an explicit year and
+            # clock, but no weekday. Never infer missing parts or ignore tails.
+            clock = _FULL_DATE_CLOCK.fullmatch(remaining)
+            if clock:
+                year, month, day, hour, minute = map(int, clock.groups())
+                date(year, month, day)
+                if hour > 23 or minute > 59:
+                    raise ValueError("Invalid heading clock")
+                found.add((year, month, day))
+                return found, invalid
             raise ValueError("Unsupported date heading")
         year, month, day = (int(value) if value else None for value in match.groups())
         effective_year = year or fallback_year

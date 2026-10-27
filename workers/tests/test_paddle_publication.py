@@ -171,6 +171,19 @@ def test_low_score_date_does_not_bind():
     assert module().publish(repo, store, None, "p1", key)["status"] == "date_binding_required"
 
 
+@pytest.mark.parametrize("score,expected", [(.99, "published"), (.89, "date_binding_required"), (None, "date_binding_required")])
+def test_full_date_clock_retains_quality_and_version_contract(score, expected, monkeypatch):
+    repo, store, data = setup(lambda d: d["lines"][-1].update(text="2026.10.22.19:30", score=score))
+    key = save(repo, store, data)
+    monkeypatch.setattr(module(), "download_source", lambda *_: (store.original, "image/png"))
+    assert module().publish(repo, store, None, "p1", key, apply=True)["status"] == expected
+    if repo.writes:
+        assert repo.writes[0]["p_evaluation"]["date_binding_version"] == "concert-date-headings-v6"
+        assert repo.writes[0]["p_evaluation"]["performance_date"] == "2026-10-22"
+    else:
+        assert expected == "date_binding_required"
+
+
 def test_fabricated_quote_is_rejected_before_review_storage():
     repo, store, data = setup()
     data["items"][0]["catalogue"][0]["quote"] = "Op. 99"
