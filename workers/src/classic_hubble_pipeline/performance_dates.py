@@ -3,7 +3,7 @@
 import re
 from datetime import date
 
-DATE_BINDING_VERSION = "concert-date-headings-v6"
+DATE_BINDING_VERSION = "concert-date-headings-v7"
 _DATE = re.compile(
     r"(?:(20\d{2})\s*[./년]\s*)?(\d{1,2})\s*[./월]\s*(\d{1,2})(?!\d)"
 )
@@ -13,7 +13,7 @@ _ENGLISH_DAY = (
 )
 _DAY = rf"(?:[월화수목금토일](?:요일)?|{_ENGLISH_DAY})"
 _SUFFIX = re.compile(
-    rf"\s*[.일]?\s*(?:\(\s*({_DAY})\s*\)|\[\s*({_DAY})\s*\]|({_DAY})\b)",
+    rf"\s*[.일]?\s*(?:\(\s*({_DAY})\s*\)|\[\s*({_DAY})\s*\]|({_DAY})(?:\b|(?=\d{{1,2}}:\d{{2}})))",
     re.IGNORECASE,
 )
 _CONTINUATION = re.compile(r"(?:&|~|[-–—]|,|및|부터)\s*(?=\d)")
@@ -26,6 +26,10 @@ _CLOCK_ONLY = re.compile(
 )
 _FULL_DATE_CLOCK = re.compile(
     r"(20\d{2})\s*\.\s*(\d{1,2})\s*\.\s*(\d{1,2})\s*\.\s*(\d{1,2}):(\d{2})"
+)
+_JOINED_CLOCK = re.compile(
+    r"(\d{1,2}):(\d{2})(?:\s*(AM|PM))?(?!\s*(?:AM|PM))(?=\s|$|[&~,-])",
+    re.IGNORECASE,
 )
 
 
@@ -85,6 +89,13 @@ def _line_dates(line, fallback_year):
             invalid = True
         found.add((year, month, day))
         tail = remaining[suffix.end():]
+        if suffix[3] and tail[:1].isdigit():
+            clock = _JOINED_CLOCK.match(tail)
+            if not clock:
+                raise ValueError("Invalid joined heading clock")
+            hour, minute = int(clock[1]), int(clock[2])
+            if hour > 23 or minute > 59 or (clock[3] and not 1 <= hour <= 12):
+                raise ValueError("Invalid joined heading clock")
         continuation = _CONTINUATION.search(tail)
         prefix = tail[:continuation.start()] if continuation else tail
         if _DATE.search(prefix):
