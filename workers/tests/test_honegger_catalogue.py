@@ -33,7 +33,7 @@ def test_h_catalogue_keeps_wrong_codes_and_unhandled_suffixes_unmatched(catalogu
     ).work_id is None
 
 
-@pytest.mark.parametrize('suffix', ['.2', '/2', '-43'])
+@pytest.mark.parametrize('suffix', ['.2', '/2', '-43', ' A', ' B'])
 def test_h_in_title_does_not_drop_member_or_range(suffix):
     assert MusicMatcher([SONATINE]).match(
         SONATINE.titles[0] + ' H42' + suffix, 'Arthur Honegger',

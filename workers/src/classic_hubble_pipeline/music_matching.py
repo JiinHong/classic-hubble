@@ -503,6 +503,7 @@ class MusicMatcher:
         if any(
             re.match(r"\s*[-–—/,]\s*\d", title[m.end() :])
             or (_scheme(_catalogue_key(m[0])) in {"wab", "fwv", "cd", "h"} and re.match(r"\.\s*\d", title[m.end() :]))
+            or (_scheme(_catalogue_key(m[0])) == "h" and re.match(r"\s+[A-Za-z]\b", title[m.end() :]))
             for m in CATALOGUE.finditer(title)
         ):
             return WorkMatch(None, (), "complex_catalogue")
