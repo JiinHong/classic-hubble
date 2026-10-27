@@ -14,6 +14,10 @@ CASES = [
     ("F-Dur", "F major", "f:major"),
     ("As-Dur", "A flat major", "ab:major"),
     ("f-moll", "F minor", "f:minor"),
+    ("h-moll", "B minor", "b:minor"),
+    ("H-Dur", "B major", "b:major"),
+    ("E-Dur", "E major", "e:major"),
+    ("C-Dur", "C major", "c:major"),
 ]
 
 
@@ -36,7 +40,7 @@ def test_recognized_german_key_cannot_override_conflicting_mode(printed, english
     assert MusicMatcher([work]).match("Klaviersonate", "Composer", catalogue="Op.11", key=printed).work_id is None
 
 
-@pytest.mark.parametrize("printed", ["fisis-Moll", "cis-Mol", "Es-D", "H-Dur", "B-D", "abcfis-Moll", "asas-Dur", "abg-moll"])
+@pytest.mark.parametrize("printed", ["fisis-Moll", "cis-Mol", "Es-D", "H-D", "B-D", "abcfis-Moll", "asas-Dur", "abg-moll", "Hisis-Moll", "abH-Dur"])
 def test_unverified_or_malformed_german_spelling_stays_unresolved(printed):
     work = CanonicalWork("w", "w", ("Piano Sonata in F sharp minor",), ("Composer",), "Op.11")
     result = MusicMatcher([work]).match("Klaviersonate", "Composer", catalogue="Op.11", key=printed)
@@ -61,6 +65,30 @@ def test_german_b_dur_never_means_english_b_natural():
     result = MusicMatcher([work]).match("Partita", "Bach", catalogue="BWV825", key="B-Dur")
     assert result.work_id is None and result.reason == "no_candidate"
     assert _keys("B-Dur") != _keys("B major")
+
+
+def test_liszt_h_moll_source_does_not_mean_b_flat_minor():
+    work = CanonicalWork("liszt-sonata", "liszt-sonata", ("Piano Sonata in B minor",), ("F. Liszt",), "S.178")
+    matcher = MusicMatcher([work])
+    result = matcher.match("Piano Sonata in h-moll", "F. Liszt", catalogue="S.178", key="h-moll")
+    assert result.work_id == work.id
+    assert matcher.match("Piano Sonata in b-moll", "F. Liszt", catalogue="S.178", key="b-moll").work_id is None
+    assert matcher.match("Piano Sonata in B flat minor", "F. Liszt", catalogue="S.178", key="h-moll").reason == "conflicting_keys"
+
+
+@pytest.mark.parametrize("printed,english", [("g-minor", "G minor"), ("e-minor", "E minor"), ("b-minor", "B minor"), ("E-flat-major", "E flat major")])
+def test_hyphenated_english_mode_separator_preserves_accidentals(printed, english):
+    assert _keys(printed) == _keys(english)
+    work = CanonicalWork("w", "w", ("Flute Sonata in " + english,), ("Composer",), "Op.11")
+    match = MusicMatcher([work]).match("Flute Sonata", "Composer", catalogue="Op.11", key=printed)
+    assert match.work_id == "w"
+    assert _keys("b-minor") != _keys("b-moll")
+
+
+@pytest.mark.parametrize("printed", ["e--minor", "e-flat--minor", "ec-minor", "c-D", "Cis-D"])
+def test_hyphen_changes_do_not_accept_damaged_keys(printed):
+    work = CanonicalWork("w", "w", ("Flute Sonata in E minor",), ("Composer",), "Op.11")
+    assert MusicMatcher([work]).match("Flute Sonata", "Composer", catalogue="Op.11", key=printed).work_id is None
 
 
 def test_b_flat_and_b_natural_in_one_reference_remain_conflicting():

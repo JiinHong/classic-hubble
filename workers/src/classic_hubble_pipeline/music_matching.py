@@ -17,17 +17,17 @@ from .work_matching import (
 )
 
 # Additional schemes require grounded evidence, not legacy ingestion or import.
-CATALOGUE = re.compile(LEGACY_CATALOGUE.pattern + r"|\b(?:WAB|FWV)\.?\s*\d+\b", re.IGNORECASE)
+CATALOGUE = re.compile(LEGACY_CATALOGUE.pattern + r"|\b(?:WAB|FWV|CD|H)\.?\s*\d+\b", re.IGNORECASE)
 LIFESPAN = re.compile(r"\(?\b\d{4}\s*[-–—~]\s*\d{4}\b\)?")
 LATIN_NOTE_KEY = re.compile(
-    r"(?<![a-z])(?:in\s*)?([a-g])\s*([- ]?(?:flat|sharp)|[b#♭♯])?\s*(major|minor|장조|단조)\b",
+    r"(?<![a-z])(?:in\s*)?([a-g])\s*([-\u2013 ]?(?:flat|sharp)|[b#♭♯])?\s*-?\s*(major|minor|장조|단조)\b",
     re.IGNORECASE,
 )
 KOREAN_KEY = re.compile(r"(내림|올림)?\s*([가나다라마바사]|[A-Ga-g][b#♭♯]?)\s*(장|단)조")
 KOREAN_NOTES = dict(zip("다라마바사가나", "cdefgab"))
 # Observed in recital programs and confirmed against bilingual publisher titles.
-GERMAN_NOTES = {"es": "eb", "cis": "c#", "fis": "f#", "b": "bb", "g": "g", "f": "f", "as": "ab"}
-GERMAN_NOTE_KEY = re.compile(r"(?<!\w)(es|cis|fis|b|g|f|as)\s*-\s*(dur|moll)\b", re.IGNORECASE)
+GERMAN_NOTES = {"es": "eb", "cis": "c#", "fis": "f#", "b": "bb", "h": "b", "g": "g", "f": "f", "as": "ab", "e": "e", "c": "c"}
+GERMAN_NOTE_KEY = re.compile(r"(?<!\w)(es|cis|fis|b|h|g|f|as|e|c)\s*-\s*(dur|moll)\b", re.IGNORECASE)
 QUALIFIED_STRAUSS_NAMES = {
     "johann strauss i": 1,
     "johann strauss ii": 2,
@@ -42,8 +42,11 @@ VERIFIED_COMPOSER_NAME_FORMS = {
     "antonin dvorak": ("안토닌 드보르작",),
     "mikhail ivanovich glinka": ("Mikhail Glinka",),
     # https://www.boosey.de/composer/Pyotr+Tchaikovsky
-    "pyotr ilyich tchaikovsky": ("Peter Ilyich Tchaikovsky",),
+    # https://www.ballet.org.uk/blog/pyotr-tchaikovsky-the-man-behind-the-music/
+    "pyotr ilyich tchaikovsky": ("Peter Ilyich Tchaikovsky", "Pyotr Tchaikovsky"),
     "sergei rachmaninoff": ("Sergei Rachmaninov",),
+    # https://www.harmoniamundi.com/wp-content/uploads/pdf/prokofiev-piano-sonatas-2-en.pdf
+    "sergei prokofiev": ("Sergey Prokofiev",),
 }
 GENERIC_TITLES = {
     "waltz",
@@ -55,6 +58,7 @@ GENERIC_TITLES = {
     "concerto",
     "협주곡",
     "prelude",
+    "preludes",
     "전주곡",
     "etude",
     "연습곡",
@@ -100,7 +104,7 @@ def _keys(text: str) -> frozenset[str]:
         )
     # Consume Korean accidentals first so "내림B장조" is not also read as B natural.
     for note, accidental, mode in LATIN_NOTE_KEY.findall(KOREAN_KEY.sub(" ", text)):
-        modifier = accidental.strip("- ").lower()
+        modifier = accidental.strip("- \u2013").lower()
         modifier = "b" if modifier in {"flat", "b", "♭"} else "#" if modifier else ""
         mode = {"장조": "major", "단조": "minor"}.get(mode, mode.lower())
         result.add(note.lower() + modifier + ":" + mode)
@@ -142,7 +146,8 @@ def _title_key(text: str) -> str:
 
 def _catalogue_ocr(text: str) -> str:
     # Only the known Op. prefix is repaired; catalogue digits remain evidence.
-    return re.sub(r"(?<!\w)0p(?=\.?\s*\d)", "Op", text, flags=re.IGNORECASE)
+    text = re.sub(r"(?<!\w)0p(?=\.?\s*\d)", "Op", text, flags=re.IGNORECASE)
+    return re.sub(r"(?<!\w)op,(?=\s*\d)", "Op.", text, flags=re.IGNORECASE)
 
 
 def _scoped_titles(text: str) -> frozenset[str]:
@@ -344,12 +349,17 @@ def _distinctive_title(text: str) -> bool:
     """Require lexical identity, not just a genre, instrument, tempo or number."""
     if _bare_movement_label(text):
         return False
+    if _normalize(text) == "ensemble":
+        return False
+    if re.fullmatch(r"part\s+(?:[ivxlcdm]+|\d+)", _normalize(text)):
+        return False
     text = LATIN_NOTE_KEY.sub("", KOREAN_KEY.sub("", CATALOGUE.sub("", text)))
     text = _normalize(text)
     text = re.sub(
         r"\b(?:piano|violin|viola|cello|flute|clarinet|horn|keyboard|solo|strings|"
         r"sonata|concerto|symphony|quartet|quintet|trio|no|nr|in|for|and|the|major|minor|"
-        r"variations?|waltz|prelude|etude|nocturne|minuet|adagio|allegro|andante|"
+        r"variations?|waltz|preludes?|etude|nocturne|minuet|adagio|allegro|andante|"
+        r"lento|largo|semplice|moderato|allegretto|grazioso|con|moto|rondo|ma|non|troppo|"
         r"romance|romances|intermezzo|scherzo|polonaises?|overture|suite|pieces?|op|orchestra|"
         r"fantasy|fantasia|fantaisie|fantasie|phantasy)\b",
         "",
@@ -492,7 +502,8 @@ class MusicMatcher:
             return WorkMatch(None, (), "unsupported_catalogue")
         if any(
             re.match(r"\s*[-–—/,]\s*\d", title[m.end() :])
-            or (m[0].lower().startswith(("wab", "fwv")) and re.match(r"\.\s*\d", title[m.end() :]))
+            or (_scheme(_catalogue_key(m[0])) in {"wab", "fwv", "cd", "h"} and re.match(r"\.\s*\d", title[m.end() :]))
+            or (_scheme(_catalogue_key(m[0])) == "h" and re.match(r"\s+[A-Za-z]\b", title[m.end() :]))
             for m in CATALOGUE.finditer(title)
         ):
             return WorkMatch(None, (), "complex_catalogue")
