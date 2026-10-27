@@ -39,6 +39,8 @@ QUALIFIED_STRAUSS_NAMES = {
 FULL_NAME_TRANSLITERATIONS = {"가에타노도니제티": "gaetano donizetti"}
 # Publisher/venue-backed forms; never infer omitted personal names or OCR typos.
 VERIFIED_COMPOSER_NAME_FORMS = {
+    # https://guides.loc.gov/schubert
+    "franz schubert": ("Franz Peter Schubert",),
     "antonin dvorak": ("안토닌 드보르작",),
     "mikhail ivanovich glinka": ("Mikhail Glinka",),
     # https://www.boosey.de/composer/Pyotr+Tchaikovsky

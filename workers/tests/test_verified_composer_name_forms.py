@@ -12,6 +12,35 @@ GLINKA = CanonicalWork(
     "glinka", "glinka", ("Grand Sextet in E flat major",),
     ("Mikhail Ivanovich Glinka", "미하일 글린카"), None,
 )
+SCHUBERT = CanonicalWork(
+    "schubert-silvia", "schubert-silvia", ("An Silvia",),
+    ("Franz Schubert", "프란츠 슈베르트"), "D. 891",
+)
+
+
+@pytest.mark.parametrize("composer", ["F.P. Schubert", "F. P. Schubert", "Franz Peter Schubert"])
+def test_verified_schubert_middle_name_matches_observed_song(composer):
+    assert MusicMatcher([SCHUBERT]).match("An Silvia", composer).work_id == "schubert-silvia"
+
+
+@pytest.mark.parametrize("composer", ["F. A. Schubert", "Franz Paul Schubert", "A. P. Schubert"])
+def test_schubert_unverified_middle_names_and_initials_stay_unlinked(composer):
+    assert MusicMatcher([SCHUBERT]).match("An Silvia", composer).work_id is None
+
+
+def test_schubert_alias_does_not_expand_other_composer_identities():
+    other = CanonicalWork("other", "other", SCHUBERT.titles, ("Franz Paul Schubert",), "D.891")
+    assert MusicMatcher([other]).match("An Silvia", "Franz Peter Schubert").work_id is None
+
+
+def test_schubert_alias_does_not_override_catalogue_conflict():
+    assert MusicMatcher([SCHUBERT]).match("An Silvia", "F.P. Schubert", catalogue="D.547").work_id is None
+
+
+def test_schubert_alias_does_not_override_conflicting_composer():
+    other = CanonicalWork("brahms", "brahms", ("Symphony No.4",), ("Johannes Brahms",), "Op.98")
+    result = MusicMatcher([SCHUBERT, other]).match("An Silvia", "F.P. Schubert Johannes Brahms")
+    assert result.work_id is None
 
 
 @pytest.mark.parametrize("composer", ["드보르작", "안토닌 드보르작", "안토닌드보르작"])
