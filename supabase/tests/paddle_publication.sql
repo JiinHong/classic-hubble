@@ -7,6 +7,7 @@ declare
   src jsonb; oc jsonb; rv jsonb; ev jsonb; target jsonb; items jsonb; result jsonb;
   ref jsonb := '{"context":"program","scope":"full_work","composer":[{"line_id":"L000001","quote":"Test composer"}],"title":[{"line_id":"L000002","quote":"Test work"}],"catalogue":null,"key":null,"movements":[]}';
   key text := 'paddle-test-' || pid::text;
+  date_version text;
 begin
   if to_regprocedure('public.publish_paddle_program(uuid,jsonb,jsonb,jsonb,jsonb,jsonb,jsonb)') is null then
     raise exception 'TEST: Paddle publication RPC is missing';
@@ -33,6 +34,20 @@ begin
   result := public.publish_paddle_program(pid,target,src,oc,rv,ev,items);
   if result->>'status' <> 'unchanged' then raise exception 'TEST: not idempotent'; end if;
   if (select count(*) from public.program_items where performance_id=pid) <> 1 then raise exception 'TEST: duplicate rows'; end if;
+  -- Version updates must not weaken normalized date, warning, or saved-evidence checks.
+  result := public.publish_paddle_program(pid,target,src,oc,rv,
+    jsonb_set(ev,'{date_binding_version}','"concert-date-headings-v6"'),items);
+  if result->>'status' <> 'unchanged' then raise exception 'TEST: v6 contract not accepted'; end if;
+  foreach date_version in array array['', 'concert-date-headings-v4', 'concert-date-headings-v7'] loop
+    begin
+      perform public.publish_paddle_program(pid,target,src,oc,rv,
+        jsonb_set(ev,'{date_binding_version}',to_jsonb(date_version)),items);
+      raise exception 'TEST: invalid date version accepted';
+    exception when others then
+      if sqlerrm <> 'Incomplete Paddle publication evidence' then raise; end if;
+    end;
+  end loop;
+  ev := jsonb_set(ev,'{date_binding_version}','"concert-date-headings-v6"');
   begin
     perform public.publish_paddle_program(pid,target,src,oc,rv,jsonb_set(ev,'{performance_date}','"2026-10-23"'),items);
     raise exception 'TEST: accepted wrong date';
