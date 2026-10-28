@@ -3,9 +3,10 @@
 import re
 from datetime import date
 
-DATE_BINDING_VERSION = "concert-date-headings-v9"
+DATE_BINDING_VERSION = "concert-date-headings-v10"
 _DATE = re.compile(
-    r"(?:(20\d{2})\s*[./년]\s*)?(\d{1,2})\s*[./월]\s*(\d{1,2})(?!\d)"
+    r"(?:(20\d{2})(?:\s*[./년]\s*|(?=\d{2}[./월])))?"
+    r"(\d{1,2})\s*[./월]\s*(\d{1,2})(?!\d)"
 )
 _ENGLISH_DAY = (
     r"(?:Mon(?:day)?|Tue(?:s(?:day)?)?|Wed(?:nesday)?|Thu(?:r(?:s(?:day)?)?)?"
@@ -25,7 +26,8 @@ _CLOCK_ONLY = re.compile(
     re.IGNORECASE,
 )
 _FULL_DATE_CLOCK = re.compile(
-    r"(20\d{2})\s*\.\s*(\d{1,2})\s*\.\s*(\d{1,2})(?:\s*\.\s*|\s+)"
+    r"(20\d{2})\s*\.\s*(\d{1,2})\s*\.\s*(\d{1,2})"
+    r"(?:\s*\.\s*|\s+|\s*\.?\s*\(\s*\)\s*)"
     r"(\d{1,2})(?::(\d{2}))?(?:\s*(AM|PM))?",
     re.IGNORECASE,
 )
