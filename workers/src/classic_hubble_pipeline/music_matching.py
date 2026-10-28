@@ -503,6 +503,10 @@ class MusicMatcher:
         key: str | None = None,
         scoped: bool = False,
     ) -> WorkMatch:
+        prefix, separator, body = title.partition(" - ")
+        # Some grounded OCR titles repeat the separately supplied composer.
+        if separator and body.strip() and composer and _normalize(prefix) == _normalize(composer):
+            title = body.strip()
         title = _catalogue_ocr(title)
         catalogue = _catalogue_ocr(catalogue) if catalogue else None
         untyped = re.fullmatch(r"작품\s*(?:번호\s*)?(\d+)", (catalogue or "").strip())
