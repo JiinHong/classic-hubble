@@ -3,7 +3,7 @@
 import re
 from datetime import date
 
-DATE_BINDING_VERSION = "concert-date-headings-v11"
+DATE_BINDING_VERSION = "concert-date-headings-v12"
 _EVENT_DATE_LABEL = re.compile(r"^\s*일\s*시\s*[:：|]?\s*(?=20\d{2})")
 _DATE = re.compile(
     r"(?:(20\d{2})(?:\s*[./년]\s*|(?=\d{2}[./월])))?"
@@ -36,6 +36,27 @@ _JOINED_CLOCK = re.compile(
     r"(\d{1,2}):(\d{2})(?:\s*(AM|PM))?(?!\s*(?:AM|PM))(?=\s|$|[&~,가-힣-])",
     re.IGNORECASE,
 )
+
+
+def _year_headings(lines):
+    """Join a bare printed year only to adjacent month/day and weekday lines."""
+    index = 0
+    while index < len(lines):
+        line = lines[index]
+        if re.fullmatch(r"20\d{2}", line.strip()) and index + 2 < len(lines):
+            following = lines[index + 1].strip()
+            match = _DATE.match(following)
+            suffix = _SUFFIX.match(lines[index + 2])
+            if (
+                match and not match[1]
+                and following[match.end():].strip() in {"", ".", "일"}
+                and suffix and not lines[index + 2][suffix.end():].strip()
+            ):
+                yield line.strip() + "." + following
+                index += 2
+                continue
+        yield line
+        index += 1
 
 
 def _wrapped_headings(lines):
@@ -119,7 +140,8 @@ def date_headings(lines, *, fallback_year=None):
     A yearless heading inherits the target year or the sole explicit source year.
     """
     # The printed event-date label is structural, not an arbitrary prose prefix.
-    lines = tuple(_wrapped_headings(tuple(_EVENT_DATE_LABEL.sub("", line) for line in lines)))
+    lines = tuple(_EVENT_DATE_LABEL.sub("", line) for line in lines)
+    lines = tuple(_wrapped_headings(tuple(_year_headings(lines))))
     found, invalid = set(), False
     for line in lines:
         try:
