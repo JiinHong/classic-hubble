@@ -255,6 +255,12 @@ class SupabaseRepository:
             prefer="return=representation",
         ).json()
 
+    def publish_paddle_program_bundle(self, payload: Mapping[str, object]) -> dict[str, Any]:
+        return self._request(
+            "POST", "rpc/publish_paddle_program_bundle", json=dict(payload),
+            prefer="return=representation",
+        ).json()
+
     def save_direct_vision_result(
         self, key: str, payload: Mapping[str, object], run_id: str
     ) -> bool:
@@ -382,6 +388,18 @@ class SupabaseRepository:
              "entity_type": "eq.ocr_result"},
             page_size=page_size,
         )
+        return [row["payload"] for row in rows]
+
+    def load_ocr_results_for_sources(self, hashes, bucket: str) -> list[dict[str, Any]]:
+        hashes = sorted(set(hashes))
+        if not hashes:
+            return []
+        if len(hashes) > 50 or any(len(h) != 64 or any(c not in "0123456789abcdef" for c in h) for h in hashes):
+            raise ValueError("Expected at most 50 source SHA256 hashes")
+        rows = self._read_pages("provider_records", {
+            "select": "id,payload", "provider": "eq.paddleocr", "entity_type": "eq.ocr_result",
+            "payload->>source_sha256": f"in.({','.join(hashes)})", "payload->>bucket": f"eq.{bucket}",
+        }, page_size=500)
         return [row["payload"] for row in rows]
 
     def upsert_poster_review_item(self, payload: Mapping[str, object]) -> str:

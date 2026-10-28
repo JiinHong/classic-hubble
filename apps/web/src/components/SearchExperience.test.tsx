@@ -95,7 +95,7 @@ describe("paginated catalog search", () => {
     expect(screen.getByText("1개 작품 매칭")).toBeTruthy();
     await settle();
     expect(fetcher).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole("button", { name: "공연", exact: true }));
+    fireEvent.click(screen.getByRole("button", { name: /^공연$/ }));
     await settle();
     expect(screen.getByText("2개 공연 매칭")).toBeTruthy();
     expect(screen.getByText("김정원과 친구들 - 저먼 로맨틱스")).toBeTruthy();

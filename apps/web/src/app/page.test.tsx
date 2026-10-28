@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   getCatalogSnapshot: vi.fn(),
-  SearchExperience: vi.fn(() => null),
+  SearchExperience: vi.fn<typeof import("@/components/SearchExperience").SearchExperience>(() => <></>),
 }));
 
 vi.mock("@/components/SearchExperience", () => ({
@@ -40,9 +40,7 @@ describe("Home composer search params", () => {
     expect(props).toMatchObject({
       initialResult: { total: 1000, works: expect.any(Array) },
     });
-    expect(
-      (props as { initialResult: { works: unknown[] } }).initialResult.works,
-    ).toHaveLength(24);
+    expect(props.initialResult.works).toHaveLength(24);
   });
   it("shows an outage instead of an empty search or sample claims", async () => {
     mocks.getCatalogSnapshot.mockResolvedValue({
