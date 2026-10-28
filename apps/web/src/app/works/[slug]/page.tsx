@@ -105,6 +105,7 @@ export default async function WorkPage({ params }: WorkPageProps) {
                 eager={index === 0 && (group.id === "upcoming" || !performances.length)}
                 key={performance.id}
                 performance={performance}
+                workSlug={work.slug}
                 showYear
               />
             ))}

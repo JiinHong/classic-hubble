@@ -16,6 +16,34 @@ const historical = { ...performances[0], id: "PF253175", title: "노준탁 피�
 const page = () => WorkPage({ params: Promise.resolve({ slug: works[0].slug }) });
 
 describe("work performance history", () => {
+  it.each(["performances", "pastPerformances"] as const)("shows the selected work instead of the opening piece in %s", async (group) => {
+    const selected = {
+      ...performances[0].program[0],
+      workSlug: works[0].slug,
+      displayTitle: "Selected work excerpt",
+      composerName: "Selected composer",
+      performedScope: "excerpt" as const,
+      source: { type: "ocr" as const, label: "OCR 근거 확인", confidence: null },
+    };
+    const opening = {
+      ...selected,
+      workSlug: "different-work",
+      displayTitle: "Unrelated opening piece",
+      composerName: "Different composer",
+      performedScope: "full_work" as const,
+      source: { type: "official" as const, label: "Official", confidence: null },
+    };
+    const concert = { ...historical, program: [opening, selected] };
+    mocks.getCatalogWorkBySlug.mockResolvedValue({ work: works[0], performances: [], pastPerformances: [], [group]: [concert] });
+
+    render(await page());
+
+    expect(screen.getByText("Selected composer · Selected work excerpt · 발췌")).toBeTruthy();
+    expect(screen.getByText("OCR 근거 확인")).toBeTruthy();
+    expect(screen.queryByText(/Unrelated opening piece/)).toBeNull();
+    expect(concert.program).toEqual([opening, selected]);
+  });
+
   it("shows separate counts, year-bearing dates and navigable concerts in both sections", async () => {
     mocks.getCatalogWorkBySlug.mockResolvedValue({ work: works[0], performances: [upcoming], pastPerformances: [historical] });
     render(await page());
