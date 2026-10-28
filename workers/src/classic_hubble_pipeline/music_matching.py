@@ -17,7 +17,7 @@ from .work_matching import (
 )
 
 # Additional schemes require grounded evidence, not legacy ingestion or import.
-CATALOGUE = re.compile(LEGACY_CATALOGUE.pattern + r"|\b(?:WAB|FWV|CD|FP|H|G)\.?\s*\d+\b", re.IGNORECASE)
+CATALOGUE = re.compile(LEGACY_CATALOGUE.pattern + r"|\b(?:WAB|FWV|CD|FP|H|G|M)\.?\s*\d+\b", re.IGNORECASE)
 LIFESPAN = re.compile(r"\(?\b\d{4}\s*[-–—~]\s*\d{4}\b\)?")
 LATIN_NOTE_KEY = re.compile(
     r"(?<![a-z])(?:in\s*)?([a-g])\s*([-\u2013 ]?(?:flat|sharp)|[b#♭♯])?\s*-?\s*(major|minor|장조|단조)\b",
@@ -505,7 +505,7 @@ class MusicMatcher:
             return WorkMatch(None, (), "unsupported_catalogue")
         if any(
             re.match(r"\s*[-–—/,]\s*\d", title[m.end() :])
-            or (_scheme(_catalogue_key(m[0])) in {"wab", "fwv", "cd", "fp", "h", "g"} and re.match(r"\.\s*\d", title[m.end() :]))
+            or (_scheme(_catalogue_key(m[0])) in {"wab", "fwv", "cd", "fp", "h", "g", "m"} and re.match(r"\.\s*\d", title[m.end() :]))
             or (_scheme(_catalogue_key(m[0])) == "h" and re.match(r"\s+[A-Za-z]\b", title[m.end() :]))
             for m in CATALOGUE.finditer(title)
         ):
