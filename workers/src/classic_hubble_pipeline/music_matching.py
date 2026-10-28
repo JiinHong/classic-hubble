@@ -165,6 +165,14 @@ def _scoped_titles(text: str) -> frozenset[str]:
         clean = re.sub(r"[»〉》>\]}’'\"]\s*중\s*$", "", clean)
         clean = clean.strip(" {}[]<>«»〈〉《》‘’\"'.,")
         variants.update(_titles(clean))
+        # Keep the printed scoring in evidence; only scoped parent lookup may
+        # remove the observed piano/hand-count suffix (PF301161).
+        piano_parent = re.sub(
+            r"\s+for\s+(?:1\s+piano\s+4|2\s+pianos?\s+[48])\s+hands$",
+            "", clean, flags=re.IGNORECASE,
+        )
+        if piano_parent != clean:
+            variants.update(_titles(piano_parent))
         # Only scoped references may use a delimited parent title. All constraints
         # (numbers, keys, catalogues, genres) still come from the entire input.
         prefix, *suffix = re.split(r"[:：'‘“\"]", clean, maxsplit=1)
