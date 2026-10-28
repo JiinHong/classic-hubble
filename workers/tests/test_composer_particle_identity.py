@@ -76,3 +76,27 @@ def test_beethoven_middle_personal_name_and_legacy_rules_are_unchanged():
     result = MusicMatcher([beethoven("Ludwig Maria Beethoven")]).match("Romance No.2 in F major", "L.Beethoven", catalogue="Op.50")
     assert result.work_id is None
     assert _composer_matches("L.Beethoven", ("Ludwig van Beethoven",)) is False
+
+
+def suppe(identity="Franz von Suppè", work_id="suppe"):
+    return CanonicalWork(work_id, work_id, ("Poet and Peasant Overture",), (identity,), None)
+
+
+@pytest.mark.parametrize("printed", ["F.Suppé", "F. Suppe", "Franz Suppè"])
+def test_observed_suppe_name_can_omit_middle_von(printed):
+    assert MusicMatcher([suppe()]).match("Poet and Peasant Overture", printed).work_id == "suppe"
+
+
+@pytest.mark.parametrize("printed", ["R.Suppé", "Fritz Suppe", "Franz Maria Suppè"])
+def test_omitted_von_preserves_given_name_constraints(printed):
+    assert MusicMatcher([suppe()]).match("Poet and Peasant Overture", printed).work_id is None
+
+
+def test_von_initial_collision_is_not_forced():
+    matcher = MusicMatcher([suppe(), suppe("Fritz von Suppè", "other")])
+    assert matcher.match("Poet and Peasant Overture", "F. Suppé").work_id is None
+
+
+def test_von_rule_does_not_drop_personal_middle_name_or_change_legacy_matching():
+    assert MusicMatcher([suppe("Franz Maria Suppè")]).match("Poet and Peasant Overture", "F.Suppé").work_id is None
+    assert _composer_matches("F.Suppé", ("Franz von Suppè",)) is False
