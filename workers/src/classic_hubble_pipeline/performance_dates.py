@@ -3,7 +3,7 @@
 import re
 from datetime import date
 
-DATE_BINDING_VERSION = "concert-date-headings-v8"
+DATE_BINDING_VERSION = "concert-date-headings-v9"
 _DATE = re.compile(
     r"(?:(20\d{2})\s*[./년]\s*)?(\d{1,2})\s*[./월]\s*(\d{1,2})(?!\d)"
 )
@@ -30,7 +30,7 @@ _FULL_DATE_CLOCK = re.compile(
     re.IGNORECASE,
 )
 _JOINED_CLOCK = re.compile(
-    r"(\d{1,2}):(\d{2})(?:\s*(AM|PM))?(?!\s*(?:AM|PM))(?=\s|$|[&~,-])",
+    r"(\d{1,2}):(\d{2})(?:\s*(AM|PM))?(?!\s*(?:AM|PM))(?=\s|$|[&~,가-힣-])",
     re.IGNORECASE,
 )
 
