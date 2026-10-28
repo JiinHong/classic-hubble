@@ -3,7 +3,7 @@
 import re
 from datetime import date
 
-DATE_BINDING_VERSION = "concert-date-headings-v7"
+DATE_BINDING_VERSION = "concert-date-headings-v8"
 _DATE = re.compile(
     r"(?:(20\d{2})\s*[./년]\s*)?(\d{1,2})\s*[./월]\s*(\d{1,2})(?!\d)"
 )
@@ -25,7 +25,9 @@ _CLOCK_ONLY = re.compile(
     re.IGNORECASE,
 )
 _FULL_DATE_CLOCK = re.compile(
-    r"(20\d{2})\s*\.\s*(\d{1,2})\s*\.\s*(\d{1,2})\s*\.\s*(\d{1,2}):(\d{2})"
+    r"(20\d{2})\s*\.\s*(\d{1,2})\s*\.\s*(\d{1,2})(?:\s*\.\s*|\s+)"
+    r"(\d{1,2})(?::(\d{2}))?(?:\s*(AM|PM))?",
+    re.IGNORECASE,
 )
 _JOINED_CLOCK = re.compile(
     r"(\d{1,2}):(\d{2})(?:\s*(AM|PM))?(?!\s*(?:AM|PM))(?=\s|$|[&~,-])",
@@ -69,13 +71,14 @@ def _line_dates(line, fallback_year):
             raise ValueError("Incomplete date heading")
         suffix = _SUFFIX.match(remaining, match.end())
         if not suffix:
-            # Observed poster form 2024.08.30.19:00 has an explicit year and
-            # clock, but no weekday. Never infer missing parts or ignore tails.
             clock = _FULL_DATE_CLOCK.fullmatch(remaining)
             if clock:
-                year, month, day, hour, minute = map(int, clock.groups())
+                year, month, day, hour = map(int, clock.groups()[:4])
+                minute, meridiem = clock[5], clock[6]
                 date(year, month, day)
-                if hour > 23 or minute > 59:
+                if ((minute is None and meridiem is None)
+                        or hour > 23 or (minute is not None and int(minute) > 59)
+                        or (meridiem and not 1 <= hour <= 12)):
                     raise ValueError("Invalid heading clock")
                 found.add((year, month, day))
                 return found, invalid
