@@ -39,6 +39,14 @@ QUALIFIED_STRAUSS_NAMES = {
 FULL_NAME_TRANSLITERATIONS = {"가에타노도니제티": "gaetano donizetti"}
 # Publisher/venue-backed forms; never infer omitted personal names or OCR typos.
 VERIFIED_COMPOSER_NAME_FORMS = {
+    # https://www.deutsche-biographie.de/sfz68986.html (GND 11861164X)
+    "clara schumann": ("Clara Josephine Schumann",),
+    # https://searcharchives.bl.uk/catalog/032-002018849
+    "ethel smyth": ("Ethel Mary Smyth",),
+    # https://s-lib019.lib.uiowa.edu/subjects/3664
+    "cecile chaminade": ("Cécile Louise Stéphanie Chaminade",),
+    # https://www.loc.gov/item/n82155113/fanny-mendelssohn-hensel-1805-1847/
+    "fanny hensel": ("Fanny Mendelssohn-Hensel",),
     # https://guides.loc.gov/schubert
     "franz schubert": ("Franz Peter Schubert",),
     "antonin dvorak": ("안토닌 드보르작",),
