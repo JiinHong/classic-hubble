@@ -446,10 +446,11 @@ describe("targeted detail queries", () => {
     vi.resetModules();
   });
 
-  function database(fail = false, observationProvider = "codex_vision") {
+  function database(fail: boolean | string = false, observationProvider = "codex_vision", correlatedTimeout = false) {
     const rows: Record<string, Record<string, unknown>[]> = {
       works: [
         {
+          id: "forest-scenes",
           slug: "wikidata-q3565331",
           title: "Waldszenen",
           title_ko: "숲의 정경",
@@ -458,6 +459,7 @@ describe("targeted detail queries", () => {
           work_aliases: [{ alias: "Forest Scenes" }],
         },
         {
+          id: "lonely-flowers",
           slug: "component-wikidata-q3565331-3",
           title: "Einsame Blumen",
           title_ko: "고독한 꽃",
@@ -493,12 +495,28 @@ describe("targeted detail queries", () => {
     const filters: [string, string, unknown][] = [];
     const from = vi.fn((table: string) => {
       let filtered = rows[table] ?? [];
+      if (table === "performances") {
+        filtered = filtered.map((row) => ({ ...row, id: row.kopis_performance_id }));
+      }
+      if (table === "program_items" && !rows.program_items) {
+        filtered = rows.performances.flatMap((row) =>
+          (row.program_items as { works: { slug: string } }[]).map((item, index) => ({
+            id: `${row.kopis_performance_id}-${index}`,
+            performance_id: row.kopis_performance_id,
+            work_id: rows.works.find((work) => work.slug === item.works.slug)?.id,
+          })),
+        );
+      }
+      let timedOut = false;
       const result = () => ({
         data: filtered,
-        error: fail ? new Error("offline") : null,
+        error: timedOut ? new Error("statement timeout") : fail === true || fail === table ? new Error("offline") : null,
       });
       const query = {
-        select: vi.fn(() => query),
+        select: vi.fn((columns: string) => {
+          timedOut = correlatedTimeout && columns.includes("matched:program_items!inner");
+          return query;
+        }),
         order: vi.fn(() => query),
         range: vi.fn(async (start: number, end: number) => ({
           ...result(),
@@ -511,10 +529,8 @@ describe("targeted detail queries", () => {
         }),
         in: vi.fn((column: string, values: string[]) => {
           filters.push([table, column, values]);
-          if (column === "slug")
-            filtered = filtered.filter((row) =>
-              values.includes(row.slug as string),
-            );
+          if (!column.includes("."))
+            filtered = filtered.filter((row) => values.includes(row[column] as string));
           return query;
         }),
         maybeSingle: vi.fn(async () => ({
@@ -589,10 +605,50 @@ describe("targeted detail queries", () => {
       ),
     ).toBe(true);
     expect(filters).toContainEqual([
-      "performances",
-      "matched.works.slug",
-      ["component-wikidata-q3565331-3"],
+      "program_items",
+      "work_id",
+      ["lonely-flowers"],
     ]);
+  });
+
+  it("loads a work's concerts when a full-catalog correlated lookup times out", async () => {
+    const { filters } = database(false, "paddleocr", true);
+    const { getCatalogWorkBySlug } = await import("./catalog");
+    const result = await getCatalogWorkBySlug("component-wikidata-q3565331-3");
+    expect(result.performances.map((p) => p.id)).toEqual(["PF123456"]);
+    expect(result.performances[0].program).toHaveLength(2);
+    expect(filters).toContainEqual(["performances", "id", ["PF123456"]]);
+  });
+
+  it("deduplicates links across pages and never fetches unrelated performances", async () => {
+    const { rows, filters } = database();
+    rows.program_items = Array.from({ length: 1001 }, (_, id) => ({
+      id: `${id}`, performance_id: "PF123456", work_id: "lonely-flowers",
+    }));
+    rows.performances.push({ ...rows.performances[0], kopis_performance_id: "unrelated" });
+    const { getCatalogWorkBySlug } = await import("./catalog");
+    const result = await getCatalogWorkBySlug("component-wikidata-q3565331-3");
+    expect(result.performances.map((p) => p.id)).toEqual(["PF123456"]);
+    expect(filters.filter(([table]) => table === "performances")).toEqual([
+      ["performances", "id", ["PF123456"]],
+    ]);
+  });
+
+  it("does not query concerts for a missing work or an empty link set", async () => {
+    const { rows, from } = database();
+    const { getCatalogWorkBySlug } = await import("./catalog");
+    await getCatalogWorkBySlug("missing");
+    expect(from.mock.calls.map(([table]) => table)).toEqual(["works"]);
+    from.mockClear();
+    rows.program_items = [];
+    await getCatalogWorkBySlug("component-wikidata-q3565331-3");
+    expect(from.mock.calls.map(([table]) => table)).toEqual(["works", "program_items"]);
+  });
+
+  it("propagates failed link reads instead of reporting no performances", async () => {
+    database("program_items");
+    const { getCatalogWorkBySlug } = await import("./catalog");
+    await expect(getCatalogWorkBySlug("component-wikidata-q3565331-3")).rejects.toThrow();
   });
 
   it("distinguishes a missing detail from a database failure", async () => {

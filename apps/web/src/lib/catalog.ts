@@ -499,45 +499,57 @@ export async function getCatalogSelection(
   }
   const supabase = createSupabaseClient();
   const readWorks = async () => {
-    const rows: WorkRow[] = [];
+    const rows: (WorkRow & { id: string })[] = [];
     const requested = [...related];
     for (let offset = 0; offset < requested.length; offset += 100) {
       const result = await supabase
         .from("works")
-        .select(WORK_COLUMNS)
+        .select(`id, ${WORK_COLUMNS}`)
         .in("slug", requested.slice(offset, offset + 100));
       if (result.error) throw new Error("Work query failed");
-      rows.push(...((result.data ?? []) as unknown as WorkRow[]));
+      rows.push(...((result.data ?? []) as unknown as (WorkRow & { id: string })[]));
     }
     return rows;
   };
-  const readPerformances = async () => {
+  const readPerformances = async (workIds: string[]) => {
+    const performanceIds = new Set<string>();
+    // Start at the indexed work links, not a correlated scan of every concert.
+    for (let chunk = 0; chunk < workIds.length; chunk += 100) {
+      for (let offset = 0; ; offset += 1000) {
+        const result = await supabase
+          .from("program_items")
+          .select("performance_id")
+          .in("work_id", workIds.slice(chunk, chunk + 100))
+          .order("id", { ascending: true })
+          .range(offset, offset + 999);
+        if (result.error) throw new Error("Work performance links query failed");
+        const page = (result.data ?? []) as { performance_id: string }[];
+        for (const row of page) performanceIds.add(row.performance_id);
+        if (page.length < 1000) break;
+      }
+    }
     const rows: PerformanceRow[] = [];
-    for (let offset = 0; ; offset += 1000) {
-      // Filter through a separate relation to keep the complete concert program.
+    const requested = [...performanceIds];
+    for (let offset = 0; offset < requested.length; offset += 100) {
+      // Fetch the entire program once for each linked concert, including other works.
       const result = await supabase
         .from("performances")
-        .select(
-          `${PERFORMANCE_COLUMNS}, matched:program_items!inner(works!inner(slug))`,
-        )
-        .in("matched.works.slug", [...selected])
+        .select(PERFORMANCE_COLUMNS)
+        .in("id", requested.slice(offset, offset + 100))
         .order("starts_at", { ascending: true })
-        .order("id", { ascending: true })
-        .range(offset, offset + 999);
+        .order("id", { ascending: true });
       if (result.error) throw new Error("Work performances query failed");
-      const page = (result.data ?? []) as unknown as PerformanceRow[];
-      rows.push(...page);
-      if (page.length < 1000) break;
+      rows.push(...((result.data ?? []) as unknown as PerformanceRow[]));
     }
     const performances = mapPerformances(rows);
     return includePast
       ? performances
       : getUpcomingPerformancesFromList(performances);
   };
-  const [rows, performances] = await Promise.all([
-    readWorks(),
-    readPerformances(),
-  ]);
+  const rows = await readWorks();
+  const performances = await readPerformances(
+    rows.filter((row) => selected.has(row.slug)).map((row) => row.id),
+  );
   return {
     works: attachWorkComponents(
       mapWorks(rows, performances),
