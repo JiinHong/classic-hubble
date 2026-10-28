@@ -250,6 +250,37 @@ def test_fwv_requires_canonical_catalogue_evidence_and_leaves_legacy_unchanged()
     assert CATALOGUE.search("FWV 21") is None
 
 
+@pytest.mark.parametrize("code", ["M. 81", "M81", "m.81"])
+def test_ravel_m_catalogue_matches_explicit_canonical_identity(code):
+    work = CanonicalWork("ravel-bolero", "ravel-bolero", ("Boléro",), ("Maurice Ravel",), "M. 81")
+    assert matcher([work]).match("Bolero", "M. Ravel", catalogue=code).work_id == work.id
+    assert matcher([work]).match("Bolero " + code, "Maurice Ravel").work_id == work.id
+
+
+@pytest.mark.parametrize("code", ["M. 82", "M. 81; M. 82", "M. 81,1", "M. 81/1", "M. 81-82", "M. 81.1", "M. 81a"])
+def test_ravel_m_catalogue_conflicts_or_components_cannot_match_parent(code):
+    work = CanonicalWork("w", "w", ("Bolero",), ("Maurice Ravel",), "M. 81")
+    assert matcher([work]).match("Bolero", "Maurice Ravel", catalogue=code).work_id is None
+    assert matcher([work]).match("Bolero " + code, "Maurice Ravel").work_id is None
+
+
+def test_ravel_m_catalogue_does_not_override_conflicting_composer():
+    work = CanonicalWork("w", "w", ("Bolero",), ("Maurice Ravel",), "M. 81")
+    assert matcher([work]).match("Bolero", "Chopin", catalogue="M. 81").work_id is None
+
+
+def test_ravel_m_catalogue_requires_canonical_evidence_and_leaves_legacy_unchanged():
+    from classic_hubble_pipeline.work_matching import CATALOGUE
+    work = CanonicalWork("w", "w", ("Bolero",), ("Maurice Ravel",), None)
+    assert matcher([work]).match("Bolero", "Maurice Ravel", catalogue="M. 81").work_id is None
+    assert CATALOGUE.search("M. 81") is None
+
+
+def test_ravel_m_catalogue_without_composer_is_not_composer_grounded():
+    work = CanonicalWork("w", "w", ("Bolero",), ("Maurice Ravel",), "M. 81")
+    assert matcher([work]).match("Bolero", None, catalogue="M. 81").reason == "unique_distinctive_title"
+
+
 @pytest.mark.parametrize("printed", ["Bb Major", "Bb장조", "Bb Major Bb장조"])
 def test_ascii_flat_key_in_archived_prokofiev_program_matches(printed):
     work = CanonicalWork(
