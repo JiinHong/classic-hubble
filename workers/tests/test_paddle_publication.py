@@ -133,6 +133,29 @@ def test_apply_retains_ocr_provenance_and_checks_live_bytes(monkeypatch):
     assert "confidence" not in payload["p_items"][0]
 
 
+@pytest.mark.parametrize("score,published", [(.99, True), (.5, False)])
+def test_composer_prefixed_title_preserves_raw_evidence_and_quality(score, published, monkeypatch):
+    from test_music_extraction import quote
+
+    title = "W. Bolcom - Graceful Ghost Rag"
+    repo, store, data = setup(lambda d: d["lines"][2].update(text=title, score=score))
+    work = replace(WORK, titles=("Graceful Ghost Rag",), composers=("William Bolcom",), catalogue=None, aliases=())
+    repo.load_work_catalog = lambda: [work]
+    data["items"][0].update(composer=quote(2, "W. Bolcom"), title=quote(2, title), catalogue=None, key=None)
+    review_id = save(repo, store, data)
+    monkeypatch.setattr(module(), "download_source", lambda *_: (store.original, "image/png"))
+    result = module().publish(repo, store, None, "p1", review_id, apply=True)
+    assert (result["status"] == "published") is published
+    assert len(repo.writes) == int(published)
+    if published:
+        payload = repo.writes[0]
+        assert payload["p_items"][0]["work_id"] == WORK.id
+        item = payload["p_evaluation"]["matching"]["items"][0]
+        assert item["fields"]["title"] == title
+        assert item["evidence"] == data["items"][0]
+        assert payload["p_review"]["method"] == "reviewed_paddle_text"
+
+
 @pytest.mark.parametrize("number,score,published", [(18, .99, True), (19, .99, False), (18, .5, False)])
 def test_untyped_number_publication_preserves_literal_evidence_and_quality(number, score, published, monkeypatch):
     from test_music_extraction import quote
