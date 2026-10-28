@@ -340,6 +340,69 @@ def test_unconfirmed_or_conflicting_generic_catalogue_numbers_remain_unlinked(ca
     assert matcher([work]).match("Work", "Composer", catalogue=catalogue).work_id is None
 
 
+@pytest.fixture
+def korean_untyped_catalogue_work():
+    return CanonicalWork(
+        "mozart-k364", "mozart-k364", ("Sinfonia concertante in E-flat major",),
+        ("Wolfgang Amadeus Mozart", "볼프강 아마데우스 모차르트"), "K. 364",
+        ("신포니아 콘체르탄테",),
+    )
+
+
+@pytest.mark.parametrize("code", ["작품 364", "작품364", "작품번호 364"])
+def test_untyped_catalogue_confirms_independently_matching_title(code, korean_untyped_catalogue_work):
+    result = matcher([korean_untyped_catalogue_work]).match(
+        "신포니아콘체르탄테 내림마장조", "모차르트", catalogue=code,
+    )
+    assert result.work_id == "mozart-k364"
+    assert result.reason == "composer_and_alias"
+
+
+def test_untyped_catalogue_label_embedded_in_title_is_still_checked(korean_untyped_catalogue_work):
+    assert matcher([korean_untyped_catalogue_work]).match(
+        "신포니아콘체르탄테 내림마장조작품 364", "모차르트", catalogue="작품 364",
+    ).work_id == "mozart-k364"
+
+
+@pytest.mark.parametrize("title,composer,code", [
+    ("신포니아콘체르탄테", None, "작품 364"),
+    ("신포니아콘체르탄테", "Beethoven", "작품 364"),
+    ("신포니아콘체르탄테", "모차르트", "작품 365"),
+    ("신포니아콘체르탄테 라장조", "모차르트", "작품 364"),
+    ("신포니아콘체르탄테 작품 365", "모차르트", "작품 364"),
+    ("신포니아콘체르탄테 K.365", "모차르트", "작품 364"),
+    ("Unknown Work", "모차르트", "작품 364"),
+    ("신포니아콘체르탄테", "모차르트", "작품 364/2"),
+    ("신포니아콘체르탄테", "모차르트", "작품 364 No.2"),
+])
+def test_untyped_catalogue_never_overrides_evidence_conflicts(title, composer, code, korean_untyped_catalogue_work):
+    assert matcher([korean_untyped_catalogue_work]).match(title, composer, catalogue=code).work_id is None
+
+
+@pytest.mark.parametrize("catalogue", [None, "K.365", "K.364 No.1"])
+def test_untyped_catalogue_needs_a_complete_primary_canonical_number(catalogue, korean_untyped_catalogue_work):
+    work = replace(korean_untyped_catalogue_work, catalogue=catalogue)
+    assert matcher([work]).match("신포니아콘체르탄테", "모차르트", catalogue="작품 364").work_id is None
+
+
+def test_untyped_number_does_not_disambiguate_same_title(korean_untyped_catalogue_work):
+    work = korean_untyped_catalogue_work
+    other = replace(work, id="other", catalogue="K.297b")
+    assert matcher([work, other]).match("신포니아콘체르탄테", "모차르트", catalogue="작품 364").work_id is None
+
+
+def test_untyped_number_preserves_catalogue_review(korean_untyped_catalogue_work):
+    work = replace(korean_untyped_catalogue_work, requires_review=True)
+    result = matcher([work]).match("신포니아콘체르탄테", "모차르트", catalogue="작품 364")
+    assert result.work_id is None and result.candidate_ids == (work.id,)
+    assert result.reason == "catalog_review_required"
+
+
+def test_untyped_number_cannot_use_a_generic_title():
+    work = replace(BEETHOVEN, titles=("Sonata",), catalogue="Op.37", aliases=())
+    assert matcher([work]).match("Sonata", "Beethoven", catalogue="작품 37").work_id is None
+
+
 @pytest.mark.parametrize("title", ["Fantasy", "Fantasia", "Fantaisie", "Fantasie", "Phantasy"])
 @pytest.mark.parametrize("composer", [None, "Gabriel Faure"])
 def test_generic_fantasy_label_does_not_identify_a_work(title, composer):

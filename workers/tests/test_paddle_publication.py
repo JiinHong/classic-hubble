@@ -133,6 +133,28 @@ def test_apply_retains_ocr_provenance_and_checks_live_bytes(monkeypatch):
     assert "confidence" not in payload["p_items"][0]
 
 
+@pytest.mark.parametrize("number,score,published", [(18, .99, True), (19, .99, False), (18, .5, False)])
+def test_untyped_number_publication_preserves_literal_evidence_and_quality(number, score, published, monkeypatch):
+    from test_music_extraction import quote
+
+    title = "Piano Concerto No. 2 in C minor"
+    code = f"작품 {number}"
+    repo, store, data = setup(lambda d: d["lines"][2].update(text=title + ", " + code, score=score))
+    data["items"][0]["catalogue"] = quote(2, code)
+    key = save(repo, store, data)
+    monkeypatch.setattr(module(), "download_source", lambda *_: (store.original, "image/png"))
+    result = module().publish(repo, store, None, "p1", key, apply=True)
+    assert (result["status"] == "published") is published
+    assert len(repo.writes) == int(published)
+    if published:
+        payload = repo.writes[0]
+        assert payload["p_items"][0]["work_id"] == WORK.id
+        matched = payload["p_evaluation"]["matching"]["items"][0]
+        assert matched["reason"] == "composer_and_alias"
+        assert matched["fields"]["catalogue"] == code
+        assert matched["evidence"] == data["items"][0]
+
+
 @pytest.mark.parametrize("scope", ["movement", "excerpt", "arrangement", "unknown"])
 def test_scopes_do_not_become_full_works(scope):
     repo, store, data = setup()
