@@ -12,6 +12,7 @@ type PerformanceCardProps = {
   compact?: boolean;
   eager?: boolean;
   showYear?: boolean;
+  workSlug?: string;
   performance: Performance;
 };
 
@@ -19,9 +20,12 @@ export function PerformanceCard({
   compact = false,
   eager = false,
   showYear = false,
+  workSlug,
   performance,
 }: PerformanceCardProps) {
-  const primaryProgram = performance.program[0];
+  const primaryProgram = workSlug === undefined
+    ? performance.program[0]
+    : performance.program.find((item) => item.workSlug === workSlug);
 
   return (
     <article className="grid overflow-hidden rounded-lg border border-stone-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-stone-300 hover:shadow-md sm:grid-cols-[132px_minmax(0,1fr)]">

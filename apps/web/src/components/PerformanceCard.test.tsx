@@ -5,6 +5,17 @@ import { describe, expect, it } from "vitest";
 import { PerformanceCard } from "./PerformanceCard";
 
 describe("PerformanceCard", () => {
+  it("does not imply an unrelated work is the requested work when no matching item exists", () => {
+    render(<PerformanceCard performance={performances[0]} workSlug="not-in-program" />);
+    expect(screen.queryByText(performances[0].program[0].displayTitle, { exact: false })).toBeNull();
+    expect(screen.getByRole("link", { name: performances[0].title })).toBeTruthy();
+  });
+
+  it("keeps the opening piece summary when no work is selected", () => {
+    render(<PerformanceCard performance={performances[0]} />);
+    expect(screen.getByText(performances[0].program[0].displayTitle, { exact: false })).toBeTruthy();
+  });
+
   it("does not present an excerpt as a full-work performance", () => {
     const performance = { ...performances[0], program: [{ ...performances[0].program[0], performedScope: "excerpt" as const }] };
     render(<PerformanceCard performance={performance} />);
