@@ -489,6 +489,27 @@ class MusicMatcher:
     ) -> WorkMatch:
         title = _catalogue_ocr(title)
         catalogue = _catalogue_ocr(catalogue) if catalogue else None
+        untyped = re.fullmatch(r"작품\s*(?:번호\s*)?(\d+)", (catalogue or "").strip())
+        if untyped:
+            # The Korean label does not imply Opus (PF284828 also uses it for K364).
+            # Identify by composer/title first; the number is only a constraint.
+            identities, _ = self._composers(composer)
+            embedded = re.compile(r"작품\s*(?:번호\s*)?(\d+)(?![0-9A-Za-z./])")
+            if len(identities) != 1 or any(int(m[1]) != int(untyped[1]) for m in embedded.finditer(title)):
+                return WorkMatch(None, (), "unsupported_catalogue")
+            clean = embedded.sub("", title).strip()
+            if _catalogues(clean) or not (_distinctive_title(clean) or (_genres(clean) and _numbers(clean))):
+                return WorkMatch(None, (), "unsupported_catalogue")
+            matched = self.match(clean, composer, key=key, scoped=scoped)
+            if len(matched.candidate_ids) != 1:
+                return WorkMatch(None, (), "unsupported_catalogue")
+            work = next(w for w in self.by_composer[next(iter(identities))] if w.id == matched.candidate_ids[0])
+            primary = work.catalogue or ""
+            codes = _catalogues(primary)
+            code = re.fullmatch(r"[a-z]+(\d+)", next(iter(codes))) if len(codes) == 1 else None
+            if not CATALOGUE.fullmatch(primary.strip()) or not code or int(code[1]) != int(untyped[1]):
+                return WorkMatch(None, (), "unsupported_catalogue")
+            return matched
         if catalogue:
             # A generic translated number confirms an explicit code, never its scheme.
             numbers = {re.sub(r"^[a-z]+", "", c) for c in _catalogues(catalogue)}
