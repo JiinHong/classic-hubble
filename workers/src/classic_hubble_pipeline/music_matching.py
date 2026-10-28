@@ -319,8 +319,8 @@ def _name_matches(actual: str, names: tuple[str, ...]) -> bool:
     if len(tokens) >= 2 and all(re.fullmatch(r"[a-z]+", t) for t in tokens):
         for name in names:
             expected = _normalize(name).split()
-            # Observed P. Sarasate and L. Beethoven omit a middle name particle.
-            if len(tokens) == 2 and len(expected) == 3 and expected[1] in {"de", "van"}:
+            # Observed P. Sarasate, L. Beethoven and F. Suppe omit a particle.
+            if len(tokens) == 2 and len(expected) == 3 and expected[1] in {"de", "van", "von"}:
                 if _composer_matches(actual, (f"{expected[0]} {expected[2]}",)):
                     return True
             if len(expected) > len(tokens) and tokens[-1] == expected[-1]:
