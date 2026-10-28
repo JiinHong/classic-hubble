@@ -557,6 +557,18 @@ describe("targeted detail queries", () => {
     });
   });
 
+  it("retains performed scope and movement text alongside the work link", async () => {
+    const { rows } = database(false, "paddleocr");
+    const program = rows.performances[0].program_items as Record<string, unknown>[];
+    program[0].performed_scope = "excerpt";
+    program[0].scope_details = ["III. Allegro"];
+    const { getCatalogPerformanceById } = await import("./catalog");
+    const result = await getCatalogPerformanceById("PF123456");
+    expect(result.performance?.program.find((p) => p.displayTitle === "Einsame Blumen")).toMatchObject({
+      performedScope: "excerpt", scopeDetails: ["III. Allegro"], workSlug: "component-wikidata-q3565331-3",
+    });
+  });
+
   it("reads a component and its related works, preserving parent names and all concert program items", async () => {
     const { filters } = database();
     const { getCatalogWorkBySlug } = await import("./catalog");

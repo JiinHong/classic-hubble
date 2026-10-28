@@ -5,6 +5,12 @@ import { describe, expect, it } from "vitest";
 import { PerformanceCard } from "./PerformanceCard";
 
 describe("PerformanceCard", () => {
+  it("does not present an excerpt as a full-work performance", () => {
+    const performance = { ...performances[0], program: [{ ...performances[0].program[0], performedScope: "excerpt" as const }] };
+    render(<PerformanceCard performance={performance} />);
+    expect(screen.getByText(/발췌/)).toBeTruthy();
+    expect(screen.queryByText(/전곡/)).toBeNull();
+  });
   it("eagerly loads a poster when it is the leading card", () => {
     render(<PerformanceCard eager performance={performances[0]} />);
 

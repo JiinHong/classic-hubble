@@ -2,6 +2,7 @@ import {
   getUpcomingPerformancesFromList,
   type ConfidenceLevel,
   type Performance,
+  type PerformedScope,
   type ProgramPublicationStatus,
   type ReviewItem,
   type Work,
@@ -70,6 +71,8 @@ type PerformanceRow = {
         confidence: number | string;
         display_title: string;
         position: number;
+        performed_scope?: PerformedScope | null;
+        scope_details?: string[] | null;
         source_provider: string;
         source_type: ConfidenceLevel;
         works: Relation<{ slug: string }>;
@@ -140,7 +143,7 @@ const PERFORMANCE_COLUMNS = `kopis_performance_id, title, starts_at, ends_on,
   status, artists, price_range, booking_url, poster_url, source_label,
   program_status, program_source_url, program_image_urls, venues(name, city),
   program_items(display_title, composer_name, source_type, confidence,
-    position, source_provider, works(slug))`;
+    position, source_provider, performed_scope, scope_details, works(slug))`;
 
 const sourceLabels: Record<ConfidenceLevel, string> = {
   estimated: "추정 매칭",
@@ -242,6 +245,8 @@ function mapPerformances(rows: PerformanceRow[]): Performance[] {
           .map((item) => ({
             composerName: item.composer_name ?? "",
             displayTitle: item.display_title,
+            performedScope: item.performed_scope ?? null,
+            scopeDetails: item.scope_details ?? [],
             source: {
               confidence: ["codex_vision", "paddleocr"].includes(item.source_provider)
                 ? null

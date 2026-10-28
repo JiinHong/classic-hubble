@@ -3,7 +3,7 @@ import { CalendarDays, MapPin, Ticket } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
-import { compactArtists, formatPerformanceDate, statusLabel, statusTone } from "@/lib/format";
+import { compactArtists, formatPerformanceDate, performedScopeLabel, statusLabel, statusTone } from "@/lib/format";
 import { posterImage } from "@/lib/poster";
 
 import { ConfidenceBadge } from "./ConfidenceBadge";
@@ -64,6 +64,7 @@ export function PerformanceCard({
                 ? `${primaryProgram.composerName} · `
                 : null}
               {primaryProgram.displayTitle}
+              {primaryProgram.performedScope ? ` · ${performedScopeLabel(primaryProgram.performedScope)}` : ""}
             </p>
           ) : null}
         </div>

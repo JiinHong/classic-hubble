@@ -1,8 +1,17 @@
 import type {
   ConfidenceLevel,
   Performance,
+  PerformedScope,
   ProgramPublicationStatus,
 } from "@classic-hubble/shared";
+
+export const performedScopeLabel = (scope?: PerformedScope | null) => scope ? ({
+  full_work: "전곡",
+  movement: "악장 연주",
+  excerpt: "발췌",
+  arrangement: "편곡",
+  unknown: "연주 범위 미확인",
+})[scope] : "";
 
 export const formatPerformanceDate = (
   performance: Pick<Performance, "date" | "endDate" | "time">,

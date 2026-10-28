@@ -11,6 +11,22 @@ from classic_hubble_pipeline.supabase import (
 )
 
 
+def test_bundle_ocr_lookup_is_limited_to_source_hashes_and_bucket():
+    requests = []
+    def handler(request):
+        requests.append(request)
+        return httpx.Response(200, json=[{"id": "one", "payload": {"status": "text_extracted"}}])
+    with httpx.Client(transport=httpx.MockTransport(handler)) as client:
+        repo = SupabaseRepository(SupabaseSettings("https://example.supabase.co", "secret"), http_client=client)
+        assert repo.load_ocr_results_for_sources(["a" * 64], "private") == [{"status": "text_extracted"}]
+        assert repo.load_ocr_results_for_sources([], "private") == []
+        with pytest.raises(ValueError):
+            repo.load_ocr_results_for_sources(["bad,filter"], "private")
+    assert len(requests) == 1
+    assert requests[0].url.params["payload->>source_sha256"] == "in.(" + "a" * 64 + ")"
+    assert requests[0].url.params["payload->>bucket"] == "eq.private"
+
+
 def test_music_request_claim_does_not_overwrite_an_existing_paid_attempt():
     requests = []
 

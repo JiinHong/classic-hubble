@@ -3,10 +3,20 @@ import {
   confidenceLabel,
   formatPerformanceDate,
   programPublicationMessage,
+  performedScopeLabel,
   statusLabel,
 } from "./format";
 
 describe("performance presentation", () => {
+  it("distinguishes identified works from their performed extent", () => {
+    expect(performedScopeLabel("excerpt")).toBe("발췌");
+    expect(performedScopeLabel("arrangement")).toBe("편곡");
+    expect(performedScopeLabel("movement")).toBe("악장 연주");
+    expect(performedScopeLabel("unknown")).toBe("연주 범위 미확인");
+    expect(performedScopeLabel("full_work")).toBe("전곡");
+    expect(performedScopeLabel(null)).toBe("");
+    expect(performedScopeLabel(undefined)).toBe("");
+  });
   it("formats a Korean concert date without timezone drift", () => {
     expect(formatPerformanceDate({ date: "2026-07-31", time: "19:30" })).toBe(
       "7월 31일 (금) 19:30",

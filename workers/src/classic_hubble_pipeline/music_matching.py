@@ -531,10 +531,21 @@ class MusicMatcher:
                     "composer_spelling_candidate" if candidates else reason,
                 )
         elif len(identities) > 1:
-            pool = tuple(w for w in exact if w.composers in identities)
+            # A composer-specific catalogue can resolve a family surname (Bach
+            # + BWV). Generic opus numbers cannot. All title/key guards below
+            # still apply, and multiple matching works still remain ambiguous.
+            named_title = re.search(r"[a-z가-힣]", _normalize(
+                LATIN_NOTE_KEY.sub("", KOREAN_KEY.sub("", CATALOGUE.sub("", title)))
+            ))
+            specific_catalogue = named_title and actual_catalogues and all(
+                _scheme(code) not in {"op", "woo"} for code in actual_catalogues
+            )
+            pool = tuple(
+                w for names in identities for w in self.by_composer[names]
+            ) if specific_catalogue else tuple(w for w in exact if w.composers in identities)
             if not pool:
                 return WorkMatch(None, (), "ambiguous_composer")
-            identity_reason = "surname_and_distinctive_title"
+            identity_reason = None if specific_catalogue else "surname_and_distinctive_title"
         else:
             names = next(iter(identities))
             pool = self.by_composer[names]

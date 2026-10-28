@@ -51,11 +51,15 @@ export type ProgramSource = {
   confidence: number | null;
 };
 
+export type PerformedScope = "full_work" | "movement" | "excerpt" | "arrangement" | "unknown";
+
 export type ProgramItem = {
   workSlug: string;
   displayTitle: string;
   composerName: string;
   source: ProgramSource;
+  performedScope?: PerformedScope | null;
+  scopeDetails?: string[];
 };
 
 export type Performance = {

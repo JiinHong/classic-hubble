@@ -7,6 +7,7 @@ import { ConfidenceBadge } from "@/components/ConfidenceBadge";
 import {
   formatPerformanceDate,
   programPublicationMessage,
+  performedScopeLabel,
   statusLabel,
   statusTone,
 } from "@/lib/format";
@@ -116,6 +117,11 @@ export default async function PerformancePage({ params }: PerformancePageProps) 
                   <>
                   <div className="flex flex-wrap items-center gap-2">
                     <ConfidenceBadge source={item.source} />
+                    {item.performedScope ? (
+                      <span className="text-sm font-semibold text-stone-600">
+                        {performedScopeLabel(item.performedScope)}
+                      </span>
+                    ) : null}
                   </div>
                   {item.composerName ? (
                     <p className="mt-3 text-sm font-black text-stone-950">
@@ -125,6 +131,11 @@ export default async function PerformancePage({ params }: PerformancePageProps) 
                   <p className="mt-1 whitespace-pre-line text-base font-semibold text-stone-700">
                     {item.displayTitle}
                   </p>
+                  {item.scopeDetails?.length ? (
+                    <p className="mt-1 whitespace-pre-line text-sm text-stone-600">
+                      {item.scopeDetails.join("\n")}
+                    </p>
+                  ) : null}
                   </>
                 );
                 const key = `${performance.id}-${index}-${item.displayTitle}`;

@@ -1,0 +1,91 @@
+# Performance Evidence Bundles
+
+## Problem and scope
+
+The cached 773-image cohort represents 511 performances, not 773 performances.
+The prior 44 / 353 / 114 performance breakdown mixed successful identity
+recognition with publication constraints. Multiple images and non-full-work
+scope were blanket publication blockers even when identity was well supported.
+
+This change implements the user's approved performance-level evidence and
+separate-extent design. It does not run new OCR or automatically add unverified
+catalogue entries. A work identity is not evidence that its whole work was played.
+
+## Publication contract
+
+Call `paddle_publication.publish_bundle(repository, store, client,
+performance_id, review_ids, apply=False)` with the saved selections for **every
+current intro image**. A single-image performance uses the same contract.
+Change `apply` to true only after the migration and UI are deployed.
+
+The one-performance command is dry-run by default (DB/R2 reads, no OCR or model
+calls). Supply the saved review ID for each unique current image hash:
+
+```sh
+python -m classic_hubble_pipeline.paddle_publication --performance-id PERFORMANCE_UUID --review-id COVER_REVIEW --review-id PROGRAM_REVIEW
+```
+
+Add `--apply` only for a deliberate public write. It rechecks live originals and
+uses the atomic bundle RPC. Do not infer completeness from a `ready` dry-run;
+current DB checks and live source verification occur on apply.
+
+- Existing immutable `paddle-partial-program-v1` reviews retain their provenance.
+- New publication version: `paddle-performance-bundle-v2`.
+- Only single-day performances are currently supported.
+- At least one high-quality image date must match the performance. Another
+  current image may supply the program without repeating that date.
+- A conflicting, invalid, or unsupported date on any image blocks the bundle.
+- Every image needs a saved selection. `no_program_identified` is explicit
+  reviewed absence; `uncertain` is not and blocks a complete bundle.
+- Every original and OCR document hash is verified. Every live image is checked
+  before applying. SQL rechecks the exact performance, archive, latest OCR and
+  immutable review pointers together. Newer or tied competing OCR is stale.
+- Only explicit-composer, exact catalogue/alias identities with program context
+  and cited OCR scores >= 0.9 are eligible. This is not an accuracy claim.
+- Known identities may carry `full_work`, `movement`, `excerpt`, `arrangement`
+  or `unknown`. Scope and literal movement text are stored separately and shown
+  on the site. Historical NULL scope is not relabeled as full work.
+- Derived references need their own reviewed selection and remain withheld.
+- Duplicate identity/scope/detail observations are coalesced, retaining every
+  reviewed document in private publication history.
+- Manual, NOL and other providers are protected. A smaller new subset cannot
+  silently erase an earlier linked identity. Such cases require explicit review.
+- The performance remains `partially_confirmed`; no entire-program claim.
+
+The old single-image `publish` / SQL RPC remains compatible for existing
+full-work-only callers. New performance-level callers must use `publish_bundle`;
+do not loop the old API once per image and call that bundle validation.
+The compatibility RPC preserves performances that already have scoped bundle
+rows, preventing older workers from replacing them with a full-work-only subset.
+Its previous implementation is retained as `publish_paddle_program_v1`; future
+contract changes must account for both entry points.
+
+## Matching and reads
+
+A composer-family surname plus a composer-specific catalogue and a named title
+can enter the existing catalogue matching checks. Generic Op./WoO numbers and
+bare catalogue-only titles do not resolve ambiguous composers. Title, number,
+key, instrument and duplicate-catalogue checks still apply.
+
+Bundle validation loads the catalogue once and requests OCR pointers only for
+the current source hashes and bucket. It does not scan the global OCR/archive
+tables. The final transaction uses current pointers, not cached eligibility.
+
+## Release and remaining cases
+
+Apply `20261028021404_publish_performance_evidence_bundles.sql` before deploying
+the web query that selects the added columns. Run the rollback-only SQL test
+`supabase/tests/paddle_bundle_publication.sql` against the target schema before
+publication. The function is service-role-only and security invoker.
+
+Unit tests cover cross-image dates, scopes, missing/uncertain selections,
+stale originals, ambiguous composers, low evidence and bounded reads. The SQL
+test covers grants, scope/source tampering, dates, stale OCR, idempotence,
+history and manual preservation. Offline eligibility replay is diagnostic only;
+it cannot confirm current-source validity or count actual public additions.
+
+Still not automatically resolved: conflicting/multiple concert dates, genuinely
+unreadable or absent programs, ambiguous/composerless titles, missing canonical
+records without authoritative evidence, and derived subitems without a saved
+selection. False date-heading cases such as a season or award name require a
+separate regression-backed date contract update, not a blanket warning bypass.
