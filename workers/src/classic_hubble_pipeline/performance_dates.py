@@ -3,7 +3,8 @@
 import re
 from datetime import date
 
-DATE_BINDING_VERSION = "concert-date-headings-v10"
+DATE_BINDING_VERSION = "concert-date-headings-v11"
+_EVENT_DATE_LABEL = re.compile(r"^\s*일\s*시\s*[:：|]?\s*(?=20\d{2})")
 _DATE = re.compile(
     r"(?:(20\d{2})(?:\s*[./년]\s*|(?=\d{2}[./월])))?"
     r"(\d{1,2})\s*[./월]\s*(\d{1,2})(?!\d)"
@@ -117,7 +118,8 @@ def date_headings(lines, *, fallback_year=None):
     TUR is a literal observed poster typo, not a corrected or inferred date.
     A yearless heading inherits the target year or the sole explicit source year.
     """
-    lines = tuple(_wrapped_headings(tuple(lines)))
+    # The printed event-date label is structural, not an arbitrary prose prefix.
+    lines = tuple(_wrapped_headings(tuple(_EVENT_DATE_LABEL.sub("", line) for line in lines)))
     found, invalid = set(), False
     for line in lines:
         try:

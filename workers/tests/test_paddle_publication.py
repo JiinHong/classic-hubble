@@ -196,6 +196,7 @@ def test_low_score_date_does_not_bind():
 @pytest.mark.parametrize("score,expected", [(.99, "published"), (.89, "date_binding_required"), (None, "date_binding_required")])
 @pytest.mark.parametrize("heading", [
     "2026.10.22.19:30", "2026.10.22THU7:30PM", "2026.10.22 7PM", "2026.10.22 7:30PM",
+    "일시 | 2026.10.22.(목)19:30",
 ])
 def test_date_clock_retains_quality_and_version_contract(score, expected, heading, monkeypatch):
     repo, store, data = setup(lambda d: d["lines"][-1].update(text=heading, score=score))
@@ -203,7 +204,7 @@ def test_date_clock_retains_quality_and_version_contract(score, expected, headin
     monkeypatch.setattr(module(), "download_source", lambda *_: (store.original, "image/png"))
     assert module().publish(repo, store, None, "p1", key, apply=True)["status"] == expected
     if repo.writes:
-        assert repo.writes[0]["p_evaluation"]["date_binding_version"] == "concert-date-headings-v10"
+        assert repo.writes[0]["p_evaluation"]["date_binding_version"] == "concert-date-headings-v11"
         assert repo.writes[0]["p_evaluation"]["performance_date"] == "2026-10-22"
     else:
         assert expected == "date_binding_required"
