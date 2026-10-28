@@ -73,7 +73,7 @@ tables. The final transaction uses current pointers, not cached eligibility.
 
 ## Release and remaining cases
 
-Apply `20261028021404_publish_performance_evidence_bundles.sql` before deploying
+Apply `20261028071051_publish_performance_evidence_bundles.sql` before deploying
 the web query that selects the added columns. Run the rollback-only SQL test
 `supabase/tests/paddle_bundle_publication.sql` against the target schema before
 publication. The function is service-role-only and security invoker.
