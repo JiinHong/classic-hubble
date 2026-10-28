@@ -850,6 +850,34 @@ def test_ocr_typo_only_returns_candidate_not_unverified_auto_link():
     assert result.reason == "composer_spelling_candidate"
 
 
+@pytest.mark.parametrize("printed", ["세르게이 프로코피에프", "세르게이프로코피에프"])
+def test_verified_prokofiev_korean_name_matches_printed_catalogue(printed):
+    work = CanonicalWork(
+        "prokofiev", "prokofiev", ("Symphony No. 1 in D major",),
+        ("Sergei Prokofiev", "세르게이 프로코피예프"), "Op.25",
+    )
+    result = matcher([work]).match(
+        "Symphony No.1 in D major, Op.25", printed,
+    )
+    assert result.work_id == "prokofiev"
+    assert result.reason == "composer_and_catalogue"
+
+
+def test_verified_prokofiev_name_does_not_hide_bilingual_conflict():
+    work = replace(BEETHOVEN, id="prokofiev", composers=("Sergei Prokofiev",))
+    result = matcher([work, BEETHOVEN]).match(
+        "Op.30 No.3", "세르게이 프로코피에프 Ludwig van Beethoven",
+    )
+    assert result.work_id is None
+    assert result.reason == "conflicting_composers"
+
+
+def test_unverified_prokofiev_korean_typo_stays_unmatched():
+    work = replace(BEETHOVEN, id="prokofiev", composers=("Sergei Prokofiev",))
+    result = matcher([work]).match("Op.30 No.3", "세르게이 프로코피에푸")
+    assert result.work_id is None
+
+
 def test_multiple_exact_titles_remain_ambiguous():
     other = replace(BEETHOVEN, id="second")
     assert matcher([BEETHOVEN, other]).match("Op.30 No.3", "Beethoven").work_id is None

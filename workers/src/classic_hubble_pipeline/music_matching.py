@@ -48,7 +48,8 @@ VERIFIED_COMPOSER_NAME_FORMS = {
     "pyotr ilyich tchaikovsky": ("Peter Ilyich Tchaikovsky", "Pyotr Tchaikovsky"),
     "sergei rachmaninoff": ("Sergei Rachmaninov",),
     # https://www.harmoniamundi.com/wp-content/uploads/pdf/prokofiev-piano-sonatas-2-en.pdf
-    "sergei prokofiev": ("Sergey Prokofiev",),
+    # https://repository.sungshin.ac.kr/handle/2025.oak/4229
+    "sergei prokofiev": ("Sergey Prokofiev", "세르게이 프로코피에프"),
 }
 GENERIC_TITLES = {
     "waltz",
