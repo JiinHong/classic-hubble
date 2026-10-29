@@ -294,7 +294,7 @@ def test_abbreviated_weekday_requires_quality_and_target_date(heading, score, ex
 
 @pytest.mark.parametrize("score,expected", [(.99, "published"), (.89, "date_binding_required"), (None, "date_binding_required")])
 @pytest.mark.parametrize("heading", [
-    "2026.10.22.19:30", "2026.10.22THU7:30PM", "2026.10.22 7PM", "2026.10.22 7:30PM",
+    "2026.10.22.19:30", "2026.10.22THU7:30PM", "2026.10.22THU7PM", "2026.10.22 7PM", "2026.10.22 7:30PM",
     "일시 | 2026.10.22.(목)19:30",
 ])
 def test_date_clock_retains_quality_and_version_contract(score, expected, heading, monkeypatch):
@@ -303,7 +303,7 @@ def test_date_clock_retains_quality_and_version_contract(score, expected, headin
     monkeypatch.setattr(module(), "download_source", lambda *_: (store.original, "image/png"))
     assert module().publish(repo, store, None, "p1", key, apply=True)["status"] == expected
     if repo.writes:
-        assert repo.writes[0]["p_evaluation"]["date_binding_version"] == "concert-date-headings-v16"
+        assert repo.writes[0]["p_evaluation"]["date_binding_version"] == "concert-date-headings-v17"
         assert repo.writes[0]["p_evaluation"]["performance_date"] == "2026-10-22"
     else:
         assert expected == "date_binding_required"
@@ -329,7 +329,7 @@ def test_split_year_date_requires_quality_on_every_fragment(low_line, fragments,
     assert result["status"] == expected
     assert len(repo.writes) == int(low_line is None)
     if repo.writes:
-        assert repo.writes[0]["p_evaluation"]["date_binding_version"] == "concert-date-headings-v16"
+        assert repo.writes[0]["p_evaluation"]["date_binding_version"] == "concert-date-headings-v17"
         assert repo.writes[0]["p_review"]["method"] == "reviewed_paddle_text"
 
 
