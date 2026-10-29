@@ -403,6 +403,77 @@ def test_untyped_number_cannot_use_a_generic_title():
     assert matcher([work]).match("Sonata", "Beethoven", catalogue="작품 37").work_id is None
 
 
+@pytest.fixture
+def short_korean_named_work():
+    return CanonicalWork(
+        "strauss-spring", "strauss-spring", ("Frühlingsstimmen", "봄의 소리"),
+        ("Johann Strauss Jr", "요한 슈트라우스 2세"), "Op. 410", ("봄의 소리",),
+    )
+
+
+@pytest.mark.parametrize("title", ["봄의 소리", "봄의소리"])
+@pytest.mark.parametrize("code", ["작품 410", "작품410", "작품번호 410"])
+def test_short_primary_korean_title_accepts_confirming_number(title, code, short_korean_named_work):
+    result = matcher([short_korean_named_work]).match(title, "요한 슈트라우스 2세", catalogue=code)
+    assert result.work_id == short_korean_named_work.id
+    assert result.reason == "composer_and_alias"
+
+
+@pytest.mark.parametrize("title,composer,code", [
+    ("봄의 소리", None, "작품 410"),
+    ("봄의 소리", "Beethoven", "작품 410"),
+    ("봄의 소리", "요한 슈트라우스 2세", "작품 411"),
+    ("봄의 소리 작품 411", "요한 슈트라우스 2세", "작품 410"),
+    ("봄의 소리 Op.411", "요한 슈트라우스 2세", "작품 410"),
+    ("봄의 소리", "요한 슈트라우스 2세", "작품 410/2"),
+    ("봄의 소리", "요한 슈트라우스 2세", "작품 410 No.2"),
+    ("봄의노래", "요한 슈트라우스 2세", "작품 410"),
+])
+def test_short_korean_title_preserves_identity_constraints(title, composer, code, short_korean_named_work):
+    assert matcher([short_korean_named_work]).match(title, composer, catalogue=code).work_id is None
+
+
+def test_short_korean_alias_alone_does_not_relax_untyped_guard(short_korean_named_work):
+    work = replace(short_korean_named_work, titles=("Frühlingsstimmen",))
+    assert matcher([work]).match("봄의 소리", "요한 슈트라우스 2세", catalogue="작품 410").work_id is None
+
+
+def test_short_korean_primary_evidence_must_belong_to_selected_work(short_korean_named_work):
+    primary = replace(short_korean_named_work, titles=("Frühlingsstimmen in D major", "봄의 소리"))
+    alias_only = replace(
+        short_korean_named_work, id="alias-only", titles=("Different Named Work in C major",),
+    )
+    assert matcher([primary, alias_only]).match(
+        "봄의 소리", "요한 슈트라우스 2세", catalogue="작품 410", key="C major",
+    ).work_id is None
+
+
+@pytest.mark.parametrize("catalogue", [None, "Op.411", "Op.410 No.1"])
+def test_short_korean_primary_number_must_be_complete(catalogue, short_korean_named_work):
+    work = replace(short_korean_named_work, catalogue=catalogue)
+    assert matcher([work]).match("봄의 소리", "요한 슈트라우스 2세", catalogue="작품 410").work_id is None
+
+
+def test_short_korean_number_does_not_disambiguate_same_title(short_korean_named_work):
+    other = replace(short_korean_named_work, id="other-spring", catalogue="Op.411")
+    assert matcher([short_korean_named_work, other]).match(
+        "봄의 소리", "요한 슈트라우스 2세", catalogue="작품 410",
+    ).work_id is None
+
+
+def test_short_korean_title_preserves_review_requirement(short_korean_named_work):
+    work = replace(short_korean_named_work, requires_review=True)
+    result = matcher([work]).match("봄의 소리", "요한 슈트라우스 2세", catalogue="작품 410")
+    assert result.work_id is None and result.candidate_ids == (work.id,)
+    assert result.reason == "catalog_review_required"
+
+
+@pytest.mark.parametrize("title", ["소나타", "교향곡", "왈츠", "알레그로"])
+def test_short_generic_korean_title_still_needs_identity(title):
+    work = replace(BEETHOVEN, titles=(title,), catalogue="Op.37", aliases=())
+    assert matcher([work]).match(title, "Beethoven", catalogue="작품 37").work_id is None
+
+
 @pytest.mark.parametrize("title", ["Fantasy", "Fantasia", "Fantaisie", "Fantasie", "Phantasy"])
 @pytest.mark.parametrize("composer", [None, "Gabriel Faure"])
 def test_generic_fantasy_label_does_not_identify_a_work(title, composer):

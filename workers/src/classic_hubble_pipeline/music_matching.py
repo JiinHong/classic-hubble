@@ -540,12 +540,20 @@ class MusicMatcher:
             if len(identities) != 1 or any(int(m[1]) != int(untyped[1]) for m in embedded.finditer(title)):
                 return WorkMatch(None, (), "unsupported_catalogue")
             clean = embedded.sub("", title).strip()
-            if _catalogues(clean) or not (_distinctive_title(clean) or (_genres(clean) and _numbers(clean))):
+            named = _distinctive_title(clean) or bool(_genres(clean) and _numbers(clean))
+            short_korean = re.fullmatch(r"[가-힣]{2,4}", re.sub(r"\s", "", clean))
+            if _catalogues(clean) or not (named or short_korean):
                 return WorkMatch(None, (), "unsupported_catalogue")
             matched = self.match(clean, composer, key=key, scoped=scoped)
             if len(matched.candidate_ids) != 1:
                 return WorkMatch(None, (), "unsupported_catalogue")
             work = next(w for w in self.by_composer[next(iter(identities))] if w.id == matched.candidate_ids[0])
+            # The selected work must own both the short translation and a named title.
+            if not named and not (
+                any(_title_key(clean) == _title_key(t) for t in work.titles)
+                and any(_distinctive_title(t) for t in work.titles)
+            ):
+                return WorkMatch(None, (), "unsupported_catalogue")
             primary = work.catalogue or ""
             codes = _catalogues(primary)
             code = re.fullmatch(r"[a-z]+(\d+)", next(iter(codes))) if len(codes) == 1 else None
