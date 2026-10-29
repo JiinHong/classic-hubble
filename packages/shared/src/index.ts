@@ -354,6 +354,15 @@ const normalize = (value: string) =>
     .replace(/\s+/g, " ")
     .trim();
 
+export const normalizeWorkSearchText = normalize;
+
+// Retrieval is deliberately broader than ranking; never use this as a match decision.
+export const getWorkSearchAnchor = (query: string) => {
+  const tokens = normalize(query).split(" ").filter(Boolean);
+  const words = tokens.filter(token => !/^\d+(?:번)?$/.test(token));
+  return (words.length ? words : tokens).sort((a, b) => b.length - a.length)[0] ?? "";
+};
+
 const tokenMatches = (candidate: string, token: string) => {
   if (/^\d+번$/.test(token)) return candidate.split(" ").includes(token);
   if (/^\d+$/.test(token)) return new RegExp(`(?:^|\\D)${token}(?!\\d)`).test(candidate);

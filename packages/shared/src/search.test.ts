@@ -1,5 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { findWorksByQuery, getPerformanceById, getWorkBySlug } from "./index";
+import { findWorksByQuery, getPerformanceById, getWorkBySlug, getWorkSearchAnchor } from "./index";
+
+describe("candidate search anchor", () => {
+  it.each([
+    ["라흐 피협 2번", "피아노"], ["라흐피협2번", "피아노"],
+    ["현사 제14번", "사중주"], ["3번", "3번"], ["---", ""],
+    ["모차르트터키풍", "모차르트터키풍"], ["100%_literal", "100%_literal"],
+    ["협주곡".normalize("NFD"), "협주곡"],
+  ])("normalizes %s with the same vocabulary as ranking", (query, anchor) => {
+    expect(getWorkSearchAnchor(query)).toBe(anchor);
+  });
+});
 
 describe("Classic Hubble shared search helpers", () => {
   it("matches Korean shorthand aliases to canonical works", () => {
