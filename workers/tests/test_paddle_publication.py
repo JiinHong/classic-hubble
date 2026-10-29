@@ -133,6 +133,30 @@ def test_apply_retains_ocr_provenance_and_checks_live_bytes(monkeypatch):
     assert "confidence" not in payload["p_items"][0]
 
 
+@pytest.mark.parametrize("code,score,published", [("Hob.XVII:4", .99, True), ("Hob.XVI:4", .99, False), ("Hob.XVII:4", .5, False)])
+def test_hoboken_publication_preserves_section_and_evidence(code, score, published, monkeypatch):
+    from test_music_extraction import quote
+
+    title = f"Capriccio in C Major 'FANTASIA' {code}"
+    def change(doc):
+        doc["lines"][1].update(text="Joseph Haydn")
+        doc["lines"][2].update(text=title, score=score)
+    repo, store, data = setup(change)
+    work = replace(WORK, titles=("Fantasia in C major",), composers=("Franz Joseph Haydn",), catalogue=None,
+                   aliases=("Fantasia in C major, H.XVII:4",))
+    repo.load_work_catalog = lambda: [work]
+    data["items"][0].update(composer=quote(1, "Joseph Haydn"), title=quote(2, title), catalogue=None, key=None)
+    review_id = save(repo, store, data)
+    monkeypatch.setattr(module(), "download_source", lambda *_: (store.original, "image/png"))
+    result = module().publish(repo, store, None, "p1", review_id, apply=True)
+    assert (result["status"] == "published") is published
+    assert len(repo.writes) == int(published)
+    if published:
+        item = repo.writes[0]["p_evaluation"]["matching"]["items"][0]
+        assert item["fields"]["title"] == title
+        assert item["evidence"] == data["items"][0]
+
+
 @pytest.mark.parametrize("score,published", [(.99, True), (.5, False)])
 def test_composer_prefixed_title_preserves_raw_evidence_and_quality(score, published, monkeypatch):
     from test_music_extraction import quote

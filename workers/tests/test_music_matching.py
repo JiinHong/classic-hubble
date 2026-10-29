@@ -23,6 +23,63 @@ def matcher(works):
 
 
 @pytest.fixture
+def haydn_fantasia():
+    # Henle HN952: Fantasia C major (Capriccio), Hob. XVII:4.
+    return CanonicalWork(
+        "haydn-fantasia", "haydn-fantasia", ("Fantasia in C major",),
+        ("Franz Joseph Haydn",), None,
+        ("Fantasia in C Major, H.XVII:4",),
+    )
+
+
+@pytest.mark.parametrize("code", ["Hob.XVI:4", "H.XVI:4", "Hob.XVII:5"])
+def test_embedded_hoboken_conflict_cannot_fall_back_to_quoted_title(haydn_fantasia, code):
+    result = matcher([haydn_fantasia]).match(
+        f"Capriccio in C Major 'FANTASIA' {code}", "Joseph Haydn"
+    )
+    assert result.work_id is None
+
+
+@pytest.mark.parametrize("code", ["Hob.XVII:4", "Hob. XVII: 4", "H.XVII:4", "Hob XVII/4"])
+def test_hoboken_section_and_number_match_literal_alias(haydn_fantasia, code):
+    result = matcher([haydn_fantasia]).match(
+        "Capriccio in C Major 'FANTASIA'", "Joseph Haydn", catalogue=code
+    )
+    assert result.work_id == haydn_fantasia.id
+    assert result.reason == "composer_and_catalogue"
+
+
+@pytest.mark.parametrize("code", ["Hob.XVI:4", "Hob.XVII:4a", "Hob.XVII:5"])
+def test_hoboken_number_is_not_widened_by_exact_title(haydn_fantasia, code):
+    result = matcher([haydn_fantasia]).match(
+        f"Fantasia in C major, {code}", "Joseph Haydn"
+    )
+    assert result.work_id is None
+
+
+@pytest.mark.parametrize("code", ["Hob.XV1:4", "HobXV1:4", "H.XV1:4", "Hob.XIIII:4", "Hob.XVII:", "Hob.XVII:4-5", "Hob.XVII:4.1"])
+def test_malformed_hoboken_cannot_disappear_into_a_title_match(haydn_fantasia, code):
+    result = matcher([haydn_fantasia]).match(
+        f"Capriccio in C Major 'FANTASIA' {code}", "Joseph Haydn"
+    )
+    assert result.work_id is None
+    assert result.reason in {"unsupported_catalogue", "complex_catalogue"}
+
+
+def test_hoboken_primary_catalogue_blocks_conflicting_alias(haydn_fantasia):
+    work = replace(haydn_fantasia, catalogue="Hob.XVII:4", aliases=("Fantasia in C major, Hob.XVI:4",))
+    assert matcher([work]).match("Fantasia in C major", "Haydn", catalogue="Hob.XVI:4").work_id is None
+
+
+def test_hoboken_does_not_override_wrong_composer_or_ambiguity(haydn_fantasia):
+    work = replace(haydn_fantasia, catalogue="Hob.XVII:4")
+    assert matcher([work]).match("Fantasia in C major", "Mozart", catalogue="Hob.XVII:4").work_id is None
+    result = matcher([work, replace(work, id="duplicate")]).match("Fantasia in C major", "Haydn", catalogue="Hob.XVII:4")
+    assert result.work_id is None
+    assert result.reason == "ambiguous"
+
+
+@pytest.fixture
 def mazurka_collection_and_member():
     collection = CanonicalWork("set", "set", ("Mazurkas, Op. 17",), ("Chopin",), "Op. 17", ("4 Mazurkas, Op. 17",))
     member = CanonicalWork(
