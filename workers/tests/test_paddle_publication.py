@@ -250,18 +250,22 @@ def test_date_clock_retains_quality_and_version_contract(score, expected, headin
     monkeypatch.setattr(module(), "download_source", lambda *_: (store.original, "image/png"))
     assert module().publish(repo, store, None, "p1", key, apply=True)["status"] == expected
     if repo.writes:
-        assert repo.writes[0]["p_evaluation"]["date_binding_version"] == "concert-date-headings-v12"
+        assert repo.writes[0]["p_evaluation"]["date_binding_version"] == "concert-date-headings-v13"
         assert repo.writes[0]["p_evaluation"]["performance_date"] == "2026-10-22"
     else:
         assert expected == "date_binding_required"
 
 
 @pytest.mark.parametrize("low_line", [None, 0, 1, 2])
-def test_split_year_date_requires_quality_on_every_fragment(low_line, monkeypatch):
+@pytest.mark.parametrize("fragments", [
+    ("2026", "10.22", "(Thu)"),
+    ("2026.", "10.22", "THU 7:30PM"),
+])
+def test_split_year_date_requires_quality_on_every_fragment(low_line, fragments, monkeypatch):
     def split_date(doc):
         doc["lines"][-1:] = [
             {"text": text, "score": .5 if index == low_line else .99}
-            for index, text in enumerate(("2026", "10.22", "(Thu)"))
+            for index, text in enumerate(fragments)
         ]
 
     repo, store, data = setup(split_date)
@@ -272,7 +276,7 @@ def test_split_year_date_requires_quality_on_every_fragment(low_line, monkeypatc
     assert result["status"] == expected
     assert len(repo.writes) == int(low_line is None)
     if repo.writes:
-        assert repo.writes[0]["p_evaluation"]["date_binding_version"] == "concert-date-headings-v12"
+        assert repo.writes[0]["p_evaluation"]["date_binding_version"] == "concert-date-headings-v13"
         assert repo.writes[0]["p_review"]["method"] == "reviewed_paddle_text"
 
 
