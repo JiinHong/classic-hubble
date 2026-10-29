@@ -525,6 +525,23 @@ class MusicMatcher:
         if len(keys) != 1:
             return False
         numbers = _numbers(title)
+        member = next(iter(primary))
+        if numbers == frozenset({int(member.split("no")[1])}):
+            # No.1, Op.37 is a member only when its complete
+            # primary name and key agree, not a general catalogue rewrite.
+            def member_identity(text):
+                text = CATALOGUE.sub(
+                    lambda m: "No " + member.split("no")[1]
+                    if _catalogue_key(m[0]) == member else "", text,
+                )
+                return _title_key(LATIN_NOTE_KEY.sub("", KOREAN_KEY.sub("", text)))
+
+            if any(
+                _catalogues(t) == primary and _keys(t) == keys
+                and member_identity(t) == member_identity(title)
+                for t in work.titles
+            ):
+                return True
         if len(numbers) != 1 or _genres(title) != frozenset({"sonata"}):
             return False
 
