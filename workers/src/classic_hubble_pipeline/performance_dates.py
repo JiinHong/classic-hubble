@@ -3,7 +3,7 @@
 import re
 from datetime import date
 
-DATE_BINDING_VERSION = "concert-date-headings-v21"
+DATE_BINDING_VERSION = "concert-date-headings-v22"
 _EVENT_DATE_LABEL = re.compile(r"^\s*일\s*시\s*[:：|]?\s*(?=20\d{2})")
 _DATE = re.compile(
     r"(?:(20\d{2})(?:\s*[./년]\s*|(?=\d{2}[./월])))?"
@@ -29,6 +29,10 @@ _CLOCK_ONLY = re.compile(
 )
 _DECIMAL_MERIDIEM_CLOCK = re.compile(
     r"\s*(\d{1,2})\.(\d{2})\s*(AM|PM)(?=\s|$|[&~,–—-])",
+    re.IGNORECASE,
+)
+_PREFIX_MERIDIEM_CLOCK = re.compile(
+    r"\s*(AM|PM)\s*(\d{1,2}):(\d{2})(?=\s|$|[&~,가-힣–—-])",
     re.IGNORECASE,
 )
 _FULL_DATE_CLOCK = re.compile(
@@ -98,6 +102,9 @@ def _valid_heading_clock(text):
         return True
     if _valid_korean_clocks(text):
         return True
+    prefix = _PREFIX_MERIDIEM_CLOCK.fullmatch(text.strip())
+    if prefix:
+        return 1 <= int(prefix[2]) <= 12 and int(prefix[3]) <= 59
     decimal = _DECIMAL_MERIDIEM_CLOCK.fullmatch(text.strip())
     if decimal:
         return 1 <= int(decimal[1]) <= 12 and int(decimal[2]) <= 59
@@ -132,6 +139,8 @@ def _wrapped_headings(lines):
                 _CLOCK_ONLY.fullmatch(following[suffix.end():])
                 or _valid_korean_clocks(following[suffix.end():])
                 or (_DECIMAL_MERIDIEM_CLOCK.fullmatch(following[suffix.end():].strip())
+                    and _valid_heading_clock(following[suffix.end():]))
+                or (_PREFIX_MERIDIEM_CLOCK.fullmatch(following[suffix.end():].strip())
                     and _valid_heading_clock(following[suffix.end():]))
             ):
                 yield stripped + " " + following.strip()
@@ -187,8 +196,15 @@ def _line_dates(line, fallback_year):
             invalid = True
         found.add((year, month, day))
         tail = remaining[suffix.end():]
+        prefix_clock = _PREFIX_MERIDIEM_CLOCK.match(tail)
+        if prefix_clock:
+            if not _valid_heading_clock(prefix_clock[0]):
+                raise ValueError("Invalid prefix meridiem clock")
+            tail = tail[prefix_clock.end():]
+            if re.match(r"\s*(?:AM|PM)\s*\d", tail, re.IGNORECASE):
+                raise ValueError("Unsupported consecutive heading clocks")
         # AM/PM distinguishes a dotted time from another month/day heading.
-        decimal = _DECIMAL_MERIDIEM_CLOCK.match(tail)
+        decimal = None if prefix_clock else _DECIMAL_MERIDIEM_CLOCK.match(tail)
         if decimal:
             if not 1 <= int(decimal[1]) <= 12 or int(decimal[2]) > 59:
                 raise ValueError("Invalid decimal heading clock")
@@ -199,7 +215,7 @@ def _line_dates(line, fallback_year):
                 raise ValueError("Invalid Korean heading clock")
             return found, invalid
         punctuated = suffix[3] and (suffix[0].endswith(".") or suffix[0].lstrip().startswith("/"))
-        if not decimal and suffix[3] and (tail[:1].isdigit() or (punctuated and tail.strip())):
+        if not decimal and not prefix_clock and suffix[3] and (tail[:1].isdigit() or (punctuated and tail.strip())):
             clock = _JOINED_CLOCK.match(tail.lstrip() if punctuated else tail)
             if not clock:
                 raise ValueError("Invalid joined heading clock")

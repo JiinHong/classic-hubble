@@ -106,7 +106,9 @@ begin
   if result->>'status' <> 'unchanged' then raise exception 'TEST: v20 bundle contract not accepted'; end if;
   result := public.publish_paddle_program_bundle(pid,target,docs,jsonb_set(ev,'{date_binding_version}','"concert-date-headings-v21"'),items);
   if result->>'status' <> 'unchanged' then raise exception 'TEST: v21 bundle contract not accepted'; end if;
-  perform pg_temp.reject_bundle(pid,target,docs,jsonb_set(ev,'{date_binding_version}','"concert-date-headings-v22"'),items);
+  result := public.publish_paddle_program_bundle(pid,target,docs,jsonb_set(ev,'{date_binding_version}','"concert-date-headings-v22"'),items);
+  if result->>'status' <> 'unchanged' then raise exception 'TEST: v22 bundle contract not accepted'; end if;
+  perform pg_temp.reject_bundle(pid,target,docs,jsonb_set(ev,'{date_binding_version}','"concert-date-headings-v23"'),items);
   perform pg_temp.reject_bundle(pid,target,docs,ev,jsonb_set(items,'{0,performed_scope}','"full_work"'));
   perform pg_temp.reject_bundle(pid,target,docs,ev,jsonb_set(items,'{0,source_url}',to_jsonb(urls[1])));
   perform pg_temp.reject_bundle(pid,target,docs,ev,items||items);
