@@ -59,6 +59,11 @@ VERIFIED_COMPOSER_NAME_FORMS = {
     # https://repository.sungshin.ac.kr/handle/2025.oak/4229
     "sergei prokofiev": ("Sergey Prokofiev", "세르게이 프로코피에프"),
 }
+# Source-verified identities only; a bare opus never identifies an arbitrary member.
+VERIFIED_NAMED_OPUS_MEMBERS = {
+    # https://stainer.co.uk/shop/n49917/
+    ("nikolai medtner", "russian round dance", "op58no1"),
+}
 GENERIC_TITLES = {
     "waltz",
     "왈츠",
@@ -475,12 +480,27 @@ class MusicMatcher:
                     known.add(value)
         if actual and actual.issubset(known):
             return True
-        # Op.120 alone is a collection. A numbered sonata needs its complete
-        # primary title and explicit matching key before using that root code.
-        if not title or len(actual) != 1 or len(primary) != 1 or len(keys) != 1:
+        if not title or len(actual) != 1 or len(primary) != 1:
             return False
         root = next(iter(actual))
         if not re.fullmatch(r"op\d+", root) or not re.fullmatch(root + r"no\d+", next(iter(primary))):
+            return False
+        # A publisher-verified name may supply an omitted member number, but
+        # only with the same canonical composer, primary name and specific code.
+        name = _title_key(CATALOGUE.sub("", title))
+        if (
+            not keys
+            and all(_catalogues(t).issubset(primary) for t in work.titles)
+            and any(
+                (_normalize(composer), name, next(iter(primary))) in VERIFIED_NAMED_OPUS_MEMBERS
+                for composer in work.composers
+            )
+            and any(name == _title_key(CATALOGUE.sub("", t)) for t in work.titles)
+        ):
+            return True
+        # Op.120 alone is a collection. A numbered sonata needs its complete
+        # primary title and explicit matching key before using that root code.
+        if len(keys) != 1:
             return False
         numbers = _numbers(title)
         if len(numbers) != 1 or _genres(title) != frozenset({"sonata"}):

@@ -178,6 +178,29 @@ def test_untyped_number_publication_preserves_literal_evidence_and_quality(numbe
         assert matched["evidence"] == data["items"][0]
 
 
+@pytest.mark.parametrize("code,score,published", [("Op.58", .99, True), ("Op.59", .99, False), ("Op.58", .5, False)])
+def test_named_opus_member_preserves_printed_number_and_ocr_quality(code, score, published, monkeypatch):
+    from test_music_extraction import quote
+
+    title = "Russian Round Dance, " + code
+    repo, store, data = setup(lambda d: d["lines"][2].update(text="N. Medtner " + title, score=score))
+    work = replace(WORK, titles=("Russian Round Dance",), composers=("Nikolai Medtner",), catalogue="Op.58 No.1", aliases=())
+    repo.load_work_catalog = lambda: [work]
+    data["items"][0].update(composer=quote(2, "N. Medtner"), title=quote(2, title), catalogue=quote(2, code), key=None)
+    review_id = save(repo, store, data)
+    monkeypatch.setattr(module(), "download_source", lambda *_: (store.original, "image/png"))
+    result = module().publish(repo, store, None, "p1", review_id, apply=True)
+    assert (result["status"] == "published") is published
+    assert len(repo.writes) == int(published)
+    if published:
+        payload = repo.writes[0]
+        assert payload["p_items"][0]["work_id"] == work.id
+        item = payload["p_evaluation"]["matching"]["items"][0]
+        assert item["fields"]["catalogue"] == code
+        assert item["evidence"] == data["items"][0]
+        assert payload["p_review"]["method"] == "reviewed_paddle_text"
+
+
 @pytest.mark.parametrize("scope", ["movement", "excerpt", "arrangement", "unknown"])
 def test_scopes_do_not_become_full_works(scope):
     repo, store, data = setup()
