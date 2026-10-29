@@ -83,7 +83,10 @@ begin
   result := public.publish_paddle_program(pid,target,src,oc,rv,
     jsonb_set(ev,'{date_binding_version}','"concert-date-headings-v21"'),items);
   if result->>'status' <> 'unchanged' then raise exception 'TEST: v21 contract not accepted'; end if;
-  foreach date_version in array array['', 'concert-date-headings-v4', 'concert-date-headings-v22'] loop
+  result := public.publish_paddle_program(pid,target,src,oc,rv,
+    jsonb_set(ev,'{date_binding_version}','"concert-date-headings-v22"'),items);
+  if result->>'status' <> 'unchanged' then raise exception 'TEST: v22 contract not accepted'; end if;
+  foreach date_version in array array['', 'concert-date-headings-v4', 'concert-date-headings-v23'] loop
     begin
       perform public.publish_paddle_program(pid,target,src,oc,rv,
         jsonb_set(ev,'{date_binding_version}',to_jsonb(date_version)),items);

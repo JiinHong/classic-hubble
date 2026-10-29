@@ -310,6 +310,7 @@ def test_abbreviated_weekday_requires_quality_and_target_date(heading, score, ex
     "일시 | 2026.10.22.(목)19:30",
     "2026.10.22 THU7.30PM", "2026.10.22 (Thu) 7.30 PM",
     "2026.10.22/ Thu. 7:30 pm", "2026.10.22 Thu.19:00",
+    "2026.10.22.THU. PM7:30",
 ])
 def test_date_clock_retains_quality_and_version_contract(score, expected, heading, monkeypatch):
     repo, store, data = setup(lambda d: d["lines"][-1].update(text=heading, score=score))
@@ -317,7 +318,7 @@ def test_date_clock_retains_quality_and_version_contract(score, expected, headin
     monkeypatch.setattr(module(), "download_source", lambda *_: (store.original, "image/png"))
     assert module().publish(repo, store, None, "p1", key, apply=True)["status"] == expected
     if repo.writes:
-        assert repo.writes[0]["p_evaluation"]["date_binding_version"] == "concert-date-headings-v21"
+        assert repo.writes[0]["p_evaluation"]["date_binding_version"] == "concert-date-headings-v22"
         assert repo.writes[0]["p_evaluation"]["performance_date"] == "2026-10-22"
     else:
         assert expected == "date_binding_required"
@@ -344,7 +345,7 @@ def test_split_year_date_requires_quality_on_every_fragment(low_line, fragments,
     assert result["status"] == expected
     assert len(repo.writes) == int(low_line is None)
     if repo.writes:
-        assert repo.writes[0]["p_evaluation"]["date_binding_version"] == "concert-date-headings-v21"
+        assert repo.writes[0]["p_evaluation"]["date_binding_version"] == "concert-date-headings-v22"
         assert repo.writes[0]["p_review"]["method"] == "reviewed_paddle_text"
 
 
