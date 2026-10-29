@@ -3,7 +3,7 @@
 import re
 from datetime import date
 
-DATE_BINDING_VERSION = "concert-date-headings-v14"
+DATE_BINDING_VERSION = "concert-date-headings-v15"
 _EVENT_DATE_LABEL = re.compile(r"^\s*일\s*시\s*[:：|]?\s*(?=20\d{2})")
 _DATE = re.compile(
     r"(?:(20\d{2})(?:\s*[./년]\s*|(?=\d{2}[./월])))?"
@@ -145,6 +145,27 @@ def _line_dates(line, fallback_year):
         remaining = tail[continuation.end():]
 
 
+def _without_history_timeline(lines):
+    """Exclude a bounded, explicitly labelled year timeline, not arbitrary prose."""
+    ignored = set()
+    for start, line in enumerate(lines):
+        if line.strip().casefold() != "history":
+            continue
+        for end in range(start + 1, min(len(lines), start + 201)):
+            heading = re.sub(r"\s+", "", lines[end]).casefold()
+            if heading not in {"program", "programme"}:
+                continue
+            years = {
+                re.sub(r"\s+", "", value)
+                for value in lines[start + 1:end]
+                if re.fullmatch(r"20\d{2}(?:\s*[-~–]\s*20\d{2})?", value.strip())
+            }
+            if len(years) >= 2:
+                ignored.update(range(start, end))
+            break
+    return tuple(line for index, line in enumerate(lines) if index not in ignored)
+
+
 def date_headings(lines, *, fallback_year=None):
     """Return (date tuples, has_invalid_heading), not corrected source text.
 
@@ -154,6 +175,7 @@ def date_headings(lines, *, fallback_year=None):
     """
     # The printed event-date label is structural, not an arbitrary prose prefix.
     lines = tuple(_EVENT_DATE_LABEL.sub("", line) for line in lines)
+    lines = _without_history_timeline(lines)
     lines = tuple(_wrapped_headings(tuple(_year_headings(lines))))
     found, invalid = set(), False
     for line in lines:
