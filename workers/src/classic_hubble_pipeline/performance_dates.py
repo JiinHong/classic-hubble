@@ -3,7 +3,7 @@
 import re
 from datetime import date
 
-DATE_BINDING_VERSION = "concert-date-headings-v17"
+DATE_BINDING_VERSION = "concert-date-headings-v18"
 _EVENT_DATE_LABEL = re.compile(r"^\s*일\s*시\s*[:：|]?\s*(?=20\d{2})")
 _DATE = re.compile(
     r"(?:(20\d{2})(?:\s*[./년]\s*|(?=\d{2}[./월])))?"
@@ -19,7 +19,7 @@ _SUFFIX = re.compile(
     rf"\s*[.일]?\s*(?:\(\s*({_BRACKET_DAY})\s*\)|\[\s*({_BRACKET_DAY})\s*\]|({_DAY})(?:\b|(?=\d{{1,2}}(?::\d{{2}}|\s*(?:AM|PM)))))",
     re.IGNORECASE,
 )
-_CONTINUATION = re.compile(r"(?:&|~|[-–—]|,|및|부터)\s*(?=\d)")
+_CONTINUATION = re.compile(r"(?:&|~|[-–—]|,|및|부터)\s*(?=\d)(?!\d+\s*번)")
 _WEEKDAYS = {day: index for index, day in enumerate(("mon", "tue", "wed", "thu", "fri", "sat", "sun"))}
 _WEEKDAYS.update({day: index for index, day in enumerate("월화수목금토일")})
 _WEEKDAYS["th"] = 3
