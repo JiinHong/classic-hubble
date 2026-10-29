@@ -239,6 +239,22 @@ def test_low_score_date_does_not_bind():
     assert module().publish(repo, store, None, "p1", key)["status"] == "date_binding_required"
 
 
+@pytest.mark.parametrize("heading,score,expected", [
+    ("2026.10.22.(Thu.)", .99, "published"),
+    ("2026.10.22.[Thu.]", .99, "published"),
+    ("2026.10.22.(Thu.)", .89, "date_binding_required"),
+    ("2026.10.22.(Thu.)", None, "date_binding_required"),
+    ("2026.10.22.(Fri.)", .99, "date_binding_required"),
+    ("2026.10.23.(Fri.)", .99, "date_binding_required"),
+])
+def test_abbreviated_weekday_requires_quality_and_target_date(heading, score, expected, monkeypatch):
+    repo, store, data = setup(lambda d: d["lines"][-1].update(text=heading, score=score))
+    key = save(repo, store, data)
+    monkeypatch.setattr(module(), "download_source", lambda *_: (store.original, "image/png"))
+    assert module().publish(repo, store, None, "p1", key, apply=True)["status"] == expected
+    assert len(repo.writes) == int(expected == "published")
+
+
 @pytest.mark.parametrize("score,expected", [(.99, "published"), (.89, "date_binding_required"), (None, "date_binding_required")])
 @pytest.mark.parametrize("heading", [
     "2026.10.22.19:30", "2026.10.22THU7:30PM", "2026.10.22 7PM", "2026.10.22 7:30PM",
@@ -250,7 +266,7 @@ def test_date_clock_retains_quality_and_version_contract(score, expected, headin
     monkeypatch.setattr(module(), "download_source", lambda *_: (store.original, "image/png"))
     assert module().publish(repo, store, None, "p1", key, apply=True)["status"] == expected
     if repo.writes:
-        assert repo.writes[0]["p_evaluation"]["date_binding_version"] == "concert-date-headings-v13"
+        assert repo.writes[0]["p_evaluation"]["date_binding_version"] == "concert-date-headings-v14"
         assert repo.writes[0]["p_evaluation"]["performance_date"] == "2026-10-22"
     else:
         assert expected == "date_binding_required"
@@ -276,7 +292,7 @@ def test_split_year_date_requires_quality_on_every_fragment(low_line, fragments,
     assert result["status"] == expected
     assert len(repo.writes) == int(low_line is None)
     if repo.writes:
-        assert repo.writes[0]["p_evaluation"]["date_binding_version"] == "concert-date-headings-v13"
+        assert repo.writes[0]["p_evaluation"]["date_binding_version"] == "concert-date-headings-v14"
         assert repo.writes[0]["p_review"]["method"] == "reviewed_paddle_text"
 
 
