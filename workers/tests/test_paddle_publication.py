@@ -303,7 +303,7 @@ def test_date_clock_retains_quality_and_version_contract(score, expected, headin
     monkeypatch.setattr(module(), "download_source", lambda *_: (store.original, "image/png"))
     assert module().publish(repo, store, None, "p1", key, apply=True)["status"] == expected
     if repo.writes:
-        assert repo.writes[0]["p_evaluation"]["date_binding_version"] == "concert-date-headings-v15"
+        assert repo.writes[0]["p_evaluation"]["date_binding_version"] == "concert-date-headings-v16"
         assert repo.writes[0]["p_evaluation"]["performance_date"] == "2026-10-22"
     else:
         assert expected == "date_binding_required"
@@ -329,8 +329,35 @@ def test_split_year_date_requires_quality_on_every_fragment(low_line, fragments,
     assert result["status"] == expected
     assert len(repo.writes) == int(low_line is None)
     if repo.writes:
-        assert repo.writes[0]["p_evaluation"]["date_binding_version"] == "concert-date-headings-v15"
+        assert repo.writes[0]["p_evaluation"]["date_binding_version"] == "concert-date-headings-v16"
         assert repo.writes[0]["p_review"]["method"] == "reviewed_paddle_text"
+
+
+@pytest.mark.parametrize("low_line", [None, 0, 3])
+def test_venue_wrapped_date_requires_high_quality_date_and_weekday(low_line, monkeypatch):
+    def wrapped(doc):
+        doc['lines'][-1:] = [
+            {'text':text, 'score':.5 if index == low_line else .99}
+            for index,text in enumerate(['2026.10.22.', '흥학관', '아트스페이스', 'Thursday at 7:30 pm'])
+        ]
+    repo,store,data = setup(wrapped)
+    key = save(repo,store,data)
+    monkeypatch.setattr(module(),'download_source',lambda *_:(store.original,'image/png'))
+    result = module().publish(repo,store,None,'p1',key,apply=True)
+    assert result['status'] == ('published' if low_line is None else 'date_binding_required')
+    assert len(repo.writes) == int(low_line is None)
+
+
+@pytest.mark.parametrize('score,expected', [(.99,'published'),(.5,'date_binding_required')])
+def test_date_echo_cannot_replace_low_quality_primary_date(score, expected, monkeypatch):
+    def echo(doc):
+        doc['lines'][-1].update(score=score)
+        doc['lines'].append({'text':'2026.10.22.', 'score':.99})
+    repo,store,data = setup(echo)
+    key = save(repo,store,data)
+    monkeypatch.setattr(module(),'download_source',lambda *_:(store.original,'image/png'))
+    assert module().publish(repo,store,None,'p1',key,apply=True)['status'] == expected
+    assert len(repo.writes) == int(expected == 'published')
 
 
 def test_fabricated_quote_is_rejected_before_review_storage():

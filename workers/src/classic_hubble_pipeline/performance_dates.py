@@ -3,7 +3,7 @@
 import re
 from datetime import date
 
-DATE_BINDING_VERSION = "concert-date-headings-v15"
+DATE_BINDING_VERSION = "concert-date-headings-v16"
 _EVENT_DATE_LABEL = re.compile(r"^\s*일\s*시\s*[:：|]?\s*(?=20\d{2})")
 _DATE = re.compile(
     r"(?:(20\d{2})(?:\s*[./년]\s*|(?=\d{2}[./월])))?"
@@ -37,6 +37,20 @@ _JOINED_CLOCK = re.compile(
     r"(\d{1,2}):(\d{2})(?:\s*(AM|PM))?(?!\s*(?:AM|PM))(?=\s|$|[&~,가-힣-])",
     re.IGNORECASE,
 )
+_VENUE_LINE = re.compile(r"[가-힣A-Za-z ·]{0,60}(?:관|홀|아트스페이스)")
+
+
+def _bare_date(line):
+    text = line.strip()
+    match = _DATE.match(text)
+    if not match or not match[1] or text[match.end():].strip() not in {"", ".", "일"}:
+        return None
+    parts = tuple(map(int, match.groups()))
+    try:
+        date(*parts)
+    except ValueError:
+        return None
+    return parts
 
 
 def _year_headings(lines):
@@ -94,6 +108,22 @@ def _wrapped_headings(lines):
             if suffix and _CLOCK_ONLY.fullmatch(following[suffix.end():]):
                 yield stripped + " " + following.strip()
                 continue
+            # A poster may place up to two venue lines between its date and clock.
+            if _bare_date(stripped):
+                joined = None
+                for next_index in range(index + 1, min(len(lines), index + 4)):
+                    following = lines[next_index].strip()
+                    suffix = _SUFFIX.match(following)
+                    if suffix and next_index > index + 1:
+                        clock = re.sub(r"^\s*at\s+", "", following[suffix.end():], flags=re.IGNORECASE)
+                        if clock.strip() and _valid_heading_clock(clock):
+                            joined = stripped + " " + following[:suffix.end()] + " " + clock
+                            break
+                    if not _VENUE_LINE.fullmatch(following):
+                        break
+                if joined:
+                    yield joined
+                    continue
         yield line
 
 
@@ -177,22 +207,31 @@ def date_headings(lines, *, fallback_year=None):
     lines = tuple(_EVENT_DATE_LABEL.sub("", line) for line in lines)
     lines = _without_history_timeline(lines)
     lines = tuple(_wrapped_headings(tuple(_year_headings(lines))))
-    found, invalid = set(), False
-    for line in lines:
+    found, invalid, bare_dates = set(), False, set()
+    for index, line in enumerate(lines):
+        bare = _bare_date(line)
+        if bare:
+            bare_dates.add(bare)
+            invalid |= any(_SUFFIX.match(value.strip()) for value in lines[index + 1:index + 4])
+            continue
         try:
             dates, line_invalid = _line_dates(line, fallback_year)
             found.update(dates)
             invalid |= line_invalid
         except ValueError:
             invalid = True
-    years = {year for year, _, _ in found if year is not None}
+    years = {year for year, _, _ in found | bare_dates if year is not None}
     inferred_year = fallback_year or (next(iter(years)) if len(years) == 1 else None)
     if inferred_year and fallback_year is None:
         # Recheck yearless headings once their source year is known.
         for line in lines:
+            if _bare_date(line):
+                continue
             try:
                 _, line_invalid = _line_dates(line, inferred_year)
                 invalid |= line_invalid
             except ValueError:
                 invalid = True
-    return {(year or inferred_year, month, day) for year, month, day in found}, invalid
+    resolved = {(year or inferred_year, month, day) for year, month, day in found}
+    # A repeated bare date can corroborate, but never create, an event binding.
+    return resolved, invalid or not bare_dates.issubset(resolved)
