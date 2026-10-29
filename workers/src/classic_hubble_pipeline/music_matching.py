@@ -22,7 +22,7 @@ HOBOKEN = re.compile(
     re.IGNORECASE,
 )
 # Additional schemes require grounded evidence, not legacy ingestion or import.
-CATALOGUE = re.compile(HOBOKEN.pattern + "|" + LEGACY_CATALOGUE.pattern + r"|\b(?:WAB|FWV|CD|FP|H|G|M)\.?\s*\d+\b", re.IGNORECASE)
+CATALOGUE = re.compile(HOBOKEN.pattern + "|" + LEGACY_CATALOGUE.pattern + r"|\b(?:WAB|WWV|FWV|CD|FP|H|G|M)\.?\s*\d+\b", re.IGNORECASE)
 LIFESPAN = re.compile(r"\(?\b\d{4}\s*[-–—~]\s*\d{4}\b\)?")
 COMPOSER_YEAR = r"(?:[12]\d[0-9oOlI]{2}|[Il]\d{3})"
 COMPOSER_BIOGRAPHICAL_DATES = re.compile(
@@ -409,7 +409,7 @@ def _distinctive_title(text: str) -> bool:
     text = LATIN_NOTE_KEY.sub("", KOREAN_KEY.sub("", CATALOGUE.sub("", text)))
     text = _normalize(text)
     text = re.sub(
-        r"\b(?:piano|violin|viola|cello|flute|clarinet|horn|keyboard|solo|strings|"
+        r"\b(?:piano|violin|viola|cello|flute|clarinet|horn|keyboard|solo|strings|chamber|"
         r"sonata|concerto|symphony|quartet|quintet|trio|no|nr|in|for|and|the|major|minor|"
         r"variations?|waltz|preludes?|etude|nocturne|minuet|adagio|allegro|andante|"
         r"lento|largo|semplice|moderato|allegretto|grazioso|con|moto|rondo|ma|non|troppo|"
