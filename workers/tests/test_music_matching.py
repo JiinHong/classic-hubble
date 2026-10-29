@@ -1136,6 +1136,86 @@ def test_opus_root_does_not_promote_scoped_or_unreviewed_work(brahms_clarinet_so
     assert matcher([replace(work, requires_review=True)]).match("Sonata for Clarinet and Piano No.2", "J.Brahms", catalogue="Op.120", key="E-flat Major").work_id is None
 
 
+@pytest.fixture
+def medtner_named_piece():
+    return CanonicalWork(
+        "medtner-round", "medtner-round", ("Russian Round Dance",),
+        ("Nikolai Medtner",), "Op.58 No.1",
+    )
+
+
+@pytest.mark.parametrize("title", ["Russian Round Dance", "Russian Round Dance, Op. 58"])
+def test_named_primary_piece_can_identify_omitted_opus_member(medtner_named_piece, title):
+    result = matcher([medtner_named_piece]).match(title, "N. Medtner", catalogue="Op.58")
+    assert result.work_id == medtner_named_piece.id
+    assert result.reason == "composer_and_catalogue"
+
+
+@pytest.mark.parametrize("title,composer,code", [
+    ("Round Dance", "N. Medtner", "Op.58"),
+    ('Other piece "Russian Round Dance"', "N. Medtner", "Op.58"),
+    ("Russian Round Dance", None, "Op.58"),
+    ("Russian Round Dance", "Other Composer", "Op.58"),
+    ("Russian Round Dance", "N. Medtner", "Op.59"),
+    ("Russian Round Dance", "N. Medtner", "Op.58 No.2"),
+    ("Russian Round Dance", "N. Medtner", "Op.58; Op.59"),
+    ("Russian Round Dance No.2", "N. Medtner", "Op.58"),
+])
+def test_named_opus_member_requires_complete_primary_identity(medtner_named_piece, title, composer, code):
+    assert matcher([medtner_named_piece]).match(title, composer, catalogue=code).work_id is None
+
+
+@pytest.mark.parametrize("title", [
+    "Three Pieces", "2 Dances", "Two Character Pieces", "Dances", "Songs",
+    "Sonata for Clarinet and Piano No.2", "Romance", "Andante",
+])
+def test_generic_or_counted_primary_name_does_not_supply_opus_member(medtner_named_piece, title):
+    work = replace(medtner_named_piece, titles=(title,))
+    assert matcher([work]).match(title, "N. Medtner", catalogue="Op.58").work_id is None
+
+
+def test_named_opus_member_ignores_alias_identity(medtner_named_piece):
+    work = replace(medtner_named_piece, titles=("Two Pieces",), aliases=medtner_named_piece.titles)
+    assert matcher([work]).match("Russian Round Dance", "N. Medtner", catalogue="Op.58").work_id is None
+
+
+@pytest.mark.parametrize("changes,composer", [
+    ({"catalogue": "Op.58 No.2"}, "N. Medtner"),
+    ({"composers": ("Other Composer",)}, "Other Composer"),
+    ({"catalogue": "Op.59 No.1"}, "N. Medtner"),
+])
+def test_named_opus_member_requires_source_verified_canonical_identity(medtner_named_piece, changes, composer):
+    work = replace(medtner_named_piece, **changes)
+    assert matcher([work]).match("Russian Round Dance", composer, catalogue="Op.58").work_id is None
+
+
+def test_named_opus_member_does_not_discard_conflicting_primary_number(medtner_named_piece):
+    work = replace(medtner_named_piece, titles=("Russian Round Dance, Op.58 No.2",))
+    assert matcher([work]).match("Russian Round Dance", "N. Medtner", catalogue="Op.58").work_id is None
+
+
+def test_named_opus_member_does_not_verify_an_unknown_key(medtner_named_piece):
+    assert matcher([medtner_named_piece]).match("Russian Round Dance", "N. Medtner", catalogue="Op.58", key="C minor").work_id is None
+
+
+def test_named_opus_member_does_not_resolve_duplicate_primary_rows(medtner_named_piece):
+    duplicate = replace(medtner_named_piece, id="duplicate", slug="duplicate")
+    assert matcher([medtner_named_piece, duplicate]).match("Russian Round Dance", "N. Medtner", catalogue="Op.58").work_id is None
+
+
+def test_named_opus_member_still_holds_scoped_and_review_required(medtner_named_piece):
+    assert matcher([medtner_named_piece]).match("Russian Round Dance", "N. Medtner", catalogue="Op.58", scoped=True).work_id is None
+    work = replace(medtner_named_piece, requires_review=True)
+    assert matcher([work]).match("Russian Round Dance", "N. Medtner", catalogue="Op.58").work_id is None
+
+
+def test_named_opus_member_does_not_hide_parent_collection_ambiguity(medtner_named_piece):
+    parent = replace(medtner_named_piece, id="collection", slug="collection", titles=("Two Pieces",), catalogue="Op.58")
+    result = matcher([medtner_named_piece, parent]).match("Russian Round Dance, Op.58", "N. Medtner")
+    assert result.work_id is None
+    assert result.reason == "ambiguous"
+
+
 def test_catalogue_cannot_override_explicitly_conflicting_work_genre():
     assert (
         matcher([BEETHOVEN])
