@@ -63,3 +63,28 @@ def test_wrapped_heading_does_not_hide_another_date():
 
 def test_wrapped_heading_retains_explicit_year_against_target_year():
     assert date_headings(["2024. 08. 27.", "TUE 6PM"], fallback_year=2026) == ({(2024, 8, 27)}, False)
+
+
+@pytest.mark.parametrize("day,weekday", [(21, "Mon."), (22, "Tue."), (23, "Wed."),
+    (24, "Thu."), (25, "Fri."), (26, "Sat."), (27, "Sun.")])
+@pytest.mark.parametrize("brackets", [("(", ")"), ("[", "]")])
+def test_bracketed_abbreviated_weekday_keeps_printed_period(day, weekday, brackets):
+    text = f"2026. 9.{day}. {brackets[0]}{weekday}{brackets[1]}"
+    assert date_headings([text, "7:30PM"]) == ({(2026, 9, day)}, False)
+
+
+@pytest.mark.parametrize("lines", [
+    ["2026.9.26.(Fri.)"], ["2026.2.30.(Mon.)"],
+    ["2026.9.25.(TH.)"],
+    ["2026.9.26.(Satr.)"], ["2026.9.26.(Sat..)"],
+    ["2026.9.26.(Sat.) 9.27.(Sun.)"],
+    ["2026.9.26.", "", "(Sat.)"],
+])
+def test_period_does_not_hide_wrong_weekday_or_unresolved_heading(lines):
+    assert date_headings(lines)[1] is True
+
+
+def test_abbreviated_weekday_retains_wrapping_and_multiple_dates():
+    assert date_headings(["2026.9.26.", "(Sat.) 7:30PM"]) == ({(2026, 9, 26)}, False)
+    assert date_headings(["2026.", "9.26", "(Sat.) 7:30PM"]) == ({(2026, 9, 26)}, False)
+    assert date_headings(["2026.9.26.(Sat.) & 9.27.(Sun.)"]) == ({(2026, 9, 26), (2026, 9, 27)}, False)

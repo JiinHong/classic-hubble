@@ -3,7 +3,7 @@
 import re
 from datetime import date
 
-DATE_BINDING_VERSION = "concert-date-headings-v13"
+DATE_BINDING_VERSION = "concert-date-headings-v14"
 _EVENT_DATE_LABEL = re.compile(r"^\s*일\s*시\s*[:：|]?\s*(?=20\d{2})")
 _DATE = re.compile(
     r"(?:(20\d{2})(?:\s*[./년]\s*|(?=\d{2}[./월])))?"
@@ -14,8 +14,9 @@ _ENGLISH_DAY = (
     r"|Fri(?:day)?|Sat(?:urday)?|Sun(?:day)?|TH|TUR)"
 )
 _DAY = rf"(?:[월화수목금토일](?:요일)?|{_ENGLISH_DAY})"
+_BRACKET_DAY = rf"(?:{_DAY}|{_ENGLISH_DAY}\.)"
 _SUFFIX = re.compile(
-    rf"\s*[.일]?\s*(?:\(\s*({_DAY})\s*\)|\[\s*({_DAY})\s*\]|({_DAY})(?:\b|(?=\d{{1,2}}:\d{{2}})))",
+    rf"\s*[.일]?\s*(?:\(\s*({_BRACKET_DAY})\s*\)|\[\s*({_BRACKET_DAY})\s*\]|({_DAY})(?:\b|(?=\d{{1,2}}:\d{{2}})))",
     re.IGNORECASE,
 )
 _CONTINUATION = re.compile(r"(?:&|~|[-–—]|,|및|부터)\s*(?=\d)")
@@ -122,7 +123,7 @@ def _line_dates(line, fallback_year):
         year, month, day = (int(value) if value else None for value in match.groups())
         effective_year = year or fallback_year
         actual_date = date(effective_year or 2000, month, day)
-        weekday = next(value for value in suffix.groups() if value).lower()
+        weekday = next(value for value in suffix.groups() if value).lower().removesuffix(".")
         weekday_number = _WEEKDAYS.get(weekday[:1] if weekday[0] in "월화수목금토일" else weekday[:3])
         if effective_year and weekday_number is not None and actual_date.weekday() != weekday_number:
             invalid = True

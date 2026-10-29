@@ -77,6 +77,9 @@ begin
   ev := jsonb_set(ev,'{date_binding_version}','"concert-date-headings-v13"');
   result := public.publish_paddle_program_bundle(pid,target,docs,ev,items);
   if result->>'status' <> 'unchanged' then raise exception 'TEST: v13 bundle contract not accepted'; end if;
+  ev := jsonb_set(ev,'{date_binding_version}','"concert-date-headings-v14"');
+  result := public.publish_paddle_program_bundle(pid,target,docs,ev,items);
+  if result->>'status' <> 'unchanged' then raise exception 'TEST: v14 bundle contract not accepted'; end if;
   result := public.publish_paddle_program(pid,target,docs#>'{1,source}',docs#>'{1,ocr}',docs#>'{1,review}',ev,items);
   if result->>'status' <> 'existing_program_preserved' then raise exception 'TEST: legacy publisher can overwrite scoped bundle'; end if;
   if (select count(*) from public.provider_records where provider='paddle_review' and entity_type='bundle_publication' and payload->>'performance_id'=pid::text) <> 1
@@ -89,7 +92,7 @@ begin
   perform pg_temp.reject_bundle(pid,target,jsonb_set(docs,'{1,matching,items,0,scope}','"full_work"'),ev,items);
   perform pg_temp.reject_bundle(pid,target,jsonb_set(docs,'{1,matching,items,0,evidence,title,0,quote}','"forged"'),ev,items);
   perform pg_temp.reject_bundle(pid,target,docs,jsonb_set(ev,'{performance_date}','"2026-10-23"'),items);
-  perform pg_temp.reject_bundle(pid,target,docs,jsonb_set(ev,'{date_binding_version}','"concert-date-headings-v14"'),items);
+  perform pg_temp.reject_bundle(pid,target,docs,jsonb_set(ev,'{date_binding_version}','"concert-date-headings-v15"'),items);
   perform pg_temp.reject_bundle(pid,target,docs,ev,jsonb_set(items,'{0,performed_scope}','"full_work"'));
   perform pg_temp.reject_bundle(pid,target,docs,ev,jsonb_set(items,'{0,source_url}',to_jsonb(urls[1])));
   perform pg_temp.reject_bundle(pid,target,docs,ev,items||items);
