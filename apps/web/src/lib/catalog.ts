@@ -47,7 +47,7 @@ type ComposerDirectoryRow = {
   period: string | null;
 };
 
-type WorkRow = {
+export type WorkRow = {
   catalogue: string | null;
   composers: Relation<ComposerRow>;
   instrumentation: string | null;
@@ -58,7 +58,7 @@ type WorkRow = {
   work_aliases: { alias: string }[] | null;
 };
 
-type PerformanceRow = {
+export type PerformanceRow = {
   artists: string[] | null;
   booking_url: string | null;
   kopis_performance_id: string | null;
@@ -137,9 +137,9 @@ function mergeComposerRows(
 
 const COMPOSER_PAGE_SIZE = 1000;
 
-const WORK_COLUMNS = `slug, title, title_ko, catalogue, instrumentation,
+export const WORK_COLUMNS = `slug, title, title_ko, catalogue, instrumentation,
   popularity_rank, composers(id, name, name_ko, period), work_aliases(alias)`;
-const PERFORMANCE_COLUMNS = `kopis_performance_id, title, starts_at, ends_on,
+export const PERFORMANCE_COLUMNS = `kopis_performance_id, title, starts_at, ends_on,
   status, artists, price_range, booking_url, poster_url, source_label,
   program_status, program_source_url, program_image_urls, venues(name, city),
   program_items(display_title, composer_name, source_type, confidence,
@@ -182,7 +182,7 @@ function datePartsForKorea(value: string) {
   return { date: datePart, time: timePart };
 }
 
-function mapWorks(rows: WorkRow[], performances: Performance[]): Work[] {
+export function mapWorks(rows: WorkRow[], performances: Performance[]): Work[] {
   const performanceIdsByWork = new Map<string, string[]>();
 
   for (const performance of getUpcomingPerformancesFromList(performances)) {
@@ -222,7 +222,7 @@ function mapWorks(rows: WorkRow[], performances: Performance[]): Work[] {
   });
 }
 
-function mapPerformances(rows: PerformanceRow[]): Performance[] {
+export function mapPerformances(rows: PerformanceRow[]): Performance[] {
   // The original seed migration used perf-* identifiers for demo performances.
   return rows
     .filter((row) => !row.kopis_performance_id?.startsWith("perf-"))
@@ -481,12 +481,7 @@ for (const { parent_slug, child_slug } of workComponents) {
   }
 }
 
-export async function getCatalogSelection(
-  slugs: string[],
-  { includePast = false }: { includePast?: boolean } = {},
-) {
-  if (!slugs.length) return { works: [], performances: [] };
-  const selected = new Set(slugs);
+export function getRelatedWorkSlugs(slugs: string[]): string[] {
   const related = new Set(slugs);
   const pending = [...slugs];
   // Retain the connected family so relation validation (including cycles) stays intact.
@@ -497,10 +492,19 @@ export async function getCatalogSelection(
       pending.push(slug);
     }
   }
+  return [...related];
+}
+
+export async function getCatalogSelection(
+  slugs: string[],
+  { includePast = false }: { includePast?: boolean } = {},
+) {
+  if (!slugs.length) return { works: [], performances: [] };
+  const selected = new Set(slugs);
   const supabase = createSupabaseClient();
   const readWorks = async () => {
     const rows: (WorkRow & { id: string })[] = [];
-    const requested = [...related];
+    const requested = getRelatedWorkSlugs(slugs);
     for (let offset = 0; offset < requested.length; offset += 100) {
       const result = await supabase
         .from("works")

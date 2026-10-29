@@ -1,5 +1,6 @@
 import { getCatalogSnapshot } from "@/lib/catalog";
 import { searchCatalog } from "@/lib/catalog-search";
+import { getWorkSearchPage } from "@/lib/work-search";
 
 export const dynamic = "force-dynamic";
 
@@ -20,26 +21,31 @@ export async function GET(request: Request) {
     return Response.json({ error: "invalid_request" }, { status: 400 });
   }
   const startedAt = performance.now();
-  const catalog = await getCatalogSnapshot();
-  const loadedAt = performance.now();
-  if (catalog.source === "unavailable")
+  try {
+    let result;
+    let timing;
+    if (mode === "works") {
+      result = await getWorkSearchPage(query, offset);
+      timing = `targeted;dur=${(performance.now() - startedAt).toFixed(1)}`;
+    } else {
+      const catalog = await getCatalogSnapshot();
+      const loadedAt = performance.now();
+      if (catalog.source === "unavailable") throw new Error("Catalog unavailable");
+      result = searchCatalog(catalog, { query, city, mode: "performances", offset });
+      timing = `catalog;dur=${(loadedAt - startedAt).toFixed(1)}, search;dur=${(performance.now() - loadedAt).toFixed(1)}`;
+    }
+    return Response.json(result, {
+      headers: {
+        "Cache-Control": "no-store",
+        // This endpoint contains only anonymous catalog data, never user libraries.
+        "Vercel-CDN-Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
+        "Server-Timing": timing,
+      },
+    });
+  } catch {
     return Response.json(
       { error: "unavailable" },
       { status: 503, headers: { "Cache-Control": "no-store" } },
     );
-  const result = searchCatalog(catalog, {
-    query,
-    city,
-    mode: mode as "works" | "performances",
-    offset,
-  });
-  return Response.json(result, {
-    headers: {
-      "Cache-Control": "no-store",
-      // This endpoint contains only anonymous catalog data, never user libraries.
-      "Vercel-CDN-Cache-Control":
-        "public, s-maxage=60, stale-while-revalidate=300",
-      "Server-Timing": `catalog;dur=${(loadedAt - startedAt).toFixed(1)}, search;dur=${(performance.now() - loadedAt).toFixed(1)}`,
-    },
-  });
+  }
 }

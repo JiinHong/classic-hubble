@@ -1,4 +1,3 @@
-import { getUpcomingPerformancesFromList } from "@classic-hubble/shared";
 import {
   BadgeAlert,
   BellRing,
@@ -10,8 +9,7 @@ import {
 
 import { PerformanceCard } from "@/components/PerformanceCard";
 import { SearchExperience } from "@/components/SearchExperience";
-import { getCatalogSnapshot } from "@/lib/catalog";
-import { searchCatalog } from "@/lib/catalog-search";
+import { getHomeOverview, getWorkSearchPage } from "@/lib/work-search";
 
 export const dynamic = "force-dynamic";
 
@@ -25,8 +23,10 @@ export default async function Home({ searchParams }: HomeProps) {
     typeof composerParam === "string"
       ? composerParam
       : (composerParam?.[0] ?? "");
-  const catalog = await getCatalogSnapshot();
-  if (catalog.source === "unavailable") {
+  const data = await Promise.all([
+    getWorkSearchPage(initialComposerQuery), getHomeOverview(),
+  ]).catch(() => null);
+  if (!data) {
     return (
       <main className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
         <div role="alert" className="space-y-3">
@@ -47,12 +47,9 @@ export default async function Home({ searchParams }: HomeProps) {
       </main>
     );
   }
-  const upcomingPerformances = getUpcomingPerformancesFromList(
-    catalog.performances,
-  );
-  const confirmedCount = upcomingPerformances.filter(
-    (performance) => performance.program.length > 0,
-  ).length;
+  const [initialResult, overview] = data;
+  const upcomingPerformances = overview.performances;
+  const confirmedCount = overview.confirmedCount;
 
   return (
     <main>
@@ -61,7 +58,7 @@ export default async function Home({ searchParams }: HomeProps) {
           <SearchExperience
             initialQuery={initialComposerQuery}
             key={initialComposerQuery}
-            initialResult={searchCatalog(catalog, { query: initialComposerQuery })}
+            initialResult={initialResult}
           />
 
           <aside className="space-y-4">
@@ -74,7 +71,7 @@ export default async function Home({ searchParams }: HomeProps) {
                 <div>
                   <dt className="text-xs font-bold text-stone-400">작품</dt>
                   <dd className="mt-1 text-2xl font-black">
-                    {catalog.works.length}
+                    {overview.workCount}
                   </dd>
                 </div>
                 <div>
@@ -82,7 +79,7 @@ export default async function Home({ searchParams }: HomeProps) {
                     예정 공연
                   </dt>
                   <dd className="mt-1 text-2xl font-black">
-                    {upcomingPerformances.length}
+                    {overview.upcomingCount}
                   </dd>
                 </div>
                 <div>
@@ -106,7 +103,7 @@ export default async function Home({ searchParams }: HomeProps) {
                   </h2>
                   <p className="mt-1 text-sm font-semibold text-stone-600">
                     아직 곡목을 확인하지 못한 예정 공연{" "}
-                    {upcomingPerformances.length - confirmedCount}건
+                    {overview.upcomingCount - confirmedCount}건
                   </p>
                 </div>
               </div>
