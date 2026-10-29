@@ -643,6 +643,37 @@ def test_wagner_catalogue_does_not_truncate_or_ignore_extra_evidence(catalogue):
     assert matcher([work]).match("Lohengrin", "R. Wagner", catalogue=catalogue).work_id is None
 
 
+@pytest.mark.parametrize("suffix", [".1", ". 1", "/1", "-2", "a"])
+def test_wagner_embedded_catalogue_does_not_truncate_a_component(suffix):
+    work = CanonicalWork("lohengrin", "lohengrin", ("Lohengrin",),
+                         ("Richard Wagner",), "WWV 75")
+    assert matcher([work]).match("Lohengrin WWV 75" + suffix, "R. Wagner").work_id is None
+
+
+@pytest.mark.parametrize("title, catalogue", [
+    ("Prelude & Fugue in E-flat Major", "BWV 852"),
+    ("Prelude & Fugue in E Minor", "BWV 855"),
+])
+def test_generic_prelude_and_fugue_namesake_does_not_override_bwv(title, catalogue):
+    work = CanonicalWork("wtc1", "wtc1", (title + ", " + catalogue,),
+                         ("Johann Sebastian Bach",), catalogue)
+    namesake = replace(work, id="wtc2", slug="wtc2", titles=(title,), catalogue="BWV 879")
+    assert matcher([work, namesake]).match(title, "J. S. Bach", catalogue=catalogue).work_id == work.id
+
+
+def test_generic_fugue_does_not_become_composerless_unique_identity():
+    work = CanonicalWork("fugue", "fugue", ("Prelude & Fugue in E Minor",),
+                         ("Johann Sebastian Bach",), "BWV 855")
+    assert matcher([work]).match(work.titles[0], None).work_id is None
+
+
+def test_distinctive_fugue_title_still_rejects_wrong_bwv():
+    work = CanonicalWork("little", "little", ("Little Fugue",),
+                         ("Johann Sebastian Bach",), "BWV 578")
+    other = replace(work, id="other", slug="other", titles=("Fugue",), catalogue="BWV 579")
+    assert matcher([work, other]).match("Little Fugue", "J. S. Bach", catalogue="BWV 579").work_id is None
+
+
 @pytest.mark.parametrize("title", ["Polonaise in A-Flat Major", "Polonaise", "폴로네즈 내림가장조"])
 def test_generic_polonaise_namesake_cannot_contradict_explicit_opus(title):
     heroic = CanonicalWork(
