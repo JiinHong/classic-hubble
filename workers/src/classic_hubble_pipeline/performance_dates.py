@@ -3,7 +3,7 @@
 import re
 from datetime import date
 
-DATE_BINDING_VERSION = "concert-date-headings-v18"
+DATE_BINDING_VERSION = "concert-date-headings-v19"
 _EVENT_DATE_LABEL = re.compile(r"^\s*일\s*시\s*[:：|]?\s*(?=20\d{2})")
 _DATE = re.compile(
     r"(?:(20\d{2})(?:\s*[./년]\s*|(?=\d{2}[./월])))?"
@@ -16,7 +16,7 @@ _ENGLISH_DAY = (
 _DAY = rf"(?:[월화수목금토일](?:요일)?|{_ENGLISH_DAY})"
 _BRACKET_DAY = rf"(?:{_DAY}|{_ENGLISH_DAY}\.)"
 _SUFFIX = re.compile(
-    rf"\s*[.일]?\s*(?:\(\s*({_BRACKET_DAY})\s*\)|\[\s*({_BRACKET_DAY})\s*\]|({_DAY})(?:\b|(?=\d{{1,2}}(?::\d{{2}}|\s*(?:AM|PM)))))",
+    rf"\s*[.일]?\s*(?:\(\s*({_BRACKET_DAY})\s*\)|\[\s*({_BRACKET_DAY})\s*\]|({_DAY})(?:\b|(?=\d{{1,2}}(?::\d{{2}}|\s*(?:AM|PM|시)))))",
     re.IGNORECASE,
 )
 _CONTINUATION = re.compile(r"(?:&|~|[-–—]|,|및|부터)\s*(?=\d)(?!\d+\s*번)")
@@ -38,6 +38,20 @@ _JOINED_CLOCK = re.compile(
     re.IGNORECASE,
 )
 _VENUE_LINE = re.compile(r"[가-힣A-Za-z ·]{0,60}(?:관|홀|아트스페이스)")
+_KOREAN_CLOCK = re.compile(r"(?:(오전|오후)\s*)?(\d{1,2})\s*시(?:\s*(\d{1,2})\s*분)?")
+_KOREAN_CLOCK_LIST = re.compile(
+    rf"\s*{_KOREAN_CLOCK.pattern}(?:\s*(?:[,·ㆍ./&]|및)\s*{_KOREAN_CLOCK.pattern})*\s*"
+)
+
+
+def _valid_korean_clocks(text):
+    if not _KOREAN_CLOCK_LIST.fullmatch(text):
+        return False
+    return all(
+        (1 <= int(match[2]) <= 12 if match[1] else int(match[2]) <= 23)
+        and (match[3] is None or int(match[3]) <= 59)
+        for match in _KOREAN_CLOCK.finditer(text)
+    )
 
 
 def _bare_date(line):
@@ -78,6 +92,8 @@ def _year_headings(lines):
 def _valid_heading_clock(text):
     if not text.strip():
         return True
+    if _valid_korean_clocks(text):
+        return True
     match = re.fullmatch(r"\s*(\d{1,2})(?::(\d{2}))?\s*(AM|PM)?\s*", text, re.IGNORECASE)
     if not match or not (match[2] or match[3]):
         return False
@@ -105,7 +121,10 @@ def _wrapped_headings(lines):
         ):
             following = lines[index + 1]
             suffix = _SUFFIX.match(following)
-            if suffix and _CLOCK_ONLY.fullmatch(following[suffix.end():]):
+            if suffix and (
+                _CLOCK_ONLY.fullmatch(following[suffix.end():])
+                or _valid_korean_clocks(following[suffix.end():])
+            ):
                 yield stripped + " " + following.strip()
                 continue
             # A poster may place up to two venue lines between its date and clock.
@@ -159,6 +178,11 @@ def _line_dates(line, fallback_year):
             invalid = True
         found.add((year, month, day))
         tail = remaining[suffix.end():]
+        # Explicit hour units distinguish a complete time list from later dates.
+        if _KOREAN_CLOCK_LIST.fullmatch(tail):
+            if not _valid_korean_clocks(tail):
+                raise ValueError("Invalid Korean heading clock")
+            return found, invalid
         if suffix[3] and tail[:1].isdigit():
             clock = _JOINED_CLOCK.match(tail)
             if not clock:
