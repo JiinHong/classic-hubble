@@ -355,6 +355,13 @@ def _name_matches(actual: str, names: tuple[str, ...]) -> bool:
     if len(tokens) >= 2 and all(re.fullmatch(r"[a-z]+", t) for t in tokens):
         for name in names:
             expected = _normalize(name).split()
+            # C. v. Weber omits Maria; its initial must refer to Carl, not Maria.
+            if (len(tokens) == 3 and len(expected) == 4
+                    and expected[2] in {"de", "van", "von"}
+                    and (len(tokens[0]) == 1 or tokens[0] == expected[0])):
+                if _composer_matches(actual, (" ".join((expected[0], *expected[2:])),)):
+                    return True
+                continue
             # Observed P. Sarasate, L. Beethoven and F. Suppe omit a particle.
             if len(tokens) == 2 and len(expected) == 3 and expected[1] in {"de", "van", "von"}:
                 if _composer_matches(actual, (f"{expected[0]} {expected[2]}",)):
