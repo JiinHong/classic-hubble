@@ -3,7 +3,7 @@
 import re
 from datetime import date
 
-DATE_BINDING_VERSION = "concert-date-headings-v12"
+DATE_BINDING_VERSION = "concert-date-headings-v13"
 _EVENT_DATE_LABEL = re.compile(r"^\s*일\s*시\s*[:：|]?\s*(?=20\d{2})")
 _DATE = re.compile(
     r"(?:(20\d{2})(?:\s*[./년]\s*|(?=\d{2}[./월])))?"
@@ -39,24 +39,36 @@ _JOINED_CLOCK = re.compile(
 
 
 def _year_headings(lines):
-    """Join a bare printed year only to adjacent month/day and weekday lines."""
+    """Join a printed year only to adjacent month/day and weekday/clock lines."""
     index = 0
     while index < len(lines):
         line = lines[index]
-        if re.fullmatch(r"20\d{2}", line.strip()) and index + 2 < len(lines):
+        year = re.fullmatch(r"(20\d{2})\.?", line.strip())
+        if year and index + 2 < len(lines):
             following = lines[index + 1].strip()
             match = _DATE.match(following)
             suffix = _SUFFIX.match(lines[index + 2])
             if (
                 match and not match[1]
                 and following[match.end():].strip() in {"", ".", "일"}
-                and suffix and not lines[index + 2][suffix.end():].strip()
+                and suffix and _valid_heading_clock(lines[index + 2][suffix.end():])
             ):
-                yield line.strip() + "." + following
+                yield year[1] + "." + following
                 index += 2
                 continue
         yield line
         index += 1
+
+
+def _valid_heading_clock(text):
+    if not text.strip():
+        return True
+    match = re.fullmatch(r"\s*(\d{1,2})(?::(\d{2}))?\s*(AM|PM)?\s*", text, re.IGNORECASE)
+    if not match or not (match[2] or match[3]):
+        return False
+    hour = int(match[1])
+    return (hour <= 23 and (match[2] is None or int(match[2]) <= 59)
+            and (match[3] is None or 1 <= hour <= 12))
 
 
 def _wrapped_headings(lines):
