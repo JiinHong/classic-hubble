@@ -24,6 +24,10 @@ HOBOKEN = re.compile(
 # Additional schemes require grounded evidence, not legacy ingestion or import.
 CATALOGUE = re.compile(HOBOKEN.pattern + "|" + LEGACY_CATALOGUE.pattern + r"|\b(?:WAB|FWV|CD|FP|H|G|M)\.?\s*\d+\b", re.IGNORECASE)
 LIFESPAN = re.compile(r"\(?\b\d{4}\s*[-–—~]\s*\d{4}\b\)?")
+COMPOSER_YEAR = r"(?:[12]\d[0-9oOlI]{2}|[Il]\d{3})"
+COMPOSER_BIOGRAPHICAL_DATES = re.compile(
+    rf"\(\s*(?:{COMPOSER_YEAR}\s*[-–—~]\s*{COMPOSER_YEAR}|[bB]\.\s*{COMPOSER_YEAR})\s*\)"
+)
 LATIN_NOTE_KEY = re.compile(
     r"(?<![a-z])(?:in\s*)?([a-g])\s*([-\u2013 ]?(?:flat|sharp)|[b#♭♯])?\s*-?\s*(major|minor|장조|단조)\b",
     re.IGNORECASE,
@@ -97,6 +101,9 @@ GENERIC_TITLES = {
 
 @lru_cache(maxsize=40_000)
 def _variants(text: str, *, composer: bool = False) -> tuple[str, ...]:
+    if composer:
+        # Ignore only complete year annotations, never repair the actual name.
+        text = COMPOSER_BIOGRAPHICAL_DATES.sub("", text)
     text = LIFESPAN.sub("", text)
     # Keep a printed Korean generation suffix attached to the composer's name.
     korean = r"[가-힣]+(?:\s*[가-힣]+)*" + (r"(?:\s*\d+\s*세)?" if composer else "")
