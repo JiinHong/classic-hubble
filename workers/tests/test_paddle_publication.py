@@ -107,6 +107,18 @@ def test_partial_dry_run_recomputes_grounded_matches_not_saved_ids():
     assert repo.reviews[key]["method"] == "reviewed_paddle_text"
 
 
+@pytest.mark.parametrize("clock_score,expected", [(0.99, "ready"), (0.1, "date_binding_required")])
+def test_korean_clock_list_requires_quality_date_evidence(clock_score, expected):
+    def change(doc):
+        doc["lines"][-1]["text"] = "2026.10.22"
+        doc["lines"].append({"text": "목11시.14시", "score": clock_score})
+    repo, store, data = setup(change)
+    key = save(repo, store, data)
+    result = module().publish(repo, store, None, "p1", key)
+    assert result["status"] == expected
+    assert not repo.writes
+
+
 def test_fwv_title_only_identity_is_not_public_without_composer_evidence():
     from test_music_extraction import quote
     title = "Prelude, Choral et Fugue"
@@ -303,7 +315,7 @@ def test_date_clock_retains_quality_and_version_contract(score, expected, headin
     monkeypatch.setattr(module(), "download_source", lambda *_: (store.original, "image/png"))
     assert module().publish(repo, store, None, "p1", key, apply=True)["status"] == expected
     if repo.writes:
-        assert repo.writes[0]["p_evaluation"]["date_binding_version"] == "concert-date-headings-v18"
+        assert repo.writes[0]["p_evaluation"]["date_binding_version"] == "concert-date-headings-v19"
         assert repo.writes[0]["p_evaluation"]["performance_date"] == "2026-10-22"
     else:
         assert expected == "date_binding_required"
@@ -329,7 +341,7 @@ def test_split_year_date_requires_quality_on_every_fragment(low_line, fragments,
     assert result["status"] == expected
     assert len(repo.writes) == int(low_line is None)
     if repo.writes:
-        assert repo.writes[0]["p_evaluation"]["date_binding_version"] == "concert-date-headings-v18"
+        assert repo.writes[0]["p_evaluation"]["date_binding_version"] == "concert-date-headings-v19"
         assert repo.writes[0]["p_review"]["method"] == "reviewed_paddle_text"
 
 
