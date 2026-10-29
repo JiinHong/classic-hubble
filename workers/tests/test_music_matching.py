@@ -626,6 +626,23 @@ def bach_catalogue_conflict_works():
     return goldberg, prelude
 
 
+@pytest.mark.parametrize("catalogue", ["WWV 75", "WWV.75", "wwv75"])
+@pytest.mark.parametrize("scoped", [False, True])
+def test_wagner_work_catalogue_identifies_verified_opera(catalogue, scoped):
+    # Breitkopf work6911: Lohengrin, WWV75; the programme names a chorus excerpt.
+    work = CanonicalWork("lohengrin", "lohengrin", ("Lohengrin",),
+                         ("Richard Wagner",), "WWV 75")
+    assert matcher([work]).match("Lohengrin", "R. Wagner", catalogue=catalogue,
+                                 scoped=scoped).work_id == work.id
+
+
+@pytest.mark.parametrize("catalogue", ["WWV 750", "WWV 75a", "WWV 75/1", "WWV 75; BWV 75"])
+def test_wagner_catalogue_does_not_truncate_or_ignore_extra_evidence(catalogue):
+    work = CanonicalWork("lohengrin", "lohengrin", ("Lohengrin",),
+                         ("Richard Wagner",), "WWV 75")
+    assert matcher([work]).match("Lohengrin", "R. Wagner", catalogue=catalogue).work_id is None
+
+
 @pytest.mark.parametrize("title", ["Polonaise in A-Flat Major", "Polonaise", "폴로네즈 내림가장조"])
 def test_generic_polonaise_namesake_cannot_contradict_explicit_opus(title):
     heroic = CanonicalWork(
@@ -643,6 +660,31 @@ def test_generic_polonaise_namesake_cannot_contradict_explicit_opus(title):
 def test_generic_polonaise_without_composer_is_not_unique_identity(title):
     work = CanonicalWork("w", "w", (title,), ("Frederic Chopin",), None)
     assert matcher([work]).match(title, None).work_id is None
+
+
+@pytest.mark.parametrize("scoped", [False, True])
+def test_generic_chamber_concerto_namesake_does_not_override_explicit_rv(scoped):
+    lute = CanonicalWork("rv93", "rv93", ("Concerto for lute, 2 violins, and continuo in D major (RV 93)",),
+                         ("Antonio Vivaldi",), "RV 93")
+    namesake = replace(lute, id="rv90", slug="rv90", catalogue="RV 90",
+                       titles=("Chamber Concerto in D major",))
+    result = matcher([lute, namesake]).match("Chamber Concerto in D Major", "A. Vivaldi",
+                                           catalogue="RV 93", scoped=scoped)
+    assert result.work_id == lute.id
+    assert result.reason == "composer_and_catalogue"
+
+
+def test_generic_chamber_concerto_is_not_composerless_identity():
+    work = CanonicalWork("rv90", "rv90", ("Chamber Concerto in D major",),
+                         ("Antonio Vivaldi",), "RV 90")
+    assert matcher([work]).match("Chamber Concerto in D major", None).work_id is None
+
+
+@pytest.mark.parametrize("title", ["Flute Concerto in D major", "Chamber Concerto in C minor"])
+def test_generic_concerto_still_rejects_solo_instrument_or_key_conflict(title):
+    work = CanonicalWork("rv93", "rv93", ("Concerto for lute, 2 violins, and continuo in D major (RV 93)",),
+                         ("Antonio Vivaldi",), "RV 93")
+    assert matcher([work]).match(title, "A. Vivaldi", catalogue="RV 93").work_id is None
 
 
 def test_distinctive_heroic_name_still_rejects_wrong_catalogue():
