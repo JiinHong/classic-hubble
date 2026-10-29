@@ -720,6 +720,45 @@ def test_strauss_son_equivalence_preserves_identity_conflicts():
     assert result.reason == "conflicting_composers"
 
 
+@pytest.mark.parametrize("printed", [
+    "요한 슈트라우스 2세", "요한슈트라우스2세", "요한 슈트라우스 2 세",
+    "Johann Strauss II 요한 슈트라우스 2세 (1825-1899)",
+])
+def test_korean_strauss_generation_survives_composer_segmentation(printed):
+    work = replace(BEETHOVEN, composers=("Johann Strauss Jr", "요한 슈트라우스 2세"),
+                   titles=("Frühlingsstimmen", "봄의 소리"), catalogue="Op. 410", aliases=())
+    assert matcher([work]).match("봄의 소리", printed, catalogue="Op. 410").work_id == work.id
+
+
+@pytest.mark.parametrize("printed", [
+    "요한 슈트라우스 1세", "요한 슈트라우스 3세", "요한 슈트라우스 4세",
+    "요한슈트라우스1세", "요한슈트라우스3세",
+])
+def test_korean_strauss_generation_never_falls_back_to_unqualified_name(printed):
+    son = replace(BEETHOVEN, composers=("Johann Strauss Jr", "요한 슈트라우스 2세"),
+                  titles=("Frühlingsstimmen", "봄의 소리"), catalogue="Op. 410", aliases=())
+    unqualified = replace(son, id="unqualified", composers=("Johann Strauss", "요한 슈트라우스"))
+    assert matcher([son, unqualified]).match("봄의 소리", printed, catalogue="Op. 410").work_id is None
+
+
+def test_korean_strauss_bilingual_generation_conflict_is_not_discarded():
+    son = replace(BEETHOVEN, composers=("Johann Strauss Jr", "요한 슈트라우스 2세"),
+                  titles=("Frühlingsstimmen", "봄의 소리"), catalogue="Op. 410", aliases=())
+    father = replace(son, id="father", composers=("Johann Strauss I", "요한 슈트라우스 1세"))
+    result = matcher([son, father]).match("봄의 소리", "Johann Strauss I 요한 슈트라우스 2세")
+    assert result.work_id is None
+    assert result.reason == "conflicting_composers"
+
+
+def test_korean_strauss_generation_keeps_catalogue_and_duplicate_guards():
+    son = replace(BEETHOVEN, composers=("Johann Strauss Jr", "요한 슈트라우스 2세"),
+                  titles=("Frühlingsstimmen", "봄의 소리"), catalogue="Op. 410", aliases=())
+    assert matcher([son]).match("봄의 소리", "요한 슈트라우스 2세", catalogue="Op. 411").work_id is None
+    assert matcher([son, replace(son, id="duplicate")]).match(
+        "봄의 소리", "요한 슈트라우스 2세", catalogue="Op. 410",
+    ).work_id is None
+
+
 @pytest.mark.parametrize("printed", ["J. Strauss II", "J.Strauss II", "J. Strauß II", "J. Strauss Jr."])
 def test_initial_strauss_generation_matches_existing_blue_danube(printed):
     work = replace(BEETHOVEN, composers=("Johann Strauss Jr",),

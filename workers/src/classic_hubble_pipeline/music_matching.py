@@ -91,9 +91,11 @@ GENERIC_TITLES = {
 
 
 @lru_cache(maxsize=40_000)
-def _variants(text: str) -> tuple[str, ...]:
+def _variants(text: str, *, composer: bool = False) -> tuple[str, ...]:
     text = LIFESPAN.sub("", text)
-    parts = re.findall(r"[가-힣]+(?:\s*[가-힣]+)*|[^가-힣]+", text)
+    # Keep a printed Korean generation suffix attached to the composer's name.
+    korean = r"[가-힣]+(?:\s*[가-힣]+)*" + (r"(?:\s*\d+\s*세)?" if composer else "")
+    parts = re.findall(korean + r"|[^가-힣]+", text)
     return tuple(
         dict.fromkeys(
             part.strip(" ()[],:;/") for part in parts if part.strip(" ()[],:;/")
@@ -348,7 +350,7 @@ def _name_matches(actual: str, names: tuple[str, ...]) -> bool:
                 if _composer_matches(actual, (" ".join(expected[-len(tokens) :]),)):
                     return True
     compact = _normalize(actual).replace(" ", "")
-    return bool(re.fullmatch(r"[가-힣]+", compact)) and any(
+    return bool(re.fullmatch(r"[가-힣]+(?:\d+세)?", compact)) and any(
         compact == _normalize(name).replace(" ", "") for name in names
     )
 
@@ -423,7 +425,7 @@ class MusicMatcher:
         )
         groups = [
             {names for names in self.composers if _name_matches(part, names)}
-            for part in _variants(text)
+            for part in _variants(text, composer=True)
         ]
         recognized = [group for group in groups if group]
         if recognized:
