@@ -3,7 +3,7 @@
 import re
 from datetime import date
 
-DATE_BINDING_VERSION = "concert-date-headings-v20"
+DATE_BINDING_VERSION = "concert-date-headings-v21"
 _EVENT_DATE_LABEL = re.compile(r"^\s*일\s*시\s*[:：|]?\s*(?=20\d{2})")
 _DATE = re.compile(
     r"(?:(20\d{2})(?:\s*[./년]\s*|(?=\d{2}[./월])))?"
@@ -16,7 +16,7 @@ _ENGLISH_DAY = (
 _DAY = rf"(?:[월화수목금토일](?:요일)?|{_ENGLISH_DAY})"
 _BRACKET_DAY = rf"(?:{_DAY}|{_ENGLISH_DAY}\.)"
 _SUFFIX = re.compile(
-    rf"\s*[.일]?\s*(?:\(\s*({_BRACKET_DAY})\s*\)|\[\s*({_BRACKET_DAY})\s*\]|({_DAY})(?:\b|(?=\d{{1,2}}(?::\d{{2}}|\.\d{{2}}\s*(?:AM|PM)|\s*(?:AM|PM|시)))))",
+    rf"\s*[./일]?\s*(?:\(\s*({_BRACKET_DAY})\s*\)|\[\s*({_BRACKET_DAY})\s*\]|({_DAY})(?:\b|(?=\d{{1,2}}(?::\d{{2}}|\.\d{{2}}\s*(?:AM|PM)|\s*(?:AM|PM|시))))\.?)",
     re.IGNORECASE,
 )
 _CONTINUATION = re.compile(r"(?:&|~|[-–—]|,|및|부터)\s*(?=\d)(?!\d+\s*번)")
@@ -198,8 +198,9 @@ def _line_dates(line, fallback_year):
             if not _valid_korean_clocks(tail):
                 raise ValueError("Invalid Korean heading clock")
             return found, invalid
-        if not decimal and suffix[3] and tail[:1].isdigit():
-            clock = _JOINED_CLOCK.match(tail)
+        punctuated = suffix[3] and (suffix[0].endswith(".") or suffix[0].lstrip().startswith("/"))
+        if not decimal and suffix[3] and (tail[:1].isdigit() or (punctuated and tail.strip())):
+            clock = _JOINED_CLOCK.match(tail.lstrip() if punctuated else tail)
             if not clock:
                 raise ValueError("Invalid joined heading clock")
             hour, minute = int(clock[1]), int(clock[2]) if clock[2] is not None else None
