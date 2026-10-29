@@ -3,7 +3,7 @@
 import re
 from datetime import date
 
-DATE_BINDING_VERSION = "concert-date-headings-v19"
+DATE_BINDING_VERSION = "concert-date-headings-v20"
 _EVENT_DATE_LABEL = re.compile(r"^\s*일\s*시\s*[:：|]?\s*(?=20\d{2})")
 _DATE = re.compile(
     r"(?:(20\d{2})(?:\s*[./년]\s*|(?=\d{2}[./월])))?"
@@ -16,7 +16,7 @@ _ENGLISH_DAY = (
 _DAY = rf"(?:[월화수목금토일](?:요일)?|{_ENGLISH_DAY})"
 _BRACKET_DAY = rf"(?:{_DAY}|{_ENGLISH_DAY}\.)"
 _SUFFIX = re.compile(
-    rf"\s*[.일]?\s*(?:\(\s*({_BRACKET_DAY})\s*\)|\[\s*({_BRACKET_DAY})\s*\]|({_DAY})(?:\b|(?=\d{{1,2}}(?::\d{{2}}|\s*(?:AM|PM|시)))))",
+    rf"\s*[.일]?\s*(?:\(\s*({_BRACKET_DAY})\s*\)|\[\s*({_BRACKET_DAY})\s*\]|({_DAY})(?:\b|(?=\d{{1,2}}(?::\d{{2}}|\.\d{{2}}\s*(?:AM|PM)|\s*(?:AM|PM|시)))))",
     re.IGNORECASE,
 )
 _CONTINUATION = re.compile(r"(?:&|~|[-–—]|,|및|부터)\s*(?=\d)(?!\d+\s*번)")
@@ -25,6 +25,10 @@ _WEEKDAYS.update({day: index for index, day in enumerate("월화수목금토일"
 _WEEKDAYS["th"] = 3
 _CLOCK_ONLY = re.compile(
     r"\s*(?:\d{1,2}:\d{2}(?:\s*(?:AM|PM))?|\d{1,2}\s*(?:AM|PM))?\s*",
+    re.IGNORECASE,
+)
+_DECIMAL_MERIDIEM_CLOCK = re.compile(
+    r"\s*(\d{1,2})\.(\d{2})\s*(AM|PM)(?=\s|$|[&~,–—-])",
     re.IGNORECASE,
 )
 _FULL_DATE_CLOCK = re.compile(
@@ -94,6 +98,9 @@ def _valid_heading_clock(text):
         return True
     if _valid_korean_clocks(text):
         return True
+    decimal = _DECIMAL_MERIDIEM_CLOCK.fullmatch(text.strip())
+    if decimal:
+        return 1 <= int(decimal[1]) <= 12 and int(decimal[2]) <= 59
     match = re.fullmatch(r"\s*(\d{1,2})(?::(\d{2}))?\s*(AM|PM)?\s*", text, re.IGNORECASE)
     if not match or not (match[2] or match[3]):
         return False
@@ -124,6 +131,8 @@ def _wrapped_headings(lines):
             if suffix and (
                 _CLOCK_ONLY.fullmatch(following[suffix.end():])
                 or _valid_korean_clocks(following[suffix.end():])
+                or (_DECIMAL_MERIDIEM_CLOCK.fullmatch(following[suffix.end():].strip())
+                    and _valid_heading_clock(following[suffix.end():]))
             ):
                 yield stripped + " " + following.strip()
                 continue
@@ -178,12 +187,18 @@ def _line_dates(line, fallback_year):
             invalid = True
         found.add((year, month, day))
         tail = remaining[suffix.end():]
+        # AM/PM distinguishes a dotted time from another month/day heading.
+        decimal = _DECIMAL_MERIDIEM_CLOCK.match(tail)
+        if decimal:
+            if not 1 <= int(decimal[1]) <= 12 or int(decimal[2]) > 59:
+                raise ValueError("Invalid decimal heading clock")
+            tail = tail[decimal.end():]
         # Explicit hour units distinguish a complete time list from later dates.
         if _KOREAN_CLOCK_LIST.fullmatch(tail):
             if not _valid_korean_clocks(tail):
                 raise ValueError("Invalid Korean heading clock")
             return found, invalid
-        if suffix[3] and tail[:1].isdigit():
+        if not decimal and suffix[3] and tail[:1].isdigit():
             clock = _JOINED_CLOCK.match(tail)
             if not clock:
                 raise ValueError("Invalid joined heading clock")
