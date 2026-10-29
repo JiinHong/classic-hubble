@@ -411,7 +411,7 @@ def _distinctive_title(text: str) -> bool:
     text = re.sub(
         r"\b(?:piano|violin|viola|cello|flute|clarinet|horn|keyboard|solo|strings|chamber|"
         r"sonata|concerto|symphony|quartet|quintet|trio|no|nr|in|for|and|the|major|minor|"
-        r"variations?|waltz|preludes?|etude|nocturne|minuet|adagio|allegro|andante|"
+        r"variations?|waltz|preludes?|fugues?|etude|nocturne|minuet|adagio|allegro|andante|"
         r"lento|largo|semplice|moderato|allegretto|grazioso|con|moto|rondo|ma|non|troppo|"
         r"romance|romances|intermezzo|scherzo|polonaises?|overture|suite|pieces?|op|orchestra|"
         r"fantasy|fantasia|fantaisie|fantasie|phantasy)\b",
@@ -627,7 +627,7 @@ class MusicMatcher:
             return WorkMatch(None, (), "unsupported_catalogue")
         if any(
             re.match(r"\s*[-–—/,]\s*\d", title[m.end() :])
-            or (_scheme(_catalogue_key(m[0])) in {"wab", "fwv", "cd", "fp", "h", "g", "m"} and re.match(r"\.\s*\d", title[m.end() :]))
+            or (_scheme(_catalogue_key(m[0])) in {"wab", "wwv", "fwv", "cd", "fp", "h", "g", "m"} and re.match(r"\.\s*\d", title[m.end() :]))
             or (_scheme(_catalogue_key(m[0])) == "h" and re.match(r"\s+[A-Za-z]\b", title[m.end() :]))
             or (HOBOKEN.fullmatch(m[0]) and re.match(r"\s*[.:]\s*\d", title[m.end() :]))
             for m in CATALOGUE.finditer(title)
