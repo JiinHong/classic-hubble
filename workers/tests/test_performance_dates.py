@@ -88,3 +88,40 @@ def test_abbreviated_weekday_retains_wrapping_and_multiple_dates():
     assert date_headings(["2026.9.26.", "(Sat.) 7:30PM"]) == ({(2026, 9, 26)}, False)
     assert date_headings(["2026.", "9.26", "(Sat.) 7:30PM"]) == ({(2026, 9, 26)}, False)
     assert date_headings(["2026.9.26.(Sat.) & 9.27.(Sun.)"]) == ({(2026, 9, 26), (2026, 9, 27)}, False)
+
+
+@pytest.mark.parametrize("program", ["PROGRAM", "P R O G R A M", "Programme"])
+def test_explicit_timeline_between_history_and_program_is_not_an_event_date(program):
+    lines = ["2026.9.26.(Sat.)", "HISTORY", "11.16.3단", "11.16.8단",
+             "2016-2019", "2020", "2021~2022", "2025~2026", program, "Beethoven"]
+    original = list(lines)
+    assert date_headings(lines) == ({(2026, 9, 26)}, False)
+    assert lines == original
+
+
+@pytest.mark.parametrize("history,years,program", [
+    ("Concert History", ["2020", "2021"], "PROGRAM"),
+    ("HISTORY", ["2020"], "PROGRAM"),
+    ("HISTORY", ["2020", "2021"], "Programme notes"),
+    ("HISTORY", ["2020", "2021"], ""),
+])
+def test_missing_or_ambiguous_timeline_boundaries_cannot_hide_date_evidence(history, years, program):
+    lines = ["2026.9.26.(Sat.)", history, "11.16.3단", *years, program]
+    assert date_headings(lines)[1] is True
+
+
+def test_history_label_without_year_timeline_does_not_hide_second_event():
+    lines = ["2026.9.26.(Sat.)", "HISTORY", "2026.9.27.(Sun.)", "PROGRAM"]
+    assert date_headings(lines) == ({(2026,9,26),(2026,9,27)},False)
+
+
+@pytest.mark.parametrize("extra", ["2026.9.27.(Sun.)", "2026.9.26.(Fri.)"])
+def test_timeline_never_removes_outside_date_conflicts(extra):
+    lines = ["2026.9.26.(Sat.)", "HISTORY", "2016-2019", "2020",
+             "11.16.3단", "PROGRAM", extra]
+    dates, invalid = date_headings(lines)
+    assert invalid or dates != {(2026,9,26)}
+
+
+def test_timeline_only_document_cannot_supply_current_date():
+    assert date_headings(["HISTORY", "2020", "2021", "11.16.3단", "PROGRAM"]) == (set(),False)

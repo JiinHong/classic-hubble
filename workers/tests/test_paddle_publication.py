@@ -239,6 +239,19 @@ def test_low_score_date_does_not_bind():
     assert module().publish(repo, store, None, "p1", key)["status"] == "date_binding_required"
 
 
+@pytest.mark.parametrize("score,expected", [(.99,"published"),(.5,"date_binding_required")])
+def test_explicit_history_timeline_preserves_current_date_quality(score,expected,monkeypatch):
+    def history(doc):
+        doc['lines'][-1].update(score=score)
+        doc['lines'].extend({'text':t,'score':.99} for t in
+            ['HISTORY','2016-2019','2020','11.16.3단','PROGRAM'])
+    repo,store,data = setup(history)
+    key = save(repo,store,data)
+    monkeypatch.setattr(module(),'download_source',lambda *_:(store.original,'image/png'))
+    assert module().publish(repo,store,None,'p1',key,apply=True)['status'] == expected
+    assert len(repo.writes) == int(expected=='published')
+
+
 @pytest.mark.parametrize("heading,score,expected", [
     ("2026.10.22.(Thu.)", .99, "published"),
     ("2026.10.22.[Thu.]", .99, "published"),
@@ -266,7 +279,7 @@ def test_date_clock_retains_quality_and_version_contract(score, expected, headin
     monkeypatch.setattr(module(), "download_source", lambda *_: (store.original, "image/png"))
     assert module().publish(repo, store, None, "p1", key, apply=True)["status"] == expected
     if repo.writes:
-        assert repo.writes[0]["p_evaluation"]["date_binding_version"] == "concert-date-headings-v14"
+        assert repo.writes[0]["p_evaluation"]["date_binding_version"] == "concert-date-headings-v15"
         assert repo.writes[0]["p_evaluation"]["performance_date"] == "2026-10-22"
     else:
         assert expected == "date_binding_required"
@@ -292,7 +305,7 @@ def test_split_year_date_requires_quality_on_every_fragment(low_line, fragments,
     assert result["status"] == expected
     assert len(repo.writes) == int(low_line is None)
     if repo.writes:
-        assert repo.writes[0]["p_evaluation"]["date_binding_version"] == "concert-date-headings-v14"
+        assert repo.writes[0]["p_evaluation"]["date_binding_version"] == "concert-date-headings-v15"
         assert repo.writes[0]["p_review"]["method"] == "reviewed_paddle_text"
 
 
