@@ -568,6 +568,11 @@ class MusicMatcher:
             title = body.strip()
         title = _catalogue_ocr(title)
         catalogue = _catalogue_ocr(catalogue) if catalogue else None
+        if not catalogue and not _catalogues(title):
+            # Preserve the literal Korean number without guessing its scheme.
+            trailing = re.search(r"(?<!\S)(작품\s*(?:번호\s*)?\d+)\s*$", title)
+            if trailing and len(re.findall(r"작품\s*(?:번호\s*)?\d+", title)) == 1:
+                catalogue = trailing[1]
         untyped = re.fullmatch(r"작품\s*(?:번호\s*)?(\d+)", (catalogue or "").strip())
         if untyped:
             # The Korean label does not imply Opus (PF284828 also uses it for K364).
