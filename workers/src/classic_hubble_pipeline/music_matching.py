@@ -16,8 +16,13 @@ from .work_matching import (
     _normalize,
 )
 
+# Keep Hoboken's Roman section distinct from its Arabic work number.
+HOBOKEN = re.compile(
+    r"\b(?:Hob\.?\s*|H\.\s*)((?=[IVX])X{0,3}(?:IX|IV|V?I{0,3}))\s*[:/]\s*(\d+[a-z]?)\b",
+    re.IGNORECASE,
+)
 # Additional schemes require grounded evidence, not legacy ingestion or import.
-CATALOGUE = re.compile(LEGACY_CATALOGUE.pattern + r"|\b(?:WAB|FWV|CD|FP|H|G|M)\.?\s*\d+\b", re.IGNORECASE)
+CATALOGUE = re.compile(HOBOKEN.pattern + "|" + LEGACY_CATALOGUE.pattern + r"|\b(?:WAB|FWV|CD|FP|H|G|M)\.?\s*\d+\b", re.IGNORECASE)
 LIFESPAN = re.compile(r"\(?\b\d{4}\s*[-–—~]\s*\d{4}\b\)?")
 LATIN_NOTE_KEY = re.compile(
     r"(?<![a-z])(?:in\s*)?([a-g])\s*([-\u2013 ]?(?:flat|sharp)|[b#♭♯])?\s*-?\s*(major|minor|장조|단조)\b",
@@ -138,7 +143,13 @@ def _catalogues(text: str) -> frozenset[str]:
         text,
         flags=re.IGNORECASE,
     )
-    values = {_catalogue_key(m.group()) for m in CATALOGUE.finditer(text)}
+    values = set()
+    for match in CATALOGUE.finditer(text):
+        hoboken = HOBOKEN.fullmatch(match.group())
+        values.add(
+            "hob" + hoboken[1].lower() + hoboken[2].lower()
+            if hoboken else _catalogue_key(match.group())
+        )
     # A duplicated root plus its explicit member denotes the member, not two works.
     return frozenset(
         v for v in values if not any(w.startswith(v + "no") for w in values)
@@ -150,6 +161,8 @@ def _root(value: str) -> str:
 
 
 def _scheme(value: str) -> str:
+    if value.startswith("hob"):
+        return "hob"
     return re.match(r"[a-z]+", value).group()
 
 
@@ -570,6 +583,8 @@ class MusicMatcher:
                 flags=re.IGNORECASE,
             )
         actual_catalogues = _catalogues(title + " " + (catalogue or ""))
+        if re.search(r"\bHob(?=\b|[IVX])|\bH\.\s*[IVX]", HOBOKEN.sub("", title), re.IGNORECASE):
+            return WorkMatch(None, (), "unsupported_catalogue")
         if catalogue and (
             not _catalogues(catalogue) or CATALOGUE.sub("", catalogue).strip(" ,;:()")
         ):
@@ -578,6 +593,7 @@ class MusicMatcher:
             re.match(r"\s*[-–—/,]\s*\d", title[m.end() :])
             or (_scheme(_catalogue_key(m[0])) in {"wab", "fwv", "cd", "fp", "h", "g", "m"} and re.match(r"\.\s*\d", title[m.end() :]))
             or (_scheme(_catalogue_key(m[0])) == "h" and re.match(r"\s+[A-Za-z]\b", title[m.end() :]))
+            or (HOBOKEN.fullmatch(m[0]) and re.match(r"\s*[.:]\s*\d", title[m.end() :]))
             for m in CATALOGUE.finditer(title)
         ):
             return WorkMatch(None, (), "complex_catalogue")
