@@ -1,5 +1,4 @@
-import { getCatalogSnapshot } from "@/lib/catalog";
-import { searchCatalog } from "@/lib/catalog-search";
+import { getPerformanceSearchPage } from "@/lib/performance-search";
 import { getWorkSearchPage } from "@/lib/work-search";
 
 export const dynamic = "force-dynamic";
@@ -28,11 +27,8 @@ export async function GET(request: Request) {
       result = await getWorkSearchPage(query, offset);
       timing = `targeted;dur=${(performance.now() - startedAt).toFixed(1)}`;
     } else {
-      const catalog = await getCatalogSnapshot();
-      const loadedAt = performance.now();
-      if (catalog.source === "unavailable") throw new Error("Catalog unavailable");
-      result = searchCatalog(catalog, { query, city, mode: "performances", offset });
-      timing = `catalog;dur=${(loadedAt - startedAt).toFixed(1)}, search;dur=${(performance.now() - loadedAt).toFixed(1)}`;
+      result = await getPerformanceSearchPage(query, city, offset);
+      timing = `targeted;dur=${(performance.now() - startedAt).toFixed(1)}`;
     }
     return Response.json(result, {
       headers: {
