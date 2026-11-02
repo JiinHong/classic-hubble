@@ -1,96 +1,41 @@
 "use client";
 
 import Link from "next/link";
-import {
-  Bell,
-  Headphones,
-  LibraryBig,
-  LogIn,
-  LogOut,
-  Search,
-  Settings2,
-  UserRound,
-} from "lucide-react";
-
+import { Bell, Headphones, LibraryBig, LogOut, Menu, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "./AuthProvider";
-
-const navigation = [
-  { href: "/", label: "탐색", icon: Search },
-  { href: "/composers", label: "작곡가", icon: LibraryBig },
-  { href: "/watchlist", label: "관심곡", icon: Bell },
-  { href: "/admin/review", label: "검수", icon: Settings2 },
-];
 
 export function AppHeader() {
   const { loading, openAuth, signOut, user } = useAuth();
-
-  return (
-    <header className="sticky top-0 z-20 border-b border-stone-200 bg-white/95 backdrop-blur">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-        <Link
-          aria-label="클래식허블 홈"
-          className="flex items-center gap-2 text-stone-950"
-          href="/"
-        >
-          <span className="grid size-9 place-items-center rounded-md bg-stone-950 text-white">
-            <Headphones aria-hidden="true" className="size-5" />
-          </span>
-          <span className="hidden text-lg font-black tracking-normal sm:inline">
-            클래식허블
-          </span>
-        </Link>
-
-        <div className="flex min-w-0 items-center gap-2">
-          <nav className="flex items-center gap-1">
-            {navigation.map((item) => {
-              const Icon = item.icon;
-
-              return (
-                <Link
-                  aria-label={item.label}
-                  key={item.href}
-                  href={item.href}
-                  className="inline-flex h-10 items-center gap-2 rounded-md px-3 text-sm font-semibold text-stone-600 transition hover:bg-stone-100 hover:text-stone-950"
-                >
-                  <Icon aria-hidden="true" className="size-4" />
-                  <span className="hidden sm:inline">{item.label}</span>
-                </Link>
-              );
-            })}
-          </nav>
-
-          <span aria-hidden="true" className="h-6 w-px bg-stone-200" />
-
-          {user ? (
-            <div className="flex min-w-0 items-center gap-1">
-              <span className="hidden max-w-44 items-center gap-2 truncate px-2 text-sm font-bold text-stone-600 md:inline-flex">
-                <UserRound aria-hidden="true" className="size-4 shrink-0 text-emerald-700" />
-                <span className="truncate">{user.email}</span>
-              </span>
-              <button
-                aria-label="로그아웃"
-                className="grid size-10 place-items-center rounded-md text-stone-500 transition hover:bg-stone-100 hover:text-stone-950"
-                onClick={() => void signOut()}
-                title="로그아웃"
-                type="button"
-              >
-                <LogOut aria-hidden="true" className="size-4" />
-              </button>
-            </div>
-          ) : (
-            <button
-              aria-label="로그인"
-              className="inline-flex h-10 items-center gap-2 rounded-md bg-stone-950 px-3 text-sm font-black text-white transition hover:bg-emerald-800 disabled:opacity-45"
-              disabled={loading}
-              onClick={() => openAuth("signin")}
-              type="button"
-            >
-              <LogIn aria-hidden="true" className="size-4" />
-              <span aria-hidden="true" className="hidden sm:inline">로그인</span>
-            </button>
-          )}
+  const [open, setOpen] = useState(false);
+  const root = useRef<HTMLDivElement>(null);
+  const toggle = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    const dismiss = (e: PointerEvent) => { if (!root.current?.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener("pointerdown", dismiss);
+    return () => document.removeEventListener("pointerdown", dismiss);
+  }, []);
+  return <header className="relative z-40 bg-white">
+    <div className="mx-auto flex h-18 max-w-[1440px] items-center justify-between gap-3 px-4 sm:px-8">
+      <Link href="/" aria-label="클래식허블 홈" className="flex shrink-0 items-center gap-2 text-neutral-900">
+        <Headphones aria-hidden="true" className="size-5" strokeWidth={1.7} />
+        <span className="text-base font-semibold">클래식허블</span>
+      </Link>
+      <div className="flex items-center gap-2 sm:gap-3">
+        <div ref={root} className="relative" onKeyDown={e => { if (e.key === "Escape") { setOpen(false); toggle.current?.focus(); } }} onBlur={e => { if (!e.currentTarget.contains(e.relatedTarget)) setOpen(false); }}>
+          <button ref={toggle} type="button" aria-label="메뉴" title="메뉴" aria-expanded={open} aria-controls="site-navigation" className="icon-button" onClick={() => setOpen(v => !v)}>
+            {open ? <X className="size-5" aria-hidden="true" /> : <Menu className="size-5" aria-hidden="true" />}
+          </button>
+          {open ? <nav id="site-navigation" aria-label="보조 메뉴" className="absolute right-0 top-full mt-2 w-44 rounded-lg border border-neutral-200 bg-white p-1.5 shadow-lg">
+            {[{ href: "/composers", label: "작곡가", icon: LibraryBig }, { href: "/watchlist", label: "관심곡", icon: Bell }].map(({ href, label, icon: Icon }) =>
+              <Link key={href} href={href} aria-label={label} onClick={() => setOpen(false)} className="flex items-center gap-3 rounded-md px-3 py-3 text-sm text-neutral-700 hover:bg-neutral-50"><Icon className="size-4" aria-hidden="true" />{label}</Link>)}
+          </nav> : null}
         </div>
+        {user ? <div className="flex min-w-0 items-center gap-1">
+          <span className="hidden max-w-44 truncate text-xs text-neutral-500 sm:block">{user.email}</span>
+          <button type="button" className="icon-button" aria-label="로그아웃" title="로그아웃" onClick={() => void signOut()}><LogOut aria-hidden="true" className="size-4" /></button>
+        </div> : <button type="button" aria-label="로그인" disabled={loading} onClick={() => openAuth("signin")} className="h-9 rounded-md bg-neutral-900 px-4 text-sm font-medium text-white hover:bg-neutral-700 disabled:opacity-40">로그인</button>}
       </div>
-    </header>
-  );
+    </div>
+  </header>;
 }
