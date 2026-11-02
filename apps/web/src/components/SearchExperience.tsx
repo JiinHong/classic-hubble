@@ -4,6 +4,7 @@ import { useState, useSyncExternalStore } from "react";
 import type { WorkSuggestion } from "@/lib/work-suggestions";
 import { SearchBox } from "./SearchBox";
 import { SearchResults } from "./SearchResults";
+import { SingleLineText } from "./SingleLineText";
 
 export type SearchState = { query: string; work: string; mode: "works" | "performances"; city: string };
 type Props = { initialQuery?: string; initialWork?: string; initialMode?: SearchState["mode"]; initialCity?: string };
@@ -54,10 +55,10 @@ export function SearchExperience({ initialQuery = "", initialWork = "", initialM
     <div className={submitted ? "mx-auto w-full max-w-4xl px-4 pb-16 pt-6 sm:px-8 sm:pt-10" : "mx-auto flex min-h-[calc(100svh-12rem)] w-full max-w-3xl flex-col justify-center px-4 pb-24 sm:px-8"}>
       {!submitted ? (
         <h1
-          className={`mb-8 text-center text-2xl leading-snug font-medium text-balance text-neutral-900 sm:text-3xl${showEntrance ? " search-welcome-enter" : ""}`}
+          className={`mb-8 text-center text-2xl leading-snug font-medium text-neutral-900 sm:text-3xl${showEntrance ? " search-welcome-enter" : ""}`}
           onAnimationEnd={() => setShowEntrance(false)}
         >
-          어떤 곡을 공연장에서 듣고 싶으세요?
+          <SingleLineText>어떤 곡을 공연장에서 듣고 싶으세요?</SingleLineText>
         </h1>
       ) : null}
       <div className={submitted ? "mx-auto max-w-3xl" : ""}>

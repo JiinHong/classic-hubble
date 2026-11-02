@@ -18,7 +18,9 @@ describe("autocomplete search input", () => {
   it("invites searches by classical work title or composer", () => {
     const { input } = setup();
     expect(input.getAttribute("placeholder")).toBe("클래식 곡명이나 작곡가를 입력하세요");
-    expect(screen.getByText("클래식 곡명이나 작곡가를 입력하세요").getAttribute("aria-hidden")).toBe("true");
+    const prompt = screen.getByText("클래식 곡명이나 작곡가를 입력하세요");
+    expect(prompt.parentElement?.getAttribute("aria-hidden")).toBe("true");
+    expect(prompt.classList.contains("whitespace-nowrap")).toBe(true);
     fireEvent.change(input, { target: { value: "라흐" } });
     expect(screen.queryByText("클래식 곡명이나 작곡가를 입력하세요")).toBeNull();
   });
