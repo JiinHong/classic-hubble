@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, ArrowUpLeft, LoaderCircle, X, Youtube } from "lucide-react";
+import { ArrowRight, ArrowUpLeft, X, Youtube } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
 import type { WorkSuggestion } from "@/lib/work-suggestions";
@@ -34,8 +34,9 @@ export function SearchBox({ initialValue, onSubmit, onSelect, onClear }: Props) 
     setActive(-1);
   }
   const query = value.trim();
-  const visible = open && !!query && !composing;
+  const suggestionsEnabled = open && !!query;
   const loading = result.query !== query;
+  const visible = suggestionsEnabled && !loading;
   const items = loading ? [] : result.items;
 
   useEffect(() => {
@@ -51,7 +52,7 @@ export function SearchBox({ initialValue, onSubmit, onSelect, onClear }: Props) 
   }, []);
 
   useEffect(() => {
-    if (!visible) return;
+    if (!suggestionsEnabled) return;
     const controller = new AbortController();
     const cached = cache.current.get(query);
     const fresh = cached && cached.expires > Date.now();
@@ -73,9 +74,14 @@ export function SearchBox({ initialValue, onSubmit, onSelect, onClear }: Props) 
       }
     }, fresh ? 0 : 100);
     return () => { clearTimeout(timer); controller.abort(); };
-  }, [query, visible]);
+  }, [query, suggestionsEnabled]);
 
+  function clearCompositionState() {
+    composingRef.current = false;
+    setComposing(false);
+  }
   function choose(work: WorkSuggestion) {
+    clearCompositionState();
     setValue(work.title); setOpen(false); setActive(-1); onSelect(work);
   }
   function submit() {
@@ -100,7 +106,7 @@ export function SearchBox({ initialValue, onSubmit, onSelect, onClear }: Props) 
             if (!event.target.value.trim()) onClear();
           }}
           onCompositionStart={() => { composingRef.current = true; setComposing(true); }}
-          onCompositionEnd={event => { composingRef.current = false; setComposing(false); setValue(event.currentTarget.value); }}
+          onCompositionEnd={event => { clearCompositionState(); setValue(event.currentTarget.value); }}
           onKeyDown={event => {
             if (event.nativeEvent.isComposing || composingRef.current || event.keyCode === 229) {
               if (event.key === "Enter") event.preventDefault();
@@ -119,14 +125,14 @@ export function SearchBox({ initialValue, onSubmit, onSelect, onClear }: Props) 
         {!value ? <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-1/2 -translate-y-1/2 text-sm leading-5 text-neutral-400 sm:text-base sm:leading-6">{searchPlaceholder}</span> : null}
         </div>
         {value ? <button type="button" className="icon-button size-8!" title="검색어 지우기" aria-label="검색어 지우기" onClick={() => {
+          clearCompositionState();
           setValue(""); setActive(-1); setOpen(false); onClear(); input.current?.focus();
         }}><X aria-hidden="true" className="size-4" /></button> : null}
         <Link href="/youtube" className="icon-button text-red-600!" title="유튜브로 찾기" aria-label="유튜브로 찾기"><Youtube aria-hidden="true" className="size-5" /></Link>
         <button type="submit" disabled={!query || composing} title="검색" aria-label="검색" className="grid size-10 shrink-0 place-items-center rounded-full bg-neutral-900 text-white transition hover:bg-emerald-800 disabled:bg-neutral-100 disabled:text-neutral-400"><ArrowRight aria-hidden="true" className="size-5" /></button>
       </form>
       {visible ? <div className="absolute inset-x-0 top-full z-30 mt-2 max-h-[min(26rem,50svh)] overflow-y-auto rounded-lg border border-neutral-200 bg-white p-1.5 shadow-lg">
-        {loading ? <p role="status" className="flex items-center gap-2 px-3 py-4 text-sm text-neutral-500"><LoaderCircle aria-hidden="true" className="size-4 animate-spin motion-reduce:animate-none" />검색 중</p> : result.error ?
-          <p role="alert" className="px-3 py-4 text-sm text-neutral-600">추천 검색어를 불러오지 못했습니다.</p> : null}
+        {result.error ? <p role="alert" className="px-3 py-4 text-sm text-neutral-600">추천 작품을 불러오지 못했습니다.</p> : null}
         <ul id={listId} role="listbox" aria-label="추천 작품">
           {items.map((work, index) => <li id={`${listId}-${index}`} key={work.slug} role="option" aria-selected={active === index}
             className={`flex cursor-pointer items-center gap-3 rounded-md px-3 py-3 ${active === index ? "bg-neutral-100" : "hover:bg-neutral-50"}`}
@@ -135,7 +141,7 @@ export function SearchBox({ initialValue, onSubmit, onSelect, onClear }: Props) 
             <ArrowUpLeft aria-hidden="true" className="size-4 shrink-0 text-neutral-400" />
           </li>)}
         </ul>
-        {!loading && !result.error && !items.length ? <p role="status" className="px-3 py-4 text-sm text-neutral-500">추천 작품이 없습니다.</p> : null}
+        {!result.error && !items.length ? <p role="status" className="px-3 py-4 text-sm text-neutral-500">추천 작품이 없습니다.</p> : null}
       </div> : null}
     </div>
   );
