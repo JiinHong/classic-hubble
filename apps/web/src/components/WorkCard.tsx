@@ -1,5 +1,5 @@
 import type { Work } from "@classic-hubble/shared";
-import { ArrowUpRight, Music2 } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
@@ -12,27 +12,16 @@ export function WorkCard({ action, work }: WorkCardProps) {
   const performanceCount = work.upcomingPerformanceIds.length;
 
   return (
-    <article className="rounded-lg border border-stone-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-stone-300 hover:shadow-md">
-      <div className="flex items-start justify-between gap-4">
-        <div className="grid size-11 shrink-0 place-items-center rounded-md bg-emerald-50 text-emerald-800">
-          <Music2 aria-hidden="true" className="size-5" />
-        </div>
-        {work.popularityRank !== null && (
-          <span className="rounded-md bg-stone-100 px-2 py-1 text-xs font-bold text-stone-600">
-            #{work.popularityRank}
-          </span>
-        )}
-      </div>
-
-      <div className="mt-4 min-w-0">
+    <article className="flex flex-col gap-3 py-6 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
+      <div className="min-w-0">
         <Link
           href={`/works/${work.slug}`}
-          className="group inline-flex max-w-full items-start gap-1 text-lg font-black leading-6 text-stone-950 hover:text-emerald-700"
+          className="group inline-flex max-w-full items-start gap-2 text-base font-medium leading-7 text-neutral-900 hover:text-emerald-800"
         >
-          <span className="line-clamp-2">{work.composer.nameKo} · {work.titleKo}</span>
+          <span className="break-words">{work.composer.nameKo} · {work.titleKo}</span>
           <ArrowUpRight
             aria-hidden="true"
-            className="mt-1 size-4 shrink-0 opacity-0 transition group-hover:opacity-100"
+            className="mt-1.5 size-4 shrink-0 text-neutral-400"
           />
         </Link>
         {work.partOf?.map((parent) => (
@@ -41,14 +30,13 @@ export function WorkCard({ action, work }: WorkCardProps) {
             {parent.titleKo} · {parent.position === null ? "수록곡" : `${parent.position}번 수록곡`}
           </Link>
         ))}
-        <p className="mt-1 line-clamp-1 text-sm font-semibold text-stone-600">
+        <p className="mt-1 break-words text-sm leading-6 text-neutral-500">
           {work.title} {work.catalogue}
         </p>
-        <p className="mt-3 text-sm text-stone-500">{work.instrumentation}</p>
       </div>
 
-      <div className="mt-4 flex items-center justify-between gap-3 border-t border-stone-100 pt-4 text-sm">
-        <span className="font-bold text-stone-950">
+      <div className="flex shrink-0 items-center gap-3 pt-1 text-xs text-neutral-500 sm:flex-col sm:items-end">
+        <span>
           예정 공연 {performanceCount}건
         </span>
         {action}

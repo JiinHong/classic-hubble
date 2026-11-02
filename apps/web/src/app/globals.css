@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 :root {
-  --background: #fafaf9;
-  --foreground: #1c1917;
+  --background: #ffffff;
+  --foreground: #171717;
 }
 
 @theme inline {
@@ -16,7 +16,22 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  letter-spacing: 0;
+  word-break: keep-all;
 }
+
+.icon-button {
+  display: inline-grid;
+  width: 2.5rem;
+  height: 2.5rem;
+  flex-shrink: 0;
+  place-items: center;
+  border-radius: 6px;
+  color: #737373;
+}
+.icon-button:hover { background: #f5f5f5; color: #171717; }
+:where(a, button, select):focus-visible { outline: 2px solid #047857; outline-offset: 3px; }
+button:not(:disabled), summary { cursor: pointer; }
 
 button,
 a,

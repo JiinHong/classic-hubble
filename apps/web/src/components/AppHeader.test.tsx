@@ -27,7 +27,7 @@ function createClient(session: Session | null) {
 }
 
 describe("AppHeader authentication", () => {
-  it("keeps icon-only mobile navigation links named", async () => {
+  it("keeps secondary navigation accessible without exposing review or dashboard links", async () => {
     const { client } = createClient(null);
     render(
       <AuthProvider client={client}>
@@ -35,11 +35,9 @@ describe("AppHeader authentication", () => {
       </AuthProvider>,
     );
 
-    expect(
-      (await screen.findByRole("link", { name: "탐색" })).getAttribute(
-        "aria-label",
-      ),
-    ).toBe("탐색");
+    expect(screen.queryByRole("link", { name: "검수" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "탐색" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "메뉴" }));
     expect(screen.getByRole("link", { name: "작곡가" }).getAttribute("href")).toBe(
       "/composers",
     );

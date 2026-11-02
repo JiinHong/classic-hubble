@@ -28,22 +28,22 @@ export function PerformanceCard({
     : performance.program.find((item) => item.workSlug === workSlug);
 
   return (
-    <article className="grid overflow-hidden rounded-lg border border-stone-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-stone-300 hover:shadow-md sm:grid-cols-[132px_minmax(0,1fr)]">
+    <article className="grid grid-cols-[72px_minmax(0,1fr)] items-start gap-4 py-6 sm:grid-cols-[100px_minmax(0,1fr)] sm:gap-6">
       <Link
         href={`/performances/${performance.id}`}
-        className="relative block min-h-44 bg-stone-100 sm:min-h-full"
+        className="relative block aspect-[3/4] overflow-hidden rounded bg-neutral-50"
       >
         <Image
           {...posterImage(performance.posterUrl)}
           alt={`${performance.title} 포스터`}
-          className="absolute inset-0 h-full w-full object-cover"
+          className="absolute inset-0 h-full w-full object-contain"
           fill
           loading={eager ? "eager" : "lazy"}
-          sizes="(min-width: 640px) 132px, 100vw"
+          sizes="(min-width: 640px) 100px, 72px"
         />
       </Link>
 
-      <div className="flex min-w-0 flex-col gap-3 p-4">
+      <div className="flex min-w-0 flex-col gap-3">
         <div className="flex flex-wrap items-center gap-2">
           <span
             className={`inline-flex h-7 items-center rounded-md border px-2 text-xs font-bold ${statusTone(
@@ -58,12 +58,12 @@ export function PerformanceCard({
         <div className="min-w-0">
           <Link
             href={`/performances/${performance.id}`}
-            className="line-clamp-2 text-base font-black leading-6 text-stone-950 hover:text-emerald-700"
+            className="break-words text-base font-medium leading-6 text-neutral-900 hover:text-emerald-800"
           >
             {performance.title}
           </Link>
           {primaryProgram ? (
-            <p className="mt-1 line-clamp-1 text-sm font-semibold text-stone-600">
+            <p className="mt-1 break-words text-sm leading-6 text-neutral-500">
               {primaryProgram.composerName
                 ? `${primaryProgram.composerName} · `
                 : null}
@@ -82,7 +82,7 @@ export function PerformanceCard({
           <div className="flex items-center gap-2">
             <MapPin aria-hidden="true" className="size-4 text-sky-700" />
             <dt className="sr-only">장소</dt>
-            <dd className="truncate">
+            <dd className="min-w-0 break-words">
               {performance.venue} · {performance.city}
             </dd>
           </div>
@@ -90,7 +90,7 @@ export function PerformanceCard({
             <div className="flex items-center gap-2">
               <Ticket aria-hidden="true" className="size-4 text-rose-700" />
               <dt className="sr-only">가격</dt>
-              <dd className="truncate">{performance.priceRange}</dd>
+              <dd className="min-w-0 break-words">{performance.priceRange}</dd>
             </div>
           ) : null}
         </dl>

@@ -1,0 +1,137 @@
+"use client";
+
+import { ArrowRight, ArrowUpLeft, LoaderCircle, Search, X, Youtube } from "lucide-react";
+import Link from "next/link";
+import { useEffect, useId, useRef, useState } from "react";
+import type { WorkSuggestion } from "@/lib/work-suggestions";
+
+type Props = {
+  initialValue: string;
+  onSubmit: (query: string) => void;
+  onSelect: (work: WorkSuggestion) => void;
+  onClear: () => void;
+};
+
+export function SearchBox({ initialValue, onSubmit, onSelect, onClear }: Props) {
+  const [value, setValue] = useState(initialValue);
+  const [lastInitialValue, setLastInitialValue] = useState(initialValue);
+  const [open, setOpen] = useState(false);
+  const [composing, setComposing] = useState(false);
+  const composingRef = useRef(false);
+  const [active, setActive] = useState(-1);
+  const [result, setResult] = useState({ query: "", items: [] as WorkSuggestion[], error: false });
+  const root = useRef<HTMLDivElement>(null);
+  const input = useRef<HTMLInputElement>(null);
+  const cache = useRef(new Map<string, { expires: number; items: WorkSuggestion[] }>());
+  const listId = useId();
+  // Restore URL/submitted values without replacing the focused input node.
+  if (initialValue !== lastInitialValue) {
+    setLastInitialValue(initialValue);
+    setValue(initialValue);
+    setOpen(false);
+    setActive(-1);
+  }
+  const query = value.trim();
+  const visible = open && !!query && !composing;
+  const loading = result.query !== query;
+  const items = loading ? [] : result.items;
+
+  useEffect(() => {
+    if (visible && active >= 0) document.getElementById(`${listId}-${active}`)?.scrollIntoView?.({ block: "nearest" });
+  }, [visible, active, listId]);
+
+  useEffect(() => {
+    const dismiss = (event: PointerEvent) => {
+      if (!root.current?.contains(event.target as Node)) setOpen(false);
+    };
+    document.addEventListener("pointerdown", dismiss);
+    return () => document.removeEventListener("pointerdown", dismiss);
+  }, []);
+
+  useEffect(() => {
+    if (!visible) return;
+    const controller = new AbortController();
+    const cached = cache.current.get(query);
+    const fresh = cached && cached.expires > Date.now();
+    const timer = setTimeout(async () => {
+      try {
+        let suggestions = fresh ? cached.items : undefined;
+        if (!suggestions) {
+          const response = await fetch(`/api/catalog/suggest?${new URLSearchParams({ q: query })}`, { signal: controller.signal });
+          if (!response.ok) throw new Error("Suggestions unavailable");
+          suggestions = (await response.json()).suggestions as WorkSuggestion[];
+        }
+        if (controller.signal.aborted) return;
+        cache.current.delete(query);
+        cache.current.set(query, { expires: fresh ? cached.expires : Date.now() + 60_000, items: suggestions });
+        if (cache.current.size > 20) cache.current.delete(cache.current.keys().next().value!);
+        setResult({ query, items: suggestions, error: false });
+      } catch {
+        if (!controller.signal.aborted) setResult({ query, items: [], error: true });
+      }
+    }, fresh ? 0 : 100);
+    return () => { clearTimeout(timer); controller.abort(); };
+  }, [query, visible]);
+
+  function choose(work: WorkSuggestion) {
+    setValue(work.title); setOpen(false); setActive(-1); onSelect(work);
+  }
+  function submit() {
+    if (composingRef.current || !query) return;
+    setOpen(false); setActive(-1); onSubmit(query);
+  }
+
+  return (
+    <div ref={root} className="relative w-full" onBlur={event => {
+      if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false);
+    }}>
+      <form role="search" onSubmit={event => { event.preventDefault(); submit(); }}
+        className="flex min-h-16 items-center gap-2 rounded-lg border border-neutral-300 bg-white px-3 shadow-[0_2px_12px_0_rgb(0_0_0/0.04)] transition focus-within:border-neutral-500 sm:min-h-18 sm:gap-3 sm:px-4">
+        <Search aria-hidden="true" className="size-5 shrink-0 text-neutral-400" />
+        <input ref={input} role="combobox" aria-label="곡명, 작곡가, 별칭 검색"
+          aria-autocomplete="list" aria-expanded={visible} aria-controls={visible ? listId : undefined}
+          aria-activedescendant={visible && active >= 0 && items[active] ? `${listId}-${active}` : undefined}
+          autoComplete="off" enterKeyHint="search" maxLength={200} value={value}
+          placeholder="곡명, 작곡가, 별칭" className="min-w-0 flex-1 bg-transparent py-5 text-base text-neutral-900 outline-none placeholder:text-neutral-400"
+          onFocus={() => setOpen(true)} onChange={event => {
+            setValue(event.target.value); setActive(-1); setOpen(true);
+            if (!event.target.value.trim()) onClear();
+          }}
+          onCompositionStart={() => { composingRef.current = true; setComposing(true); }}
+          onCompositionEnd={event => { composingRef.current = false; setComposing(false); setValue(event.currentTarget.value); }}
+          onKeyDown={event => {
+            if (event.nativeEvent.isComposing || composingRef.current || event.keyCode === 229) {
+              if (event.key === "Enter") event.preventDefault();
+              return;
+            }
+            if (event.key === "Escape") { setOpen(false); setActive(-1); }
+            else if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+              event.preventDefault(); setOpen(true);
+              if (items.length) setActive(previous => event.key === "ArrowDown" ? (previous + 1) % items.length : (previous <= 0 ? items.length - 1 : previous - 1));
+            } else if (event.key === "Enter") {
+              event.preventDefault();
+              if (visible && items[active]) choose(items[active]); else submit();
+            }
+          }} />
+        {value ? <button type="button" className="icon-button size-8!" title="검색어 지우기" aria-label="검색어 지우기" onClick={() => {
+          setValue(""); setActive(-1); setOpen(false); onClear(); input.current?.focus();
+        }}><X aria-hidden="true" className="size-4" /></button> : null}
+        <Link href="/youtube" className="icon-button text-red-600!" title="유튜브로 찾기" aria-label="유튜브로 찾기"><Youtube aria-hidden="true" className="size-5" /></Link>
+        <button type="submit" disabled={!query || composing} title="검색" aria-label="검색" className="grid size-10 shrink-0 place-items-center rounded-md bg-neutral-900 text-white transition hover:bg-emerald-800 disabled:bg-neutral-100 disabled:text-neutral-400"><ArrowRight aria-hidden="true" className="size-5" /></button>
+      </form>
+      {visible ? <div className="absolute inset-x-0 top-full z-30 mt-2 max-h-[min(26rem,50svh)] overflow-y-auto rounded-lg border border-neutral-200 bg-white p-1.5 shadow-lg">
+        {loading ? <p role="status" className="flex items-center gap-2 px-3 py-4 text-sm text-neutral-500"><LoaderCircle aria-hidden="true" className="size-4 animate-spin motion-reduce:animate-none" />검색 중</p> : result.error ?
+          <p role="alert" className="px-3 py-4 text-sm text-neutral-600">추천 검색어를 불러오지 못했습니다.</p> : null}
+        <ul id={listId} role="listbox" aria-label="추천 작품">
+          {items.map((work, index) => <li id={`${listId}-${index}`} key={work.slug} role="option" aria-selected={active === index}
+            className={`flex cursor-pointer items-center gap-3 rounded-md px-3 py-3 ${active === index ? "bg-neutral-100" : "hover:bg-neutral-50"}`}
+            onPointerMove={() => setActive(index)} onPointerDown={event => event.preventDefault()} onClick={() => choose(work)}>
+            <div className="min-w-0 flex-1"><p className="break-words text-sm font-medium text-neutral-900">{work.title}</p><p className="mt-1 break-words text-xs text-neutral-500">{work.composer}</p></div>
+            <ArrowUpLeft aria-hidden="true" className="size-4 shrink-0 text-neutral-400" />
+          </li>)}
+        </ul>
+        {!loading && !result.error && !items.length ? <p role="status" className="px-3 py-4 text-sm text-neutral-500">추천 작품이 없습니다.</p> : null}
+      </div> : null}
+    </div>
+  );
+}

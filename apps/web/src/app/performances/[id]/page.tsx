@@ -33,28 +33,28 @@ export default async function PerformancePage({ params }: PerformancePageProps) 
     (performance.program.length > 0 ? "confirmed" : "unknown");
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+    <main className="mx-auto max-w-5xl px-4 pb-16 pt-6 sm:px-8">
       <Link
         href="/"
         className="inline-flex h-10 items-center gap-2 rounded-md px-2 text-sm font-bold text-stone-600 hover:bg-stone-100 hover:text-stone-950"
       >
         <ArrowLeft aria-hidden="true" className="size-4" />
-        탐색으로
+        검색으로
       </Link>
 
-      <section className="mt-5 grid gap-6 lg:grid-cols-[360px_minmax(0,1fr)]">
-        <div className="relative aspect-[3/4] overflow-hidden rounded-lg border border-stone-200 bg-stone-100 shadow-sm">
+      <section className="mt-8 grid items-start gap-8 sm:grid-cols-[220px_minmax(0,1fr)] lg:grid-cols-[280px_minmax(0,1fr)] lg:gap-12">
+        <div className="relative mx-auto aspect-[3/4] w-full max-w-[280px] overflow-hidden rounded bg-neutral-50">
           <Image
             {...posterImage(performance.posterUrl)}
             alt={`${performance.title} 포스터`}
-            className="object-cover"
+            className="object-contain"
             fill
             priority
-            sizes="(min-width: 1024px) 360px, 100vw"
+            sizes="(min-width: 1024px) 280px, (min-width: 640px) 220px, 280px"
           />
         </div>
 
-        <div className="rounded-lg border border-stone-200 bg-white p-6 shadow-sm">
+        <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <span
               className={`inline-flex h-7 items-center rounded-md border px-2 text-xs font-bold ${statusTone(
@@ -68,7 +68,7 @@ export default async function PerformancePage({ params }: PerformancePageProps) 
             </span>
           </div>
 
-          <h1 className="mt-4 text-3xl font-black tracking-normal text-stone-950">
+          <h1 className="mt-4 break-words text-2xl font-medium leading-snug text-neutral-900 sm:text-3xl">
             {performance.title}
           </h1>
 
@@ -98,7 +98,7 @@ export default async function PerformancePage({ params }: PerformancePageProps) 
               {performance.artists.map((artist) => (
                 <span
                   key={artist}
-                  className="rounded-md border border-stone-200 bg-stone-50 px-2 py-1 text-sm font-semibold text-stone-600"
+                  className="text-sm text-neutral-600"
                 >
                   {artist}
                 </span>
@@ -111,7 +111,7 @@ export default async function PerformancePage({ params }: PerformancePageProps) 
             <p className="mt-2 text-sm font-semibold text-stone-500">
               {programPublicationMessage(programStatus)}
             </p>
-            <div className="mt-3 grid gap-3">
+            <div className="mt-3 divide-y divide-neutral-100">
               {performance.program.map((item, index) => {
                 const content = (
                   <>
@@ -144,14 +144,14 @@ export default async function PerformancePage({ params }: PerformancePageProps) 
                   <Link
                     key={key}
                     href={`/works/${item.workSlug}`}
-                    className="rounded-lg border border-stone-200 bg-stone-50 p-4 transition hover:border-emerald-300 hover:bg-emerald-50"
+                    className="block py-4 transition hover:text-emerald-800"
                   >
                     {content}
                   </Link>
                 ) : (
                   <div
                     key={key}
-                    className="rounded-lg border border-stone-200 bg-stone-50 p-4"
+                    className="py-4"
                   >
                     {content}
                   </div>

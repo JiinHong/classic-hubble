@@ -1,4 +1,4 @@
-import { ArrowLeft, Music2 } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -22,66 +22,58 @@ export default async function WorkPage({ params }: WorkPageProps) {
   }
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+    <main className="mx-auto max-w-4xl px-4 pb-16 pt-6 sm:px-8">
       <Link
         href="/"
         className="inline-flex h-10 items-center gap-2 rounded-md px-2 text-sm font-bold text-stone-600 hover:bg-stone-100 hover:text-stone-950"
       >
         <ArrowLeft aria-hidden="true" className="size-4" />
-        탐색으로
+        검색으로
       </Link>
 
-      <section className="mt-5 grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
-        <div className="rounded-lg border border-stone-200 bg-white p-6 shadow-sm">
+      <section className="mt-8 border-b border-neutral-200 pb-8">
+        <div>
           <div className="flex items-start gap-4">
-            <div className="grid size-12 shrink-0 place-items-center rounded-md bg-emerald-50 text-emerald-800">
-              <Music2 aria-hidden="true" className="size-6" />
-            </div>
             <div className="min-w-0">
-              <p className="text-sm font-black text-emerald-700">{work.composer.nameKo}</p>
-              <h1 className="mt-1 text-3xl font-black tracking-normal text-stone-950">
+              <p className="text-sm text-neutral-500">{work.composer.nameKo}</p>
+              <h1 className="mt-3 break-words text-2xl font-medium leading-snug text-neutral-900 sm:text-3xl">
                 {work.titleKo}
               </h1>
-              <p className="mt-2 text-lg font-semibold text-stone-600">
+              <p className="mt-3 break-words text-base leading-7 text-neutral-500">
                 {work.title} {work.catalogue}
               </p>
             </div>
           </div>
 
-          <dl className="mt-6 grid gap-4 sm:grid-cols-3">
-            <div className="rounded-lg bg-stone-50 p-4">
+          <dl className="mt-6 flex flex-wrap gap-x-10 gap-y-4">
+            <div>
               <dt className="text-xs font-black text-stone-500">편성</dt>
               <dd className="mt-1 text-sm font-bold text-stone-950">{work.instrumentation || "미확인"}</dd>
             </div>
-            <div className="rounded-lg bg-stone-50 p-4">
+            <div>
               <dt className="text-xs font-black text-stone-500">작품 정보 출처</dt>
               <dd className="mt-1 text-sm font-bold text-stone-950">
                 {work.referenceUrl ? <a className="underline" href={work.referenceUrl} target="_blank" rel="noreferrer">{work.referenceUrl.startsWith("https://www.wikidata.org/") ? "Wikidata" : "원문 보기"}</a> : "자체 정리"}
               </dd>
             </div>
-            <div className="rounded-lg bg-stone-50 p-4">
-              <dt className="text-xs font-black text-stone-500">연결된 공연</dt>
-              <dd className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-sm font-bold text-stone-950">
-                <span>예정 {performances.length}건</span>
-                <span>과거·종료 {pastPerformances.length}건</span>
-              </dd>
-            </div>
           </dl>
         </div>
 
-        <aside className="rounded-lg border border-stone-200 bg-white p-5 shadow-sm">
+        <aside className="mt-6">
           <WatchlistButton workSlug={work.slug} />
-          <h2 className="mt-6 text-sm font-black text-stone-950">검색 별칭</h2>
-          <div className="mt-3 flex flex-wrap gap-2">
+          <details className="mt-5 text-sm text-neutral-500">
+          <summary className="w-fit py-1">검색 별칭</summary>
+          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-2">
             {work.aliases.map((alias) => (
               <span
                 key={alias}
-                className="rounded-md border border-stone-200 bg-stone-50 px-2 py-1 text-xs font-semibold text-stone-600"
+                className="text-xs text-neutral-500"
               >
                 {alias}
               </span>
             ))}
           </div>
+          </details>
         </aside>
       </section>
 
@@ -94,12 +86,12 @@ export default async function WorkPage({ params }: WorkPageProps) {
         <section aria-labelledby={`${group.id}-heading`} className="mt-8" key={group.id}>
           <div className="mb-4">
             <div className="flex flex-wrap items-baseline gap-2">
-              <h2 id={`${group.id}-heading`} className="text-2xl font-black tracking-normal text-stone-950">{group.title}</h2>
+              <h2 id={`${group.id}-heading`} className="text-lg font-medium text-neutral-900">{group.title}</h2>
               <span className="text-sm font-semibold tabular-nums text-stone-500">{group.items.length}건</span>
             </div>
             {!group.items.length && <p className="mt-2 text-sm text-stone-500">{group.empty}</p>}
           </div>
-          <div className="grid gap-4 lg:grid-cols-2">
+          <div className="divide-y divide-neutral-100">
             {group.items.map((performance, index) => (
               <PerformanceCard
                 eager={index === 0 && (group.id === "upcoming" || !performances.length)}
