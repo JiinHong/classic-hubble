@@ -15,6 +15,26 @@ function setup() {
   return { input, onSubmit, onSelect, onClear, fetcher };
 }
 describe("autocomplete search input", () => {
+  it("invites searches by classical work title or composer", () => {
+    const { input } = setup();
+    expect(input.getAttribute("placeholder")).toBe("클래식 곡명이나 작곡가를 입력하세요");
+    expect(screen.getByText("클래식 곡명이나 작곡가를 입력하세요").getAttribute("aria-hidden")).toBe("true");
+    fireEvent.change(input, { target: { value: "라흐" } });
+    expect(screen.queryByText("클래식 곡명이나 작곡가를 입력하세요")).toBeNull();
+  });
+  it("keeps the search accessible without a leading magnifier", () => {
+    const { input } = setup();
+    const form = screen.getByRole("search");
+    expect(form.querySelector(".lucide-search")).toBeNull();
+    expect(form.firstElementChild?.contains(input)).toBe(true);
+    expect(input.getAttribute("aria-label")).toBe("곡명, 작곡가, 별칭 검색");
+    expect(screen.getByRole("link", { name: "유튜브로 찾기" })).toBeTruthy();
+  });
+  it("uses a capsule field and a circular submit button", () => {
+    setup();
+    expect(screen.getByRole("search").classList.contains("rounded-full")).toBe(true);
+    expect(screen.getByRole("button", { name: "검색", exact: true }).classList.contains("rounded-full")).toBe(true);
+  });
   it("only fetches lightweight suggestions while typing; Enter submits the draft", async () => {
     const { input, fetcher, onSubmit } = setup();
     fireEvent.change(input, { target: { value: "라흐" } });

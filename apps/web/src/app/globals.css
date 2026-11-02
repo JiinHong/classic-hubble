@@ -20,6 +20,19 @@ body {
   word-break: keep-all;
 }
 
+@keyframes search-welcome-enter {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.search-welcome-enter {
+  animation: search-welcome-enter 480ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .search-welcome-enter { animation: none; }
+}
+
 .icon-button {
   display: inline-grid;
   width: 2.5rem;

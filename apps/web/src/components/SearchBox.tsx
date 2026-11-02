@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, ArrowUpLeft, LoaderCircle, Search, X, Youtube } from "lucide-react";
+import { ArrowRight, ArrowUpLeft, LoaderCircle, X, Youtube } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
 import type { WorkSuggestion } from "@/lib/work-suggestions";
@@ -11,6 +11,8 @@ type Props = {
   onSelect: (work: WorkSuggestion) => void;
   onClear: () => void;
 };
+
+const searchPlaceholder = "클래식 곡명이나 작곡가를 입력하세요";
 
 export function SearchBox({ initialValue, onSubmit, onSelect, onClear }: Props) {
   const [value, setValue] = useState(initialValue);
@@ -86,13 +88,13 @@ export function SearchBox({ initialValue, onSubmit, onSelect, onClear }: Props) 
       if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false);
     }}>
       <form role="search" onSubmit={event => { event.preventDefault(); submit(); }}
-        className="flex min-h-16 items-center gap-2 rounded-lg border border-neutral-300 bg-white px-3 shadow-[0_2px_12px_0_rgb(0_0_0/0.04)] transition focus-within:border-neutral-500 sm:min-h-18 sm:gap-3 sm:px-4">
-        <Search aria-hidden="true" className="size-5 shrink-0 text-neutral-400" />
+        className="flex min-h-16 items-center gap-2 rounded-full border border-neutral-300 bg-white pr-3 pl-6 shadow-[0_2px_12px_0_rgb(0_0_0/0.04)] transition focus-within:border-neutral-500 sm:min-h-18 sm:gap-3 sm:pr-4 sm:pl-7">
+        <div className="relative min-w-0 flex-1">
         <input ref={input} role="combobox" aria-label="곡명, 작곡가, 별칭 검색"
           aria-autocomplete="list" aria-expanded={visible} aria-controls={visible ? listId : undefined}
           aria-activedescendant={visible && active >= 0 && items[active] ? `${listId}-${active}` : undefined}
           autoComplete="off" enterKeyHint="search" maxLength={200} value={value}
-          placeholder="곡명, 작곡가, 별칭" className="min-w-0 flex-1 bg-transparent py-5 text-base text-neutral-900 outline-none placeholder:text-neutral-400"
+          placeholder={searchPlaceholder} className="block w-full min-w-0 bg-transparent py-5 text-base text-neutral-900 outline-none placeholder:text-transparent"
           onFocus={() => setOpen(true)} onChange={event => {
             setValue(event.target.value); setActive(-1); setOpen(true);
             if (!event.target.value.trim()) onClear();
@@ -113,11 +115,14 @@ export function SearchBox({ initialValue, onSubmit, onSelect, onClear }: Props) 
               if (visible && items[active]) choose(items[active]); else submit();
             }
           }} />
+        {/* Native input placeholders cannot wrap on narrow screens. */}
+        {!value ? <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-1/2 -translate-y-1/2 text-sm leading-5 text-neutral-400 sm:text-base sm:leading-6">{searchPlaceholder}</span> : null}
+        </div>
         {value ? <button type="button" className="icon-button size-8!" title="검색어 지우기" aria-label="검색어 지우기" onClick={() => {
           setValue(""); setActive(-1); setOpen(false); onClear(); input.current?.focus();
         }}><X aria-hidden="true" className="size-4" /></button> : null}
         <Link href="/youtube" className="icon-button text-red-600!" title="유튜브로 찾기" aria-label="유튜브로 찾기"><Youtube aria-hidden="true" className="size-5" /></Link>
-        <button type="submit" disabled={!query || composing} title="검색" aria-label="검색" className="grid size-10 shrink-0 place-items-center rounded-md bg-neutral-900 text-white transition hover:bg-emerald-800 disabled:bg-neutral-100 disabled:text-neutral-400"><ArrowRight aria-hidden="true" className="size-5" /></button>
+        <button type="submit" disabled={!query || composing} title="검색" aria-label="검색" className="grid size-10 shrink-0 place-items-center rounded-full bg-neutral-900 text-white transition hover:bg-emerald-800 disabled:bg-neutral-100 disabled:text-neutral-400"><ArrowRight aria-hidden="true" className="size-5" /></button>
       </form>
       {visible ? <div className="absolute inset-x-0 top-full z-30 mt-2 max-h-[min(26rem,50svh)] overflow-y-auto rounded-lg border border-neutral-200 bg-white p-1.5 shadow-lg">
         {loading ? <p role="status" className="flex items-center gap-2 px-3 py-4 text-sm text-neutral-500"><LoaderCircle aria-hidden="true" className="size-4 animate-spin motion-reduce:animate-none" />검색 중</p> : result.error ?
