@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { searchCatalog } from "@/lib/catalog-search";
 import { SearchExperience } from "./SearchExperience";
 const input = () => screen.getByRole("combobox");
+const welcome = () => screen.getByRole("heading", { name: "어떤 곡을 공연장에서 듣고 싶으세요?" });
 const submit = (value: string) => { fireEvent.change(input(), { target: { value } }); fireEvent.keyDown(input(), { key: "Enter" }); };
 beforeEach(() => { vi.useFakeTimers(); window.history.replaceState({}, "", "/"); });
 afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); });
@@ -31,8 +32,26 @@ describe("search-first experience", () => {
   });
   it("starts with only a search box and does not request the catalog", async () => {
     const fetcher = serve(); render(<SearchExperience />); await settle();
-    expect(screen.getByRole("heading", { name: "클래식허블" })).toBeTruthy();
+    expect(welcome()).toBeTruthy();
     expect(screen.queryByText("등록된 공연")).toBeNull(); expect(fetcher).not.toHaveBeenCalled();
+  });
+  it("plays the welcome entrance once and removes it when finished", () => {
+    serve(); render(<SearchExperience />);
+    expect(welcome().classList.contains("search-welcome-enter")).toBe(true);
+    // jsdom lacks AnimationEvent, so React registers the WebKit fallback.
+    fireEvent(welcome(), new Event("webkitAnimationEnd", { bubbles: true }));
+    expect(welcome().classList.contains("search-welcome-enter")).toBe(false);
+  });
+  it("does not replay the entrance after searching and clearing before it finishes", async () => {
+    serve(); render(<SearchExperience />);
+    submit("운명"); await settle();
+    fireEvent.click(screen.getByRole("button", { name: "검색어 지우기" })); await settle();
+    expect(welcome().classList.contains("search-welcome-enter")).toBe(false);
+  });
+  it("does not play the entrance when clearing a search opened by URL", async () => {
+    serve(); renderSearch("운명"); await settle();
+    fireEvent.click(screen.getByRole("button", { name: "검색어 지우기" })); await settle();
+    expect(welcome().classList.contains("search-welcome-enter")).toBe(false);
   });
   it("submits only on Enter, updates URL and restores the empty home on clear", async () => {
     const fetcher = serve(); render(<SearchExperience />);

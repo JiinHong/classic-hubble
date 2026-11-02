@@ -38,7 +38,9 @@ export function SearchExperience({ initialQuery = "", initialWork = "", initialM
   const [page, setPage] = useState({ snapshot, offset: 0 });
   const offset = page.snapshot === snapshot ? page.offset : 0;
   const submitted = !!(search.query || search.work);
+  const [showEntrance, setShowEntrance] = useState(!submitted);
   function commit(next: SearchState) {
+    setShowEntrance(false);
     const nextSnapshot = searchString(next);
     const url = `/${nextSnapshot}`;
     setPage({ snapshot: nextSnapshot, offset: 0 });
@@ -50,7 +52,14 @@ export function SearchExperience({ initialQuery = "", initialWork = "", initialM
 
   return (
     <div className={submitted ? "mx-auto w-full max-w-4xl px-4 pb-16 pt-6 sm:px-8 sm:pt-10" : "mx-auto flex min-h-[calc(100svh-12rem)] w-full max-w-3xl flex-col justify-center px-4 pb-24 sm:px-8"}>
-      {!submitted ? <h1 className="mb-8 text-center text-3xl font-medium text-neutral-900 sm:text-4xl">클래식허블</h1> : null}
+      {!submitted ? (
+        <h1
+          className={`mb-8 text-center text-2xl leading-snug font-medium text-balance text-neutral-900 sm:text-3xl${showEntrance ? " search-welcome-enter" : ""}`}
+          onAnimationEnd={() => setShowEntrance(false)}
+        >
+          어떤 곡을 공연장에서 듣고 싶으세요?
+        </h1>
+      ) : null}
       <div className={submitted ? "mx-auto max-w-3xl" : ""}>
         <SearchBox initialValue={search.query} onSubmit={query => commit({ ...search, query, work: "" })} onSelect={select} onClear={clear} />
       </div>
