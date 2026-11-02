@@ -1,7 +1,6 @@
 import { createYouTubeHandler } from "@/lib/youtube-server";
-import { getCatalogSnapshot } from "@/lib/catalog";
 import { workForCard } from "@/lib/catalog-search";
-import { identifyYouTubeWorks } from "@/lib/youtube-matching";
+import { identifyYouTubeFromDatabase } from "@/lib/youtube-candidates";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -13,13 +12,16 @@ export async function POST(request: Request) {
   const response = await getMetadata(request);
   if (!response.ok) return response;
   const { video } = await response.json();
-  const catalog = await getCatalogSnapshot();
-  if (catalog.source === "unavailable")
+  const started = performance.now();
+  let result;
+  try {
+    result = await identifyYouTubeFromDatabase(video);
+  } catch {
     return Response.json(
       { error: "catalog_unavailable" },
       { status: 503, headers: { "Cache-Control": "no-store" } },
     );
-  const result = identifyYouTubeWorks(video, catalog.works);
+  }
   return Response.json(
     {
       video,
@@ -33,6 +35,6 @@ export async function POST(request: Request) {
         })),
       },
     },
-    { headers: { "Cache-Control": "no-store" } },
+    { headers: { "Cache-Control": "no-store", "Server-Timing": `identification;dur=${(performance.now() - started).toFixed(1)}` } },
   );
 }

@@ -11,8 +11,8 @@ afterEach(() => vi.clearAllMocks());
 function database() {
   const rows = works.map((work, i) => ({
     id: `id-${i}`, slug: work.slug, title: work.title, title_ko: work.titleKo,
-    catalogue: work.catalogue, popularity_rank: work.popularityRank,
-    composers: { id: work.composer.id, name: work.composer.name, name_ko: work.composer.nameKo },
+    catalogue: work.catalogue, popularity_rank: work.popularityRank, instrumentation: work.instrumentation,
+    composers: { id: work.composer.id, name: work.composer.name, name_ko: work.composer.nameKo, period: work.composer.period },
     work_aliases: work.aliases.map(alias => ({ alias })),
   }));
   const state = { rows, candidates: rows, links: [] as { work_id: string; performance_id: string }[], fail: "" };
@@ -78,7 +78,7 @@ describe("targeted work search", () => {
 
   it("retrieves a child through its parent's title and preserves parent context", async () => {
     const { state } = database();
-    const parent = { ...state.rows[0], id: "parent", slug: "wikidata-q3565331", title: "Waldszenen", title_ko: "숲의 정경", catalogue: "Op. 82", composers: { id: "s", name: "Robert Schumann", name_ko: "로베르트 슈만" }, work_aliases: [] };
+    const parent = { ...state.rows[0], id: "parent", slug: "wikidata-q3565331", title: "Waldszenen", title_ko: "숲의 정경", catalogue: "Op. 82", composers: { id: "s", name: "Robert Schumann", name_ko: "로베르트 슈만", period: "Romantic" }, work_aliases: [] };
     const child = { ...parent, id: "child", slug: "component-wikidata-q3565331-3", title: "Einsame Blumen", title_ko: "고독한 꽃", catalogue: "" };
     state.rows = [parent, child]; state.candidates = [parent];
     const result = await getWorkSearchPage("슈만 숲의 정경 3번");

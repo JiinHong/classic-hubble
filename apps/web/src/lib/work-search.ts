@@ -1,24 +1,20 @@
-import { findWorksByQueryInList, getWorkSearchAnchor } from "@classic-hubble/shared";
+import { getWorkSearchAnchor } from "@classic-hubble/shared";
 import { unstable_cache } from "next/cache";
-import workComponents from "@/data/work-components.json";
 import { createSupabaseClient } from "./supabase/client";
-import { attachWorkComponents } from "./work-components";
+import { expandWorkFamilies, readRankedWorkCandidates, type WorkCandidateRow } from "./work-candidates";
 import {
   SEARCH_PAGE_SIZE,
   workForCard,
   type CatalogSearchResult,
 } from "./catalog-search";
 import {
-  getRelatedWorkSlugs,
   mapPerformances,
-  mapWorks,
   PERFORMANCE_COLUMNS,
   WORK_COLUMNS,
   type PerformanceRow,
-  type WorkRow,
 } from "./catalog";
 
-type Candidate = WorkRow & { id: string };
+type Candidate = WorkCandidateRow;
 const emptyResult = (): CatalogSearchResult => ({
   works: [], performances: [], total: 0, hasMore: false,
 });
@@ -28,6 +24,7 @@ async function readWorkSearchPage(query: string, offset: number): Promise<Catalo
   if (query && !anchor) return emptyResult();
   const db = createSupabaseClient();
   let rows: Candidate[] = [];
+  let ranked;
   let total = 0;
   if (!query) {
     const result = await db.from("works")
@@ -38,47 +35,15 @@ async function readWorkSearchPage(query: string, offset: number): Promise<Catalo
     if (result.error || result.count === null) throw new Error("Work browse query failed");
     rows = result.data as unknown as Candidate[];
     total = result.count;
+    const displayed = new Set(rows.map(row => row.slug));
+    ranked = (await expandWorkFamilies(db, rows)).filter(work => displayed.has(work.slug));
   } else {
-    for (let start = 0; ; start += 1000) {
-      const result = await db.rpc("search_work_candidates", { search_term: anchor })
-        .select(`id, ${WORK_COLUMNS}`)
-        .order("popularity_rank", { ascending: true, nullsFirst: false })
-        .order("id").range(start, start + 999);
-      if (result.error) throw new Error("Work candidate query failed");
-      const page = result.data as unknown as Candidate[];
-      rows.push(...page);
-      if (page.length < 1000) break;
-    }
+    const candidates = await readRankedWorkCandidates(db, query);
+    rows = candidates.rows;
+    ranked = candidates.works;
+    total = ranked.length;
   }
-
-  const displayed = new Set(rows.map(row => row.slug));
-  // Position labels exist only in component context, not in the original work rows.
-  const positionSeeds = query
-    ? workComponents.filter(relation => relation.position !== null &&
-        [`${relation.position}번`, `no ${relation.position}`].some(label => label.includes(anchor)),
-      ).map(relation => relation.child_slug)
-    : [];
-  const missing = getRelatedWorkSlugs([...displayed, ...positionSeeds]).filter(slug => !displayed.has(slug));
-  for (let start = 0; start < missing.length; start += 100) {
-    const result = await db.from("works")
-      .select(`id, ${WORK_COLUMNS}`)
-      .in("slug", missing.slice(start, start + 100));
-    if (result.error) throw new Error("Related work query failed");
-    rows.push(...result.data as unknown as Candidate[]);
-  }
-  const candidates = attachWorkComponents(mapWorks(rows, []), workComponents);
-  // Preserve the old catalog's popularity/id tie order after family expansion.
   const rowBySlug = new Map(rows.map(row => [row.slug, row]));
-  if (query) {
-    candidates.sort((a, b) =>
-      (a.popularityRank ?? Number.MAX_SAFE_INTEGER) - (b.popularityRank ?? Number.MAX_SAFE_INTEGER) ||
-      rowBySlug.get(a.slug)!.id.localeCompare(rowBySlug.get(b.slug)!.id),
-    );
-  }
-  const ranked = query
-    ? findWorksByQueryInList(candidates, query)
-    : candidates.filter(work => displayed.has(work.slug));
-  if (query) total = ranked.length;
   const page = query ? ranked.slice(offset, offset + SEARCH_PAGE_SIZE) : ranked;
   const linksById = new Map<string, Set<string>>();
   if (page.length) {
