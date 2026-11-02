@@ -4,6 +4,7 @@ import { ArrowRight, ArrowUpLeft, X, Youtube } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
 import type { WorkSuggestion } from "@/lib/work-suggestions";
+import { SingleLineText } from "./SingleLineText";
 
 type Props = {
   initialValue: string;
@@ -121,8 +122,8 @@ export function SearchBox({ initialValue, onSubmit, onSelect, onClear }: Props) 
               if (visible && items[active]) choose(items[active]); else submit();
             }
           }} />
-        {/* Native input placeholders cannot wrap on narrow screens. */}
-        {!value ? <span aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-1/2 -translate-y-1/2 text-sm leading-5 text-neutral-400 sm:text-base sm:leading-6">{searchPlaceholder}</span> : null}
+        {/* Fit the prompt independently so typed text stays at its readable size. */}
+        {!value ? <SingleLineText aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-1/2 -translate-y-1/2 text-sm leading-5 text-neutral-400 sm:text-base sm:leading-6">{searchPlaceholder}</SingleLineText> : null}
         </div>
         {value ? <button type="button" className="icon-button size-8!" title="검색어 지우기" aria-label="검색어 지우기" onClick={() => {
           clearCompositionState();
