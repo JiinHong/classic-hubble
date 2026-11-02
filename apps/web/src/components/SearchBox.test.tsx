@@ -61,14 +61,61 @@ describe("autocomplete search input", () => {
     fireEvent.keyDown(input, { key: "ArrowDown" });
     expect(scroll).toHaveBeenCalledWith({ block: "nearest" });
   });
-  it("does not fetch or submit during Korean composition", async () => {
-    const { input, fetcher, onSubmit } = setup();
+  it("shows debounced recommendations during Korean composition without submitting", async () => {
+    const { input, fetcher, onSubmit, onSelect } = setup();
     fireEvent.compositionStart(input);
+    fireEvent.change(input, { target: { value: "운" } });
     fireEvent.change(input, { target: { value: "운명" } }); await settle();
+    expect(fetcher).toHaveBeenCalledOnce();
+    expect(new URL(String(fetcher.mock.calls[0][0]), "https://example.com").searchParams.get("q")).toBe("운명");
+    expect(screen.getByRole("option")).toBeTruthy();
+    fireEvent.keyDown(input, { key: "ArrowDown", isComposing: true });
     fireEvent.keyDown(input, { key: "Enter", isComposing: true, keyCode: 229 });
-    expect(fetcher).not.toHaveBeenCalled(); expect(onSubmit).not.toHaveBeenCalled();
+    expect(onSelect).not.toHaveBeenCalled(); expect(onSubmit).not.toHaveBeenCalled();
     fireEvent.compositionEnd(input); await settle();
     expect(fetcher).toHaveBeenCalledOnce();
+    fireEvent.keyDown(input, { key: "Enter", keyCode: 229 });
+    expect(onSubmit).not.toHaveBeenCalled();
+    fireEvent.keyDown(input, { key: "ArrowDown" });
+    fireEvent.keyDown(input, { key: "Enter" });
+    expect(onSelect).toHaveBeenCalledWith(suggestion);
+  });
+  it("shows no loading text or empty popup while recommendations are pending", async () => {
+    const { input, fetcher } = setup();
+    let resolve!: (response: Response) => void;
+    fetcher.mockImplementationOnce(() => new Promise(r => { resolve = r; }));
+    fireEvent.change(input, { target: { value: "Beethoven" } }); await settle();
+    expect(screen.queryByText("검색 중")).toBeNull();
+    expect(screen.queryByRole("listbox")).toBeNull();
+    expect(input.getAttribute("aria-expanded")).toBe("false");
+    await act(async () => resolve(Response.json({ suggestions: [suggestion] })));
+    expect(screen.getByRole("option")).toBeTruthy();
+    expect(input.getAttribute("aria-expanded")).toBe("true");
+  });
+  it.each(["select", "clear"])("resets composition after a pointer %s so the next search can submit", async action => {
+    const { input, onSubmit } = setup();
+    fireEvent.compositionStart(input);
+    fireEvent.change(input, { target: { value: "운명" } }); await settle();
+    if (action === "select") fireEvent.click(screen.getByRole("option"));
+    else fireEvent.click(screen.getByRole("button", { name: "검색어 지우기" }));
+    fireEvent.change(input, { target: { value: "Beethoven" } }); await settle();
+    expect((screen.getByRole("button", { name: "검색", exact: true }) as HTMLButtonElement).disabled).toBe(false);
+    fireEvent.keyDown(input, { key: "Enter" });
+    expect(onSubmit).toHaveBeenCalledWith("Beethoven");
+  });
+  it("hides stale recommendations until the new Korean draft resolves", async () => {
+    const { input, fetcher } = setup();
+    fireEvent.change(input, { target: { value: "운명" } }); await settle();
+    expect(screen.getByRole("option")).toBeTruthy();
+    let resolve!: (response: Response) => void;
+    fetcher.mockImplementationOnce(() => new Promise(r => { resolve = r; }));
+    fireEvent.compositionStart(input);
+    fireEvent.change(input, { target: { value: "신세계" } }); await settle();
+    expect(fetcher).toHaveBeenCalledTimes(2);
+    expect(screen.queryByRole("listbox")).toBeNull();
+    await act(async () => resolve(Response.json({ suggestions: [{ ...suggestion, title: "교향곡 9번" }] })));
+    expect(screen.getByRole("option").textContent).toContain("교향곡 9번");
+    expect(screen.queryByText(suggestion.title)).toBeNull();
   });
   it("closes on Escape and clears without fetching an empty catalog", async () => {
     const { input, onClear, fetcher } = setup();
