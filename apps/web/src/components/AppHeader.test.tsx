@@ -27,6 +27,20 @@ function createClient(session: Session | null) {
 }
 
 describe("AppHeader authentication", () => {
+  it("uses the Hubble logo as the accessible home link", async () => {
+    const { client } = createClient(null);
+    render(<AuthProvider client={client}><AppHeader /></AuthProvider>);
+    await waitFor(() => expect(screen.getByRole("button", { name: "로그인" }).hasAttribute("disabled")).toBe(false));
+    const home = screen.getByRole("link", { name: "클래식허블 홈" });
+    const logo = screen.getByRole("img", { name: "클래식허블" });
+    expect(home.contains(logo)).toBe(true);
+    expect(home.getAttribute("href")).toBe("/");
+    expect(logo.getAttribute("src")).toBe("/brand/hubble-logo.png");
+    expect(logo.getAttribute("width")).toBe("360");
+    expect(logo.getAttribute("height")).toBe("240");
+    expect(home.querySelector(".lucide-headphones")).toBeNull();
+  });
+
   it("keeps secondary navigation accessible without exposing review or dashboard links", async () => {
     const { client } = createClient(null);
     render(
