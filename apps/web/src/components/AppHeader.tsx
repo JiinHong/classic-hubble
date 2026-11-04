@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { Bell, Headphones, LibraryBig, LogOut, Menu, X } from "lucide-react";
+import Image from "next/image";
+import { Bell, LibraryBig, LogOut, Menu, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "./AuthProvider";
 
@@ -17,9 +18,8 @@ export function AppHeader() {
   }, []);
   return <header className="relative z-40 bg-white">
     <div className="mx-auto flex h-18 max-w-[1440px] items-center justify-between gap-3 px-4 sm:px-8">
-      <Link href="/" aria-label="클래식허블 홈" className="flex shrink-0 items-center gap-2 text-neutral-900">
-        <Headphones aria-hidden="true" className="size-5" strokeWidth={1.7} />
-        <span className="text-base font-semibold">클래식허블</span>
+      <Link href="/" aria-label="클래식허블 홈" className="flex shrink-0 items-center text-neutral-900">
+        <Image src="/brand/hubble-logo.png" alt="클래식허블" width={360} height={240} className="h-14 w-auto" priority unoptimized />
       </Link>
       <div className="flex items-center gap-2 sm:gap-3">
         <div ref={root} className="relative" onKeyDown={e => { if (e.key === "Escape") { setOpen(false); toggle.current?.focus(); } }} onBlur={e => { if (!e.currentTarget.contains(e.relatedTarget)) setOpen(false); }}>

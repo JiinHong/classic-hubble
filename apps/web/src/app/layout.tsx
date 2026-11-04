@@ -22,6 +22,10 @@ export const metadata: Metadata = {
   title: "클래식허블",
   description: "곡명 기반 클래식 공연 탐색과 알림 서비스",
   manifest: "/manifest.webmanifest",
+  icons: {
+    icon: [{ url: "/brand/hubble-icon-32.png", sizes: "32x32", type: "image/png" }],
+    apple: [{ url: "/brand/hubble-apple-icon.png", sizes: "180x180", type: "image/png" }],
+  },
 };
 
 export default function RootLayout({
