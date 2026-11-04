@@ -27,14 +27,14 @@ function createClient(session: Session | null) {
 }
 
 describe("AppHeader authentication", () => {
-  it("uses the Hubble logo as the accessible home link", async () => {
+  it("uses the Hubble logo without a separate wordmark as the accessible home link", async () => {
     const { client } = createClient(null);
     render(<AuthProvider client={client}><AppHeader /></AuthProvider>);
     await waitFor(() => expect(screen.getByRole("button", { name: "로그인" }).hasAttribute("disabled")).toBe(false));
     const home = screen.getByRole("link", { name: "클래식허블 홈" });
     const logo = screen.getByRole("img", { name: "클래식허블" });
     expect(home.contains(logo)).toBe(true);
-    expect(home.contains(screen.getByText("Classic Hubble", { exact: true }))).toBe(true);
+    expect(screen.queryByText("Classic Hubble", { exact: true })).toBeNull();
     expect(home.getAttribute("href")).toBe("/");
     expect(logo.getAttribute("src")).toBe("/brand/hubble-logo.png");
     expect(logo.getAttribute("width")).toBe("360");
