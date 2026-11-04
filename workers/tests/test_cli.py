@@ -58,6 +58,22 @@ def test_sync_cli_returns_failure_for_partial_enrichment_failure():
         )
 
 
+def test_sync_cli_enables_bounded_daily_recovery_explicitly():
+    from classic_hubble_pipeline.kopis_sync import KopisSyncResult
+
+    with patch("classic_hubble_pipeline.cli.KopisSyncService") as service:
+        service.return_value.run.return_value = KopisSyncResult("r", "completed", {})
+        assert main(
+            ["kopis-sync", "--start", "2026-11-04", "--end", "2026-11-04", "--recover-source-errors"],
+            environ={"KOPIS_API_KEY": "test", "SUPABASE_URL": "https://example.supabase.co", "SUPABASE_SECRET_KEY": "test"},
+            stdout=io.StringIO(),
+            client_factory=lambda settings: nullcontext(None),
+            repository_factory=lambda settings: nullcontext(None),
+        ) == 0
+    assert service.return_value.run.call_args.kwargs["continue_on_source_error"] is True
+    assert service.return_value.run.call_args.kwargs["retry_source_errors"] is True
+
+
 def _load_cli_module():
     return importlib.import_module("classic_hubble_pipeline.cli")
 

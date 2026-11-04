@@ -13,7 +13,7 @@ import httpx
 
 
 DEFAULT_BASE_URL = "https://api-ticketfront.interpark.com"
-RETRYABLE_STATUS_CODES = frozenset({429, 500, 502, 503, 504})
+RETRYABLE_STATUS_CODES = frozenset({500, 502, 503, 504})
 OFFICIAL_SOURCE_HOSTS = frozenset({"ticket.interpark.com", "tickets.interpark.com"})
 PROGRAM_HEADINGS = frozenset({"PROGRAM", "PROGRAMME", "프로그램", "공연 프로그램"})
 COMPOSER_LIFESPAN_PATTERN = re.compile(
@@ -35,6 +35,14 @@ class NolResponseError(NolError):
 
 class NolTransportError(NolError):
     """Raised when NOL cannot be reached after retrying."""
+
+    def __init__(self, message: str, *, status_code: int | None = None):
+        self.status_code = status_code
+        super().__init__(message)
+
+
+class NolUnavailableError(NolResponseError):
+    """The source returned no usable summary; stop enrichment for investigation."""
 
 
 @dataclass(frozen=True)
@@ -251,6 +259,7 @@ class NolClient:
         )
         if summary is None:
             raise NolResponseError("NOL summary response was unexpectedly missing")
+        _extract_envelope_data(summary, label="summary")
         play_db = self._get_json(
             "/v1/goods/play-db",
             params={"goodsCode": goods_code},
@@ -287,7 +296,8 @@ class NolClient:
                         response.raise_for_status()
                     except httpx.HTTPStatusError:
                         raise NolTransportError(
-                            f"NOL returned HTTP {response.status_code}"
+                            f"NOL returned HTTP {response.status_code}",
+                            status_code=response.status_code,
                         ) from None
                     try:
                         payload = response.json()
@@ -299,7 +309,8 @@ class NolClient:
 
                 if attempt == self._settings.max_retries:
                     raise NolTransportError(
-                        f"NOL remained unavailable with HTTP {response.status_code}"
+                        f"NOL remained unavailable with HTTP {response.status_code}",
+                        status_code=response.status_code,
                     )
 
             if attempt < self._settings.max_retries:
@@ -313,6 +324,8 @@ def _extract_envelope_data(
 ) -> Mapping[str, object]:
     _validate_common_envelope(payload, label=label)
     data = payload.get("data")
+    if data is None and label == "summary":
+        raise NolUnavailableError("NOL summary returned no data; source availability needs investigation")
     if not isinstance(data, Mapping):
         raise NolResponseError(f"NOL {label} response did not contain an object data envelope")
     return data

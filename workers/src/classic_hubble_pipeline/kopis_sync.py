@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Iterable, Iterator, Mapping, Sequence
 from collections.abc import Set as AbstractSet
 from dataclasses import dataclass, replace
 from datetime import date, datetime, time, timedelta
@@ -19,7 +19,13 @@ from .kopis import (
     KopisTransportError,
 )
 from .music_matching import MusicMatcher
-from .nol import NolError, NolPerformanceData, extract_nol_goods_code
+from .nol import (
+    NolError,
+    NolPerformanceData,
+    NolTransportError,
+    NolUnavailableError,
+    extract_nol_goods_code,
+)
 from .program_split import split_program_block
 from .work_matching import CanonicalWork
 
@@ -238,11 +244,14 @@ class KopisSyncService:
         completed_ids: AbstractSet[str] = frozenset(),
         on_performance_complete: Callable[[str], None] | None = None,
         continue_on_source_error: bool = False,
+        retry_source_errors: bool = False,
     ) -> KopisSyncResult:
         if not 1 <= rows <= 100:
             raise ValueError("KOPIS rows must be between 1 and 100")
         if limit is not None and limit <= 0:
             raise ValueError("KOPIS sync limit must be positive")
+        if retry_source_errors and not continue_on_source_error:
+            raise ValueError("Source recovery requires continue_on_source_error")
 
         windows = split_sync_windows(start_date, end_date)
         counters = {
@@ -263,23 +272,39 @@ class KopisSyncService:
         program_matcher: MusicMatcher | None = None
         first_nol_error: str | None = None
         consecutive_source_errors = 0
+        consecutive_nol_errors = 0
+        pending_sources: dict[str, tuple[KopisPerformanceSummary, str]] = {}
+        recovery_pass = False
+
+        def batches() -> Iterator[tuple[bool, Iterable[KopisPerformanceSummary]]]:
+            for window in windows:
+                if limit is not None and len(seen_performances) >= limit:
+                    break
+                yield False, self._client.iter_performances(window, rows=rows)
+            # Retry only unresolved IDs once, after the main sweep has made progress.
+            if retry_source_errors and pending_sources:
+                yield True, tuple(item[0] for item in pending_sources.values())
 
         def record_source_error(
-            performance_id: str, stage: str, error: KopisTransportError
+            summary: KopisPerformanceSummary, stage: str, error: KopisTransportError
         ) -> None:
             nonlocal consecutive_source_errors
             # Authentication, access and rate-limit failures need operator action,
             # not requests for every remaining performance.
             if not continue_on_source_error or error.status_code in {401, 403, 429}:
                 raise error
-            counters["source_errors"] = counters.get("source_errors", 0) + 1
+            performance_id = summary.performance_id
+            if performance_id not in pending_sources:
+                counters["source_errors"] = counters.get("source_errors", 0) + 1
+            pending_sources[performance_id] = (summary, stage)
             consecutive_source_errors += 1
             self._repository.upsert_provider_record(
                 entity_type="collection_error",
-                provider_id=f"{run_id}:{performance_id}:{stage}",
+                provider_id=f"{run_id}:{performance_id}:{stage}" + (":recovery" if recovery_pass else ""),
                 payload={
                     "performance_id": performance_id, "stage": stage,
                     "error": str(error)[:500], "http_status": error.status_code,
+                    "attempt": "recovery" if recovery_pass else "initial",
                 },
                 ingestion_run_id=run_id,
             )
@@ -287,29 +312,31 @@ class KopisSyncService:
                 raise error
 
         try:
-            for window in windows:
-                for summary in self._client.iter_performances(window, rows=rows):
-                    if (
-                        summary.performance_id in seen_performances
-                        or summary.performance_id in completed_ids
-                    ):
-                        continue
-                    if limit is not None and len(seen_performances) >= limit:
-                        break
-                    seen_performances.add(summary.performance_id)
-
-                    self._repository.upsert_provider_record(
-                        entity_type="performance_summary",
-                        provider_id=summary.performance_id,
-                        payload=summary.raw_payload,
-                        ingestion_run_id=run_id,
-                    )
-                    counters["performance_summaries"] += 1
+            for recovery_pass, summaries in batches():
+                for summary in summaries:
+                    if recovery_pass:
+                        counters["source_retries"] = counters.get("source_retries", 0) + 1
+                    else:
+                        if (
+                            summary.performance_id in seen_performances
+                            or summary.performance_id in completed_ids
+                        ):
+                            continue
+                        if limit is not None and len(seen_performances) >= limit:
+                            break
+                        seen_performances.add(summary.performance_id)
+                        self._repository.upsert_provider_record(
+                            entity_type="performance_summary",
+                            provider_id=summary.performance_id,
+                            payload=summary.raw_payload,
+                            ingestion_run_id=run_id,
+                        )
+                        counters["performance_summaries"] += 1
 
                     try:
                         detail = self._client.get_performance_detail(summary.performance_id)
                     except KopisTransportError as error:
-                        record_source_error(summary.performance_id, "performance_detail", error)
+                        record_source_error(summary, "performance_detail", error)
                         continue
                     self._repository.upsert_provider_record(
                         entity_type="performance_detail",
@@ -326,7 +353,7 @@ class KopisSyncService:
                             try:
                                 facility = self._client.get_facility_detail(detail.facility_id)
                             except KopisTransportError as error:
-                                record_source_error(summary.performance_id, "facility_detail", error)
+                                record_source_error(summary, "facility_detail", error)
                                 continue
                             self._repository.upsert_provider_record(
                                 entity_type="facility_detail",
@@ -374,6 +401,17 @@ class KopisSyncService:
                     )
                     counters["performances"] += 1
                     performance_complete = True
+                    if recovery_pass:
+                        _, failed_stage = pending_sources[summary.performance_id]
+                        self._repository.upsert_provider_record(
+                            entity_type="collection_recovery",
+                            provider_id=f"{run_id}:{summary.performance_id}:{failed_stage}",
+                            payload={"performance_id": summary.performance_id, "stage": failed_stage, "status": "recovered"},
+                            ingestion_run_id=run_id,
+                        )
+                        pending_sources.pop(summary.performance_id)
+                        counters["source_errors"] -= 1
+                        counters["source_recovered"] = counters.get("source_recovered", 0) + 1
 
                     if (
                         self._nol_client is not None
@@ -385,11 +423,31 @@ class KopisSyncService:
                         except NolError as error:
                             performance_complete = False
                             counters["nol_errors"] += 1
+                            consecutive_nol_errors += 1
+                            self._repository.upsert_provider_record(
+                                provider="nol",
+                                entity_type="collection_error",
+                                provider_id=f"{run_id}:{summary.performance_id}",
+                                payload={
+                                    "performance_id": summary.performance_id,
+                                    "source_url": nol_url,
+                                    "error": str(error)[:500],
+                                    "http_status": getattr(error, "status_code", None),
+                                },
+                                ingestion_run_id=run_id,
+                            )
                             if first_nol_error is None:
                                 first_nol_error = f"{type(error).__name__}: {error}"[
                                     :500
                                 ]
+                            if (
+                                isinstance(error, NolUnavailableError)
+                                or isinstance(error, NolTransportError) and error.status_code in {401, 403, 429}
+                                or consecutive_nol_errors >= 3
+                            ):
+                                raise
                         else:
+                            consecutive_nol_errors = 0
                             self._repository.upsert_provider_record(
                                 provider="nol",
                                 entity_type="performance_detail",
@@ -440,8 +498,6 @@ class KopisSyncService:
                         on_performance_complete(summary.performance_id)
                     consecutive_source_errors = 0
 
-                if limit is not None and len(seen_performances) >= limit:
-                    break
         except Exception as error:
             self._repository.finish_ingestion_run(
                 run_id,

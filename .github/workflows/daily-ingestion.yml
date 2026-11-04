@@ -85,6 +85,7 @@ jobs:
           echo "nol_end=$nol_end" >> "$GITHUB_OUTPUT"
 
       - name: Sync KOPIS catalog
+        id: catalog
         shell: bash
         env:
           SYNC_LIMIT: ${{ inputs.limit }}
@@ -94,6 +95,7 @@ jobs:
             --start "${{ steps.window.outputs.catalog_start }}"
             --end "${{ steps.window.outputs.catalog_end }}"
             --rows 100
+            --recover-source-errors
           )
           if [[ -n "$SYNC_LIMIT" ]]; then
             args+=(--limit "$SYNC_LIMIT")
@@ -101,6 +103,7 @@ jobs:
           classic-hubble-pipeline "${args[@]}"
 
       - name: Refresh near-term NOL programs
+        id: nol
         if: ${{ github.event_name == 'schedule' || inputs.enrich_nol }}
         shell: bash
         env:
@@ -111,6 +114,7 @@ jobs:
             --start "${{ steps.window.outputs.today }}"
             --end "${{ steps.window.outputs.nol_end }}"
             --rows 100
+            --recover-source-errors
             --enrich-nol
           )
           if [[ -n "$SYNC_LIMIT" ]]; then
@@ -125,5 +129,8 @@ jobs:
             echo "## Catalog ingestion"
             echo "- Schedule: daily at 16:27 Asia/Seoul"
             echo "- KOPIS: ${{ steps.window.outputs.catalog_start }} through ${{ steps.window.outputs.catalog_end }}"
+            echo "- KOPIS result: ${{ steps.catalog.outcome }}"
             echo "- NOL: ${{ steps.window.outputs.today }} through ${{ steps.window.outputs.nol_end }}"
+            echo "- NOL result: ${{ steps.nol.outcome }}"
+            echo "- Source access failures remain failures; existing public programs are preserved."
           } >> "$GITHUB_STEP_SUMMARY"

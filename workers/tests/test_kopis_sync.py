@@ -23,6 +23,7 @@ from classic_hubble_pipeline.nol import (
     NolPerformanceData,
     NolProgramItem,
     NolTransportError,
+    NolUnavailableError,
 )
 from classic_hubble_pipeline.work_matching import CanonicalWork
 
@@ -276,6 +277,100 @@ def test_full_sweep_stops_on_access_limits_or_repeated_source_failure(status, ex
     assert len(requests) == expected_requests
     assert len(failures) == (5 if status == 400 else 0)
     assert finished == ["failed"]
+
+
+@pytest.mark.parametrize("stage", ["performance_detail", "facility_detail"])
+@pytest.mark.parametrize("recovers", [True, False])
+def test_daily_sync_retries_only_failed_sources_once_after_the_sweep(stage, recovers):
+    requests, saved, records, completed = [], [], [], []
+    attempts = 0
+
+    class Client:
+        def iter_performances(self, window, *, rows):
+            return iter((performance_summary(), performance_summary("PF300002")))
+
+        def fail_once(self):
+            nonlocal attempts
+            attempts += 1
+            if attempts == 1 or not recovers:
+                raise KopisTransportError("temporary HTTP 400", status_code=400)
+
+        def get_performance_detail(self, performance_id):
+            requests.append(performance_id)
+            if performance_id == "PF300001" and stage == "performance_detail":
+                self.fail_once()
+            return replace(
+                performance_detail(performance_id), intro_image_urls=(),
+                facility_id="FC000001" if performance_id == "PF300001" and stage == "facility_detail" else None,
+            )
+
+        def get_facility_detail(self, facility_id):
+            self.fail_once()
+            return replace(facility_detail(), halls=())
+
+    class Repository:
+        def start_ingestion_run(self, provider):
+            return "daily-run"
+
+        def upsert_provider_record(self, **kwargs):
+            records.append(kwargs)
+
+        def upsert_venue(self, payload):
+            return "venue"
+
+        def upsert_performance(self, payload):
+            saved.append(payload["kopis_performance_id"])
+            return "db-performance"
+
+        def finish_ingestion_run(self, run_id, **kwargs):
+            assert kwargs["status"] == ("completed" if recovers else "failed")
+
+    result = KopisSyncService(Client(), Repository()).run(
+        start_date=date(2026, 7, 1), end_date=date(2026, 8, 1), limit=2,
+        continue_on_source_error=True, retry_source_errors=True,
+        on_performance_complete=completed.append,
+    )
+    assert requests == ["PF300001", "PF300002", "PF300001"]
+    assert saved == completed == (["PF300002", "PF300001"] if recovers else ["PF300002"])
+    assert result.counters["performance_summaries"] == 2
+    assert result.counters["performances"] == (2 if recovers else 1)
+    assert result.counters["source_errors"] == (0 if recovers else 1)
+    assert result.counters["source_retries"] == 1
+    assert result.counters.get("source_recovered", 0) == int(recovers)
+    failures = [r for r in records if r["entity_type"] == "collection_error"]
+    assert len(failures) == (1 if recovers else 2)
+    assert len({r["provider_id"] for r in failures}) == len(failures)
+    assert any(r["entity_type"] == "collection_recovery" for r in records) == recovers
+
+
+@pytest.mark.parametrize("status", [401, 403, 429])
+def test_daily_recovery_does_not_retry_access_or_quota_errors(status):
+    requests = []
+
+    class Client:
+        def iter_performances(self, window, *, rows):
+            return iter((performance_summary(), performance_summary("PF300002")))
+
+        def get_performance_detail(self, performance_id):
+            requests.append(performance_id)
+            raise KopisTransportError("access denied", status_code=status)
+
+    class Repository:
+        def start_ingestion_run(self, provider):
+            return "run"
+
+        def upsert_provider_record(self, **kwargs):
+            pass
+
+        def finish_ingestion_run(self, run_id, **kwargs):
+            assert kwargs["status"] == "failed"
+
+    with pytest.raises(KopisTransportError):
+        KopisSyncService(Client(), Repository()).run(
+            start_date=date(2026, 7, 1), end_date=date(2026, 7, 31),
+            continue_on_source_error=True, retry_source_errors=True,
+        )
+    assert requests == ["PF300001"]
 
 
 def test_performance_mapping_preserves_provider_detail_and_korean_time():
@@ -654,3 +749,52 @@ def test_nol_failure_is_counted_without_discarding_the_kopis_performance():
     assert result.counters["nol_errors"] == 1
     assert "NolTransportError" in events[-1][-1]
     assert completed == []
+
+
+@pytest.mark.parametrize("error,expected_requests", [
+    (NolTransportError("NOL returned HTTP 403", status_code=403), 1),
+    (NolTransportError("NOL returned HTTP 429", status_code=429), 1),
+    (NolUnavailableError("NOL summary returned no data"), 1),
+    (NolTransportError("NOL remained unavailable with HTTP 503", status_code=503), 3),
+])
+def test_nol_circuit_stops_and_records_failure_without_erasing_programs(error, expected_requests):
+    requested, saved, records, finished = [], [], [], []
+
+    class Client:
+        def iter_performances(self, window, *, rows):
+            return (performance_summary(f"PF{i}") for i in range(4))
+
+        def get_performance_detail(self, performance_id):
+            return replace(performance_detail(performance_id), facility_id=None, intro_image_urls=(),
+                booking_links=(KopisBookingLink("NOL", "https://tickets.interpark.com/goods/26012173"),))
+
+    class Nol:
+        def fetch(self, url):
+            requested.append(url)
+            raise error
+
+    class Repository:
+        def start_ingestion_run(self, provider):
+            return "run"
+
+        def upsert_provider_record(self, **kwargs):
+            records.append(kwargs)
+
+        def upsert_performance(self, payload):
+            saved.append(payload)
+            return "performance"
+
+        def finish_ingestion_run(self, run_id, **kwargs):
+            finished.append(kwargs)
+
+        def replace_program_items(self, *args):
+            raise AssertionError("Failed source must not erase previously published rows")
+
+    with pytest.raises(type(error)):
+        KopisSyncService(Client(), Repository(), nol_client=Nol()).run(
+            start_date=date(2026, 11, 4), end_date=date(2026, 11, 4),
+        )
+    assert len(requested) == len(saved) == expected_requests
+    assert finished[0]["status"] == "failed"
+    assert finished[0]["counters"]["nol_errors"] == expected_requests
+    assert len([r for r in records if r.get("provider") == "nol" and r["entity_type"] == "collection_error"]) == expected_requests
