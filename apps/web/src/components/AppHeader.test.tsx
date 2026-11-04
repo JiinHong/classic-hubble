@@ -34,6 +34,7 @@ describe("AppHeader authentication", () => {
     const home = screen.getByRole("link", { name: "클래식허블 홈" });
     const logo = screen.getByRole("img", { name: "클래식허블" });
     expect(home.contains(logo)).toBe(true);
+    expect(home.contains(screen.getByText("Classic Hubble", { exact: true }))).toBe(true);
     expect(home.getAttribute("href")).toBe("/");
     expect(logo.getAttribute("src")).toBe("/brand/hubble-logo.png");
     expect(logo.getAttribute("width")).toBe("360");
