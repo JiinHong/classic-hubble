@@ -387,6 +387,39 @@ def test_client_retries_transport_errors_then_raises_clean_failure():
     http_client.close()
 
 
+@pytest.mark.parametrize("status", [401, 403, 429])
+def test_client_exposes_access_failures_without_retrying_or_changing_endpoints(status):
+    paths = []
+
+    def handler(request):
+        paths.append(request.url.path)
+        return httpx.Response(status, text="access denied")
+
+    with httpx.Client(transport=httpx.MockTransport(handler)) as http_client:
+        client = nol.NolClient(nol.NolSettings(max_retries=3), http_client=http_client)
+        with pytest.raises(nol.NolTransportError) as raised:
+            client.fetch("https://tickets.interpark.com/goods/26012173")
+    assert raised.value.status_code == status
+    assert paths == ["/v1/goods/26012173/summary"]
+
+
+def test_client_rejects_retired_null_summary_before_requesting_play_db():
+    paths = []
+
+    def handler(request):
+        paths.append(request.url.path)
+        return httpx.Response(200, json={
+            "common": {"message": "success", "internalHttpStatusCode": 200},
+            "data": None,
+        })
+
+    with httpx.Client(transport=httpx.MockTransport(handler)) as http_client:
+        client = nol.NolClient(http_client=http_client)
+        with pytest.raises(nol.NolResponseError, match="summary"):
+            client.fetch("https://tickets.interpark.com/goods/26012173")
+    assert paths == ["/v1/goods/26012173/summary"]
+
+
 def _summary_payload(
     *,
     goods_code: str = "25012345",

@@ -577,6 +577,7 @@ def test_client_does_not_chain_an_http_error_containing_the_api_key():
 
     assert error.value.__cause__ is None
     assert "secret-test-key" not in str(error.value)
+    assert "pblprfr" in str(error.value)
     http_client.close()
 
 

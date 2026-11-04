@@ -603,7 +603,7 @@ class KopisClient:
             except httpx.TransportError:
                 if attempt == self._settings.max_retries:
                     raise KopisTransportError(
-                        "KOPIS request failed after retrying"
+                        f"KOPIS request failed after retrying: {path}"
                     ) from None
             else:
                 if response.status_code not in RETRYABLE_STATUS_CODES:
@@ -611,14 +611,14 @@ class KopisClient:
                         response.raise_for_status()
                     except httpx.HTTPStatusError:
                         raise KopisTransportError(
-                            f"KOPIS returned HTTP {response.status_code}",
+                            f"KOPIS returned HTTP {response.status_code}: {path}",
                             status_code=response.status_code,
                         ) from None
                     return response.text
 
                 if attempt == self._settings.max_retries:
                     raise KopisTransportError(
-                        f"KOPIS remained unavailable with HTTP {response.status_code}",
+                        f"KOPIS remained unavailable with HTTP {response.status_code}: {path}",
                         status_code=response.status_code,
                     )
 

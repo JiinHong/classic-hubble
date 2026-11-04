@@ -139,6 +139,11 @@ def _build_parser() -> argparse.ArgumentParser:
     sync.add_argument("--rows", type=int, default=100)
     sync.add_argument("--limit", type=int)
     sync.add_argument(
+        "--recover-source-errors",
+        action="store_true",
+        help="Continue isolated KOPIS failures, then retry only failed IDs once. Access/quota failures still stop the run.",
+    )
+    sync.add_argument(
         "--enrich-nol",
         action="store_true",
         help="Enrich KOPIS records from official NOL goods pages.",
@@ -228,6 +233,8 @@ def _run_sync(
                 end_date=args.end,
                 rows=args.rows,
                 limit=args.limit,
+                continue_on_source_error=args.recover_source_errors,
+                retry_source_errors=args.recover_source_errors,
             )
     except (
         KopisConfigurationError,
