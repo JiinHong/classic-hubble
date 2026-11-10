@@ -21,8 +21,13 @@ HOBOKEN = re.compile(
     r"\b(?:Hob\.?\s*|H\.\s*)((?=[IVX])X{0,3}(?:IX|IV|V?I{0,3}))\s*[:/]\s*(\d+[a-z]?)\b",
     re.IGNORECASE,
 )
-# Additional schemes require grounded evidence, not legacy ingestion or import.
-CATALOGUE = re.compile(HOBOKEN.pattern + "|" + LEGACY_CATALOGUE.pattern + r"|\b(?:WAB|WWV|FWV|CD|FP|H|G|M)\.?\s*\d+\b", re.IGNORECASE)
+# PF304222 prints Op.24-No.1. A bare hyphen between digits can also mark a range.
+HYPHENATED_OPUS_MEMBER = r"\bop\.?\s*\d+[a-z]?\s*-\s*(?:no|nr)\.?\s*\d+[a-z]?\b"
+CATALOGUE = re.compile(
+    "|".join((HOBOKEN.pattern, HYPHENATED_OPUS_MEMBER, LEGACY_CATALOGUE.pattern,
+              r"\b(?:WAB|WWV|FWV|CD|FP|H|G|M)\.?\s*\d+\b")),
+    re.IGNORECASE,
+)
 LIFESPAN = re.compile(r"\(?\b\d{4}\s*[-–—~]\s*\d{4}\b\)?")
 COMPOSER_YEAR = r"(?:[12]\d[0-9oOlI]{2}|[Il]\d{3})"
 COMPOSER_BIOGRAPHICAL_DATES = re.compile(
@@ -627,6 +632,10 @@ class MusicMatcher:
             return WorkMatch(None, (), "unsupported_catalogue")
         if any(
             re.match(r"\s*[-–—/,]\s*\d", title[m.end() :])
+            or (m[0].lower().startswith("op") and re.match(
+                r"\s*(?:\.\s*\d|[,;/–—-]\s*(?:no|nr)(?:\.|\b|(?=\d)))",
+                title[m.end() :], re.IGNORECASE,
+            ))
             or (_scheme(_catalogue_key(m[0])) in {"wab", "wwv", "fwv", "cd", "fp", "h", "g", "m"} and re.match(r"\.\s*\d", title[m.end() :]))
             or (_scheme(_catalogue_key(m[0])) == "h" and re.match(r"\s+[A-Za-z]\b", title[m.end() :]))
             or (HOBOKEN.fullmatch(m[0]) and re.match(r"\s*[.:]\s*\d", title[m.end() :]))

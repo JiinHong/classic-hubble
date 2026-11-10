@@ -101,6 +101,24 @@ def test_exact_member_from_primary_title_remains_matchable(mazurka_collection_an
     assert matcher(mazurka_collection_and_member).match("Mazurka in A minor", "Chopin", catalogue="Op.17 No.4", key="A minor").work_id == "member"
 
 
+@pytest.mark.parametrize("code", ["Op.17-No.4", "Op. 17 - Nr. 4"])
+@pytest.mark.parametrize("embedded", [False, True])
+def test_explicit_member_after_hyphen_is_not_the_whole_opus(mazurka_collection_and_member, code, embedded):
+    title = f"Mazurka {code}" if embedded else "Mazurka"
+    result = matcher(mazurka_collection_and_member).match(title, "Chopin", catalogue=None if embedded else code)
+    assert result.work_id == "member"
+
+
+@pytest.mark.parametrize("code", [
+    "Op.17-4", "Op.17-No.4-5", "Op.17-No.4.1", "Op.17-No.4, No.1",
+    "Op.17-No.4–No.5", "Op.17-No.5", "Op.17-No.X",
+])
+@pytest.mark.parametrize("embedded", [False, True])
+def test_ambiguous_or_absent_opus_member_stays_unlinked(mazurka_collection_and_member, code, embedded):
+    title = f"Mazurka {code}" if embedded else "Mazurka"
+    assert matcher(mazurka_collection_and_member).match(title, "Chopin", catalogue=None if embedded else code).work_id is None
+
+
 @pytest.mark.parametrize("code", ["Op.17 No.3", "Op.18 No.4"])
 def test_primary_title_member_does_not_allow_different_number(mazurka_collection_and_member, code):
     assert matcher([mazurka_collection_and_member[1]]).match("Mazurka", "Chopin", catalogue=code).work_id is None
