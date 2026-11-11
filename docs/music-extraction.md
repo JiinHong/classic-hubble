@@ -471,6 +471,18 @@ It records original source lines, a before/after history and both independent
 source hashes. Existing programmes are preserved. Public items cite KOPIS as
 official text, with no OCR accuracy or inferred performed edition.
 
+A separate service-only path, `publish_kopis_text_program`, handles verified
+KOPIS text blocks on dated orchestra and Salon de Musique recital covers.
+Never infer titles from the cover or a performer's name. The worker checks the
+original image, the existing cover observation, the native `[PROGRAM]` text,
+and the archived publisher or rights-holder evidence separately. The database
+independently checks each printed position, composer, canonical work, catalogue
+number, date and room when it locks the current event. Unsupported rows retain
+their original positions; an uncertain arrangement or edition is not published.
+Named numbers from a parent work are excerpts, not performances of the entire
+parent. Already published programmes are not replaced. Preview, write and
+idempotent readback use the same evidence.
+
 A numbered song can be linked to the individual song (not its cycle) when
 the archived work catalogue agrees on the title, collection and number.
 The live song must carry that member number in its Deutsch or documented
