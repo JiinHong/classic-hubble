@@ -1,10 +1,7 @@
-"""Publish complete single-date, single-image programs through one guarded RPC.
-
-Multi-image/date programs and scoped or unmatched works remain private evidence.
-The observation is never overwritten when matching rules or the catalogue change.
-"""
+"""Publish verified direct readings without changing the original observation."""
 
 import hashlib
+import re
 from datetime import UTC, date, datetime
 
 from .direct_vision import _cached, _identity, _match_reading, _original
@@ -13,6 +10,50 @@ from .performance_dates import DATE_BINDING_VERSION, date_headings
 from .source_archive import download_source
 
 PUBLICATION_VERSION = "direct-vision-single-source-v1"
+
+
+def publish_kopis_sheets(repository, store, client, performance_id, sty_sha, *, apply=False):
+    """Bind complete original sheets to the same ordered programme in KOPIS."""
+    if not re.fullmatch(r"[0-9a-f]{64}", sty_sha) or store.bucket != "classic-hubble-sources":
+        raise ValueError("Invalid detail digest or source bucket")
+    target = repository.load_vision_target(performance_id)
+    urls = (target or {}).get("intro_image_urls") or []
+    if not (2 <= len(urls) <= 6 and len(set(urls)) == len(urls)
+            and target.get("starts_on") and target["starts_on"] == target.get("ends_on")):
+        return {"status": "date_or_source_binding_required", "items": 0}
+    documents, content_types = [], []
+    for url in urls:
+        source = repository.load_vision_source(url)
+        if (not source or source.get("source_url") != url
+                or performance_id not in (source.get("performance_ids") or [])):
+            return {"status": "source_not_archived", "items": 0}
+        identity = _identity(store, source["sha256"])
+        if source.get("bucket") != store.bucket or source.get("object_key") != identity["source_object_key"]:
+            raise ValueError("Source identity mismatch")
+        cached = _cached(repository, store, identity)
+        if not cached:
+            return {"status": "not_read", "items": 0}
+        reading = cached["reading"]
+        if reading.get("status") != "text_extracted" or reading.get("coverage") != "complete":
+            return {"status": "partial_reading", "items": 0}
+        _original(store, identity)
+        documents.append({"url": url, "sha": source["sha256"], "reading_key": digest(identity),
+                          "reading_utf8": json_bytes(reading).decode("utf-8")})
+        content_types.append(source["content_type"])
+
+    preview = repository.publish_direct_kopis_sheets(performance_id, sty_sha, documents, None)
+    if preview["status"] != "ready" or not apply:
+        return preview
+    expected = preview.get("program")
+    if not isinstance(expected, list) or not expected or len(expected) != preview.get("items"):
+        raise ValueError("Invalid sheet publication preview")
+    for doc, original_type in zip(documents, content_types, strict=True):
+        data, content_type = download_source(client, doc["url"])
+        live_sha = hashlib.sha256(data).hexdigest()
+        if live_sha != doc["sha"] or content_type != original_type:
+            return {"status": "source_changed", "items": 0}
+        doc.update(live_sha=live_sha, content_type=content_type, checked_at=datetime.now(UTC).isoformat())
+    return repository.publish_direct_kopis_sheets(performance_id, sty_sha, documents, expected)
 
 
 def _date_matches(reading, target_date):
