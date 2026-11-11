@@ -28,6 +28,9 @@ begin
     or r.match_slugs[2] <> 'fixture-'||w then raise exception 'composer history, grouping or displayed match: %',r; end if;
   select * into strict r from public.concert_search_page(null,'검증시',array[w],'past',1);
   if r.performance_ids<>array[first_id] or r.past_count<>2 then raise exception 'exact work page: %',r; end if;
+  select * into strict r from public.concert_search_page('','검증시',array[w],'all',0);
+  if r.past_count<>2 or r.upcoming_count<>1 or r.performance_ids<>array[upcoming_id,second_id,first_id]
+    or r.match_slugs is distinct from array[null,'fixture-'||w,'fixture-'||w] then raise exception 'blank browse with optional work annotation'; end if;
   select * into strict r from public.concert_search_page('검증 전용작곡가','다른검증시','{}','past',0);
   if r.past_count<>0 or cardinality(r.performance_ids)<>0 or r.available_cities<>array['검증시'] then raise exception 'city filter / options'; end if;
   select * into strict r from public.concert_search_page('%_','검증시','{}','all',0);
