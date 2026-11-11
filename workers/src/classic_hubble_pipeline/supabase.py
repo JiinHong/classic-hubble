@@ -240,6 +240,12 @@ class SupabaseRepository:
             prefer="return=representation",
         ).json()
 
+    def load_direct_series_program(self, raw: str, sha: str, day: str) -> dict | None:
+        response = self._request("POST", "rpc/direct_series_program_proof",
+                                 json={"p_utf8": raw, "p_sha": sha, "p_day": day},
+                                 prefer="return=representation")
+        return response.json() if response.content else None
+
     def load_paddle_review(self, key: str) -> dict[str, Any] | None:
         rows = self._request(
             "GET", "provider_records",

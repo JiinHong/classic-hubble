@@ -8,7 +8,7 @@ import hashlib
 from datetime import UTC, date, datetime
 
 from .direct_vision import _cached, _identity, _match_reading, _original
-from .music_extraction import digest
+from .music_extraction import digest, json_bytes
 from .performance_dates import DATE_BINDING_VERSION, date_headings
 from .source_archive import download_source
 
@@ -23,7 +23,7 @@ def _date_matches(reading, target_date):
     return not invalid and dates == {(target.year, target.month, target.day)}
 
 
-def publish(repository, store, client, performance_id, *, apply=False):
+def publish(repository, store, client, performance_id, *, apply=False, series_calendar=False):
     target = repository.load_vision_target(performance_id)
     if not target:
         return {"status": "missing_performance", "items": 0}
@@ -41,10 +41,24 @@ def publish(repository, store, client, performance_id, *, apply=False):
         return {"status": "not_read", "items": 0}
     if cached["reading"]["coverage"] != "complete":
         return {"status": "partial_reading", "items": 0}
-    if not _date_matches(cached["reading"], target["starts_on"]):
+    reading = cached["reading"]
+    proof = None
+    if series_calendar:
+        raw = json_bytes(reading).decode("utf-8")
+        proof = repository.load_direct_series_program(raw, cached["reading_sha256"], target["starts_on"])
+        if (not proof or proof.get("version") != "direct-series-calendar-v1"
+                or proof.get("performance_date") != target["starts_on"]
+                or not 0 < proof["end_line"] < proof["calendar_line"] < len(reading["lines"])):
+            return {"status": "date_binding_required", "items": 0}
+        # Keep every non-calendar date visible, including dates in the artist section.
+        if not _date_matches({**reading, "lines": reading["lines"][:proof["calendar_line"]]}, target["starts_on"]):
+            return {"status": "date_binding_required", "items": 0}
+        # The proof checks all work citations against their original (unshifted) lines.
+        reading = {**reading, "lines": reading["lines"][:proof["end_line"]]}
+    if not _date_matches(reading, target["starts_on"]):
         return {"status": "date_binding_required", "items": 0}
     _original(store, identity)
-    matching = _match_reading(repository, identity, cached["reading"])
+    matching = _match_reading(repository, identity, reading)
     if not matching or not matching["complete"] or matching["source_warnings"]:
         return {"status": "unresolved_program", "items": 0}
     items = []
@@ -74,6 +88,9 @@ def publish(repository, store, client, performance_id, *, apply=False):
         "performance_date": target["starts_on"],
         "date_binding_version": DATE_BINDING_VERSION,
     }
+    if proof is not None:
+        evaluation.update(publication_version="direct-vision-series-calendar-v1",
+                          series_program=proof, series_reading_utf8=raw)
     return repository.publish_direct_vision({
         "p_performance_id": performance_id, "p_expected_performance": target,
         "p_source": source,
