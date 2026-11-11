@@ -159,6 +159,7 @@ const unscoredSources = new Map([
   ["paddleocr", "OCR 근거 확인"],
   ["kumho_official_correction", "주최 측 정정"],
   ["organizer_program", "주최 측 공식 프로그램"],
+  ["organizer_post_concert", "공연 후 주최 측 확인"],
 ]);
 
 function firstRelation<T>(value: Relation<T> | undefined) {
@@ -271,6 +272,9 @@ export function mapPerformances(rows: PerformanceRow[]): Performance[] {
             };
           }),
         programSourceUrl: row.program_source_url,
+        programSourceLabel: row.program_items?.some((item) =>
+          item.source_type === "official" && item.source_provider === "organizer_post_concert",
+        ) ? "주최 측 공연 후 기록 보기" : undefined,
         programStatus:
           row.program_status ??
           ((row.program_items?.length ?? 0) > 0 ? "confirmed" : "unknown"),
