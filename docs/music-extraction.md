@@ -317,6 +317,18 @@ dates and weekday contradictions remain unresolved. Source lines are not joined
 or rewritten in the saved observation; the normalized date still has to match
 the SQL-locked performance date.
 
+For a single-recital poster ending in the four-column Kumho annual series
+calendar, `publish(..., series_calendar=True)` is an explicit alternative to
+rejecting every date in the footer. It requires the full original observation,
+including all four columns. The printed date and weekday, performer in the
+headline and programme, and composer must agree with the target calendar cell.
+Every public title, composer and catalogue number must be quoted within the
+sole Program section, one complete work per line before Artist. A footer,
+biography or another recital cannot supply a missing reference. Preview and the
+locked transaction use the same digest-bound SQL proof. The stored observation
+is unchanged. Other layouts still use the existing rules; see
+`supabase/tests/direct_vision_series_calendar.sql`.
+
 Before apply, the publisher verifies archived bytes and immutable reading hashes,
 re-runs matching, and downloads the original URL to compare the live hash. One
 service-role-only RPC locks the performance and source records, compares expected
