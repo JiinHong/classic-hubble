@@ -33,6 +33,7 @@ declare
   pid uuid:=gen_random_uuid(); wid uuid:=gen_random_uuid(); cid uuid:=gen_random_uuid(); kid text:='PF999991';
   url text:='https://example.test/recital.jpg'; sha text:=repeat('b',64); rs text:=repeat('a',64); r jsonb; detail jsonb; doc jsonb;
   raw text; rd text; proof text; k text; rec jsonb; candidate jsonb; items jsonb; s jsonb; sty text:=E'[PROGRAM]\nSop. 주수연 · Kl. 이고은\nDas Mädchen, D 652\nDie Nebensonnen, D 911 No. 23';
+  child uuid:=gen_random_uuid(); oldrow jsonb; ref jsonb; merged jsonb; fixture_key text; snapshot text; snapshot_key text;
 begin
   insert into public.composers(id,name) values(cid,'Franz Schubert');
   insert into public.works(id,slug,title,composer_id,catalogue) values(wid,'fixture-lied-'||wid,'Das Mädchen, D 652',cid,'D. 652');
@@ -78,6 +79,54 @@ begin
     or not exists(select from public.program_items where performance_id=pid and source_type::text='official' and source_provider='kopis' and performed_scope='unknown')
     or not exists(select from public.provider_records where entity_type='typed_recital_publication' and payload->>'performance_id'=pid::text and payload->'after'=items and payload->>'total_songs'='2')
     then raise exception 'TEST: publication provenance or idempotence';end if;
+  select to_jsonb(pi) into strict oldrow from public.program_items pi where performance_id=pid;
+  insert into public.works(id,slug,title,composer_id,catalogue) values(child,'fixture-child-'||child,'Die Nebensonnen',cid,'Op. 89 No. 23');
+  ref:=jsonb_build_object('kind','individual_song','number','911','member','23','member_title','Die Nebensonnen','collection_title','Winterreise',
+    'opus','89','registry_sha',repeat('e',64),'work_id',child,'work_slug','fixture-child-'||child,'canonical_title','Die Nebensonnen',
+    'title_forms',jsonb_build_array('Die Nebensonnen'),'source_url','https://catalogue.test/911','reference','Schubert, Winterreise, No. 23');
+  snapshot:=jsonb_build_object('source_url',ref->'source_url','source_sha256',repeat('1',64),'composer','Franz Schubert',
+    'claims',jsonb_build_array(ref-array['kind','registry_sha','source_url','work_id','work_slug','canonical_title','title_forms','reference']))::text;
+  snapshot_key:=encode(sha256(convert_to(snapshot,'UTF8')),'hex');ref:=ref||jsonb_build_object('registry_sha',snapshot_key);
+  insert into public.provider_records(provider,entity_type,provider_id,payload)values('catalogue_repair','lied_member_source',snapshot_key,
+    jsonb_build_object('bucket','classic-hubble-sources','proof_utf8',snapshot,'result_sha256',snapshot_key,'result_object_key','extractions/sha256/'||left(snapshot_key,2)||'/'||snapshot_key,
+      'original_object_key','originals/sha256/11/'||repeat('1',64)));
+  proof:=(proof::jsonb||jsonb_build_object('purpose','schubert_lied_identities_v2','works',(proof::jsonb->'works')||jsonb_build_array(ref)))::text;
+  k:=encode(sha256(convert_to(proof,'UTF8')),'hex');
+  insert into public.provider_records(provider,entity_type,provider_id,payload)values('catalogue_repair','lied_catalogue_authority',k,
+    jsonb_build_object('bucket','classic-hubble-sources','result_sha256',k,'result_object_key','extractions/sha256/'||left(k,2)||'/'||k,'proof_utf8',proof));
+  doc:=doc||jsonb_build_object('authority_key',k);
+  candidate:=candidate||jsonb_build_array(jsonb_build_object('position',1,'line',3,'work_id',child));
+  s:=public.publish_kopis_typed_recital(pid,doc,candidate,null);
+  if s->>'status' is distinct from 'ready' or s->'items' is distinct from '2'::jsonb then raise exception 'TEST: independently verified child not addable %',s;end if;
+  merged:=s->'program';
+  update public.provider_records set payload=payload||'{"bucket":"other"}'::jsonb where provider='catalogue_repair' and provider_id=snapshot_key;
+  if public.publish_kopis_typed_recital(pid,doc,candidate,null)->>'status'='ready' then raise exception 'TEST: unverifiable source receipt';end if;
+  update public.provider_records set payload=payload||'{"bucket":"classic-hubble-sources"}'::jsonb where provider='catalogue_repair' and provider_id=snapshot_key;
+  if merged#>>'{1,work_id}' is distinct from child::text or merged#>>'{1,display_title}' is distinct from 'Die Nebensonnen, D 911 No. 23'
+    or merged#>>'{1,performed_scope}' is distinct from 'unknown' then raise exception 'TEST: wrongly linked parent or extent';end if;
+  update public.works set catalogue='Op. 89' where id=child;
+  if public.publish_kopis_typed_recital(pid,doc,candidate,null)->>'status'='ready' then raise exception 'TEST: whole cycle used for a member';end if;
+  update public.works set catalogue='Op. 89 No. 23' where id=child;
+  insert into public.works(slug,title,composer_id,catalogue) values('fixture-duplicate-'||child,'Duplicate',cid,'D. 911/23');
+  if public.publish_kopis_typed_recital(pid,doc,candidate,null)->>'status'='ready' then raise exception 'TEST: duplicate child catalogue';end if;
+  delete from public.works where slug='fixture-duplicate-'||child;
+  if public.publish_kopis_typed_recital(pid,doc,candidate-0,null)->>'status'='ready' then raise exception 'TEST: lost old song';end if;
+  update public.program_items set display_title='changed' where performance_id=pid;
+  if public.publish_kopis_typed_recital(pid,doc,candidate,merged)->>'status'='published' then raise exception 'TEST: changed existing data';end if;
+  update public.program_items set display_title=oldrow->>'display_title',source_provider='nol' where performance_id=pid;
+  if public.publish_kopis_typed_recital(pid,doc,candidate,merged)->>'status'='published' then raise exception 'TEST: changed ownership';end if;
+  update public.program_items set source_provider='kopis' where performance_id=pid;
+  update public.provider_records set payload=jsonb_set(payload,'{sty_sha256}','"stale"') where provider='kopis' and entity_type='typed_recital_publication' and payload->>'performance_id'=pid::text returning provider_id into fixture_key;
+  if public.publish_kopis_typed_recital(pid,doc,candidate,merged)->>'status'='published' then raise exception 'TEST: stale audit accepted';end if;
+  update public.provider_records set payload=jsonb_set(payload,'{sty_sha256}',doc->'sty_sha') where provider_id=fixture_key;
+  s:=public.publish_kopis_typed_recital(pid,doc,candidate,merged);
+  if s->>'status' is distinct from 'published' then raise exception 'TEST: add-only publication %',s;end if;
+  if not exists(select from public.program_items pi where to_jsonb(pi)=oldrow)
+    or not exists(select from public.provider_records where entity_type='typed_recital_publication' and payload->'after'=merged and payload->'before'=items
+      and payload->'previous_program_rows' @> jsonb_build_array(oldrow) and payload->>'previous_audit'=fixture_key)
+    or (select count(*) from public.program_items where performance_id=pid)<>2 then raise exception 'TEST: old row/history not preserved';end if;
+  s:=public.publish_kopis_typed_recital(pid,doc,candidate,null);
+  if s->>'status' is distinct from 'unchanged' then raise exception 'TEST: additive replay %',s;end if;
 end $publish$;
 rollback;
 select 'PASS: literal recital rows and independent cover/date/venue evidence' as result;

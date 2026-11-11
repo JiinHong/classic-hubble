@@ -42,17 +42,30 @@ def parse_program(sty):
     return rows if group and in_group else []
 
 
-def select_songs(rows, references):
+def _individual_song(row, ref):
+    title, collection = ref.get("member_title"), ref.get("collection_title")
+    if not title or not collection or ref.get("kind") != "individual_song":
+        return False
+    return (re.fullmatch(r"[a-f0-9]{64}", ref.get("registry_sha") or "") is not None
+            and re.fullmatch(r"https://[^/\s]+/.+", ref.get("source_url") or "") is not None
+            and row["title"] in (title, title.removesuffix("!"), f"{title} aus {collection}"))
+
+
+def select_songs(rows, references, *, with_members=False):
     choices, held = [], {}
     for row in rows:
         index = row["position"]
-        if row["member"] is not None:
+        member = row["member"]
+        if member is not None and not with_members:
             held[index] = "member_identity_not_verified"
             continue
-        matches = [ref for ref in references if ref.get("member") is None and ref["number"] == row["number"]
+        matches = [ref for ref in references if ref.get("member") == member and ref["number"] == row["number"]
                    and row["title"] in ref["title_forms"]]
         if len(matches) != 1:
             held[index] = "ambiguous_authority" if matches else "no_verified_title_and_number"
+            continue
+        if member is not None and not _individual_song(row, matches[0]):
+            held[index] = "member_identity_not_verified"
             continue
         choices.append(dict(position=index, line=row["line"], work_id=matches[0]["work_id"]))
     return choices, held
@@ -80,10 +93,10 @@ def publish(repository, store, client, kopis, performance_id, detail, authority_
     if hashlib.sha256(raw).hexdigest() != authority_sha:
         raise ValueError("Catalogue authority archive mismatch")
     proof = json.loads(raw)
-    if proof.get("purpose") != "schubert_lied_identities_v1":
+    if proof.get("purpose") not in {"schubert_lied_identities_v1", "schubert_lied_identities_v2"}:
         raise ValueError("Wrong catalogue authority")
     songs = parse_program(detail.get("sty"))
-    candidates, held = select_songs(songs, proof["works"])
+    candidates, held = select_songs(songs, proof["works"], with_members=proof["purpose"] == "schubert_lied_identities_v2")
     if not candidates:
         return {"status": "no_verified_typed_songs", "items": 0, "held": held}
     doc = dict(url=url, sha=src["sha256"], reading_key=digest(identity), envelope_utf8=json_bytes(cached).decode(),
