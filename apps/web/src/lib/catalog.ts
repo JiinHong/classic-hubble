@@ -249,23 +249,26 @@ export function mapPerformances(rows: PerformanceRow[]): Performance[] {
         programImageUrls: row.program_image_urls ?? [],
         program: (row.program_items ?? [])
           .sort((a, b) => a.position - b.position)
-          .map((item) => ({
-            composerName: item.composer_name ?? "",
-            displayTitle: item.display_title,
-            performedScope: item.performed_scope ?? null,
-            scopeDetails: item.scope_details ?? [],
-            source: {
-              confidence: unscoredSources.has(item.source_provider)
-                ? null
-                : Number(item.confidence),
-              label:
-                unscoredSources.get(item.source_provider) ?? (item.source_provider === "nol"
-                  ? "NOL 원문"
-                  : (sourceLabels[item.source_type] ?? sourceLabels.unknown)),
-              type: item.source_type,
-            },
-            workSlug: firstRelation(item.works)?.slug ?? "",
-          })),
+          .map((item) => {
+            const unscoredLabel =
+              item.source_provider === "kopis" && item.source_type === "official"
+                ? "KOPIS 공식 프로그램"
+                : unscoredSources.get(item.source_provider);
+            return {
+              composerName: item.composer_name ?? "",
+              displayTitle: item.display_title,
+              performedScope: item.performed_scope ?? null,
+              scopeDetails: item.scope_details ?? [],
+              source: {
+                confidence: unscoredLabel ? null : Number(item.confidence),
+                label: unscoredLabel ?? (item.source_provider === "nol"
+                    ? "NOL 원문"
+                    : (sourceLabels[item.source_type] ?? sourceLabels.unknown)),
+                type: item.source_type,
+              },
+              workSlug: firstRelation(item.works)?.slug ?? "",
+            };
+          }),
         programSourceUrl: row.program_source_url,
         programStatus:
           row.program_status ??
