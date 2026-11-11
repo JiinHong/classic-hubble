@@ -72,19 +72,16 @@ describe("bounded catalog search", () => {
     expect(JSON.stringify(result)).not.toContain("secret-to-render");
     expect(JSON.stringify(result)).not.toContain("collection alias");
   });
-  it("does not send the other result mode or past performances", () => {
+  it("returns linked history newest first without mixing it into upcoming concerts", () => {
     expect(searchCatalog(catalog, {}).performances).toEqual([]);
-    const result = searchCatalog(
-      {
-        works,
-        performances: performances.map((p) => ({
-          ...p,
-          date: "2020-01-01",
-          endDate: undefined,
-        })),
-      },
-      { mode: "performances" },
-    );
-    expect(result).toMatchObject({ works: [], performances: [], total: 0 });
+    const base = performances.find(p => p.program.some(i => i.workSlug === "beethoven-symphony-5"))!;
+    const data = { works, performances: ["2021-03-01", "2027-01-01", "2026-05-01"].map((date, i) =>
+      ({ ...base, id: String(i), title: "정기연주회", date, endDate: undefined })) };
+    const search = { query: "루트비히 판 베토벤", mode: "performances" as const };
+    const all = searchCatalog(data, search);
+    expect(all.performances.map(p => p.id)).toEqual(["1", "2", "0"]);
+    expect(all.periodCounts).toEqual({ upcoming: 1, past: 2 });
+    expect(searchCatalog(data, { ...search, query: "운명", period: "past" }).performances.map(p => p.id)).toEqual(["2", "0"]);
+    expect(searchCatalog(data, { ...search, period: "upcoming" }).total).toBe(1);
   });
 });

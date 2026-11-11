@@ -30,7 +30,15 @@ function database() {
       then: (resolve: (r: unknown) => unknown) => Promise.resolve({ data, error: state.fail === table ? { message: "offline" } : null }).then(resolve),
     }; return query;
   };
-  const rpc = vi.fn((name: string) => builder(name, name === "search_performance_candidates" ? state.performances : name === "youtube_upcoming_links" ? state.links : state.candidates));
+  const rpc = vi.fn((name: string, args: Record<string,unknown>) => {
+    if (name === "concert_search_page") {
+      const start = Number(args.page_offset);
+      const page = state.performances.slice(start, start + 24);
+      return builder(name, [{ upcoming_count: state.performances.length, past_count: 0,
+        performance_ids: page.map(p => p.id), match_slugs: page.map(() => null) }]);
+    }
+    return builder(name, name === "youtube_upcoming_links" ? state.links : state.candidates);
+  });
   const from = vi.fn((table: string) => builder(table, table === "performances" ? state.performances : []));
   mocks.client.mockReturnValue({ rpc, from });
   return { state, reads, rpc, from };
@@ -71,19 +79,20 @@ describe("targeted candidate services", () => {
     expect(from).not.toHaveBeenCalled();
   });
 
-  it("passes every matched work ID to performance retrieval and keeps TS filtering", async () => {
+  it("passes ranked work IDs to bounded concert retrieval without hydrating the entire search", async () => {
     const { state, rpc } = database();
     state.candidates = Array.from({ length: 30 }, (_, i) => ({ ...state.candidates[0], id: `id-${i}`, slug: `w-${i}`, title: "Needle", title_ko: "Needle", work_aliases: [] }));
-    expect(await getPerformanceSearchPage("Needle", "서울", 24)).toEqual({ works: [], performances: [], total: 0, hasMore: false });
-    expect(rpc).toHaveBeenCalledWith("search_performance_candidates", { search_term: "needle", city_name: "서울", matched_work_ids: state.candidates.map(row => row.id) });
+    expect(await getPerformanceSearchPage("Needle", "서울", 24)).toMatchObject({ works: [], performances: [], total: 0, hasMore: false });
+    expect(rpc).toHaveBeenCalledWith("concert_rank_work_candidates", { search_term: "needle", literal_name: "Needle" });
+    expect(rpc).toHaveBeenCalledWith("concert_search_page", { search_term: "Needle", city_name: "서울", matched_work_ids: state.candidates.map(row => row.id), period_filter: "all", page_offset: 24 });
   });
 
   it("does not fetch works for empty performance browsing; propagates candidate failures", async () => {
     const { state, rpc, from } = database();
     await getPerformanceSearchPage("", "전체");
-    expect(rpc).toHaveBeenCalledExactlyOnceWith("search_performance_candidates", { search_term: "", city_name: "전체", matched_work_ids: [] });
+    expect(rpc).toHaveBeenCalledExactlyOnceWith("concert_search_page", { search_term: "", city_name: "전체", matched_work_ids: [], period_filter: "all", page_offset: 0 });
     expect(from).not.toHaveBeenCalled();
-    state.fail = "search_performance_candidates";
+    state.fail = "concert_search_page";
     await expect(getPerformanceSearchPage("", "전체")).rejects.toThrow();
   });
 

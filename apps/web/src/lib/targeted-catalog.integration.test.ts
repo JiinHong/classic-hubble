@@ -52,12 +52,15 @@ describe.skipIf(!process.env.TARGETED_CATALOG_SNAPSHOT)("targeted catalog live p
         ["%_", "전체", 0], ["definitely-not-a-concert", "전체", 0],
       ] as const) {
         const start = performance.now();
-        const expected = searchCatalog(snapshot.catalog, { query, city, offset, mode: "performances" });
+        // The legacy snapshot contains upcoming performances only.
+        const expected = searchCatalog(snapshot.catalog, { query, city, offset, mode: "performances", period: "upcoming" });
         const oldComputeMs = performance.now() - start;
         requests.length = 0;
         const changedAt = performance.now();
-        const actual = await getPerformanceSearchPage(query, city, offset);
-        expect(actual, `performance ${query}/${city}/${offset}`).toEqual(expected);
+        const actual = await getPerformanceSearchPage(query, city, offset, "upcoming");
+        expect(actual, `performance ${query}/${city}/${offset}`).toMatchObject({
+          performances: expected.performances, total: expected.total, hasMore: expected.hasMore, works: [],
+        });
         reports.push({ kind: "performance", query, city, offset, count: actual.total, oldComputeMs, newMs: performance.now() - changedAt, bytes: requests.reduce((sum, r) => sum + r.bytes, 0), requests: [...requests] });
       }
       for (const video of [

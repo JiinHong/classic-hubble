@@ -15,6 +15,7 @@ describe("public catalog search route", () => {
       "offset=-1",
       "offset=NaN",
       "mode=everything",
+      "period=tomorrow",
     ]) {
       expect(
         (
@@ -60,7 +61,7 @@ describe("public catalog search route", () => {
     getPerformanceSearchPage.mockResolvedValue({ works: [], performances: [], total: 0, hasMore: false });
     const response = await GET(new Request("https://example.com/api/catalog/search?mode=performances&q=운명&city=서울&offset=24"));
     expect(response.status).toBe(200);
-    expect(getPerformanceSearchPage).toHaveBeenCalledWith("운명", "서울", 24);
+    expect(getPerformanceSearchPage).toHaveBeenCalledWith("운명", "서울", 24, "all");
     expect(getCatalogSnapshot).not.toHaveBeenCalled();
     expect(getWorkSearchPage).not.toHaveBeenCalled();
   });

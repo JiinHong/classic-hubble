@@ -35,7 +35,7 @@ describe("autocomplete search input", () => {
   it("uses a capsule field and a circular submit button", () => {
     setup();
     expect(screen.getByRole("search").classList.contains("rounded-full")).toBe(true);
-    expect(screen.getByRole("button", { name: "검색", exact: true }).classList.contains("rounded-full")).toBe(true);
+    expect(screen.getByRole("button", { name: /^검색$/ }).classList.contains("rounded-full")).toBe(true);
   });
   it("only fetches lightweight suggestions while typing; Enter submits the draft", async () => {
     const { input, fetcher, onSubmit } = setup();
@@ -101,7 +101,7 @@ describe("autocomplete search input", () => {
     if (action === "select") fireEvent.click(screen.getByRole("option"));
     else fireEvent.click(screen.getByRole("button", { name: "검색어 지우기" }));
     fireEvent.change(input, { target: { value: "Beethoven" } }); await settle();
-    expect((screen.getByRole("button", { name: "검색", exact: true }) as HTMLButtonElement).disabled).toBe(false);
+    expect((screen.getByRole("button", { name: /^검색$/ }) as HTMLButtonElement).disabled).toBe(false);
     fireEvent.keyDown(input, { key: "Enter" });
     expect(onSubmit).toHaveBeenCalledWith("Beethoven");
   });

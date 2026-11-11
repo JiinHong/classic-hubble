@@ -3,7 +3,7 @@ import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { searchCatalog } from "@/lib/catalog-search";
 import { SearchExperience } from "./SearchExperience";
-const input = () => screen.getByRole("combobox");
+const input = () => screen.getByRole("combobox", { name: "곡명, 작곡가, 별칭 검색" });
 const welcome = () => screen.getByRole("heading", { name: "어떤 곡을 공연장에서 듣고 싶으세요?" });
 const submit = (value: string) => { fireEvent.change(input(), { target: { value } }); fireEvent.keyDown(input(), { key: "Enter" }); };
 beforeEach(() => { vi.useFakeTimers(); window.history.replaceState({}, "", "/"); });
@@ -23,6 +23,24 @@ function serve(data = { works, performances }) {
   vi.stubGlobal("fetch", fetcher); return fetcher;
 }
 describe("search-first experience", () => {
+  it("shows a past-only result under its own heading, year and matching work", async () => {
+    const concert = { ...performances[0], title: "공개 공연", id: "PFtest", date: "2024-05-11", program: [
+      { ...performances[0].program[0], workSlug: "other", displayTitle: "다른 곡" },
+      { ...performances[0].program[0], workSlug: "searched", displayTitle: "검색한 곡" }] };
+    vi.stubGlobal("fetch", vi.fn(async () => Response.json({ works: [], performances: [concert],
+      matchedWorkSlugs: { PFtest: "searched" }, periodCounts: { upcoming: 0, past: 1 }, total: 1, hasMore: false })));
+    window.history.replaceState({}, "", "/?q=베토벤&mode=performances");
+    render(<SearchExperience />); await settle();
+    expect(screen.getByRole("heading", { name: /과거 공연/ })).toBeTruthy();
+    expect(screen.getByRole("link", { name: "공개 공연" })).toBeTruthy();
+    expect(screen.getByText(/2024년/)).toBeTruthy();
+    expect(screen.getByText(/검색한 곡/)).toBeTruthy();
+    expect(screen.queryByText(/다른 곡/)).toBeNull();
+    expect(screen.queryByText("공연 정보 일치")).toBeNull();
+    expect(screen.queryByText("검색 결과가 없습니다.")).toBeNull();
+    fireEvent.change(screen.getByLabelText("기간"), { target: { value: "past" } }); await settle();
+    expect(new URLSearchParams(location.search).get("period")).toBe("past");
+  });
   it("restores the current URL when returning to a cached home with empty initial props", async () => {
     const fetcher = serve();
     window.history.replaceState({}, "", "/?q=운명&work=beethoven-symphony-5");

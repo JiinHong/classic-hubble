@@ -1,5 +1,6 @@
 import { getPerformanceSearchPage } from "@/lib/performance-search";
 import { getWorkSearchPage } from "@/lib/work-search";
+import { concertPeriod } from "@/lib/catalog-search";
 
 export const dynamic = "force-dynamic";
 
@@ -9,10 +10,12 @@ export async function GET(request: Request) {
   const city = params.get("city") ?? "전체";
   const mode = params.get("mode") ?? "works";
   const offset = Number(params.get("offset") ?? 0);
+  const period = params.get("period") ?? "all";
   if (
     query.length > 200 ||
     city.length > 80 ||
     !["works", "performances"].includes(mode) ||
+    concertPeriod(period) !== period ||
     !Number.isSafeInteger(offset) ||
     offset < 0 ||
     offset > 1_000_000
@@ -27,7 +30,7 @@ export async function GET(request: Request) {
       result = await getWorkSearchPage(query, offset);
       timing = `targeted;dur=${(performance.now() - startedAt).toFixed(1)}`;
     } else {
-      result = await getPerformanceSearchPage(query, city, offset);
+      result = await getPerformanceSearchPage(query, city, offset, period);
       timing = `targeted;dur=${(performance.now() - startedAt).toFixed(1)}`;
     }
     return Response.json(result, {
