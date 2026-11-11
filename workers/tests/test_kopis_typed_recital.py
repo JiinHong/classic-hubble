@@ -23,6 +23,26 @@ def test_separates_people_dates_and_member_from_work_identity():
     assert select_songs(songs, [valid, {**valid, "work_id": "other"}])[1][0] == "ambiguous_authority"
 
 
+def test_numbered_lied_requires_its_own_identity_not_an_alias_on_the_cycle():
+    song = parse_program(PROGRAM)[1]
+    child = dict(number="911", member="23", work_id="the-song", title_forms=["Die Nebensonnen"],
+                 kind="individual_song", member_title="Die Nebensonnen", collection_title="Winterreise",
+                 source_url="https://scholarly.example/winterreise", registry_sha="a"*64)
+    parent = {**child, "member": None, "work_id": "winterreise"}
+    assert select_songs([song], [child, parent])[0] == []
+    def select(refs, row=song):
+        return select_songs([row], refs, with_members=True)
+    assert select([child,parent]) == ([{"position":1,"line":6,"work_id":"the-song"}], {})
+    for changes in ({"member":"22"},{"number":"912"},{"member_title":"Der Leiermann"},{"kind":"cycle"},
+                    {"registry_sha":"x"},{"source_url":""},{"collection_title":""}):
+        assert select([{**child,**changes},parent])[0] == []
+    assert select([child,{**child,"work_id":"other"}])[1][1] == "ambiguous_authority"
+    qualified = {**song,"title":"Die Nebensonnen aus Winterreise"}
+    assert select([{**child,"title_forms":[qualified["title"]]}],qualified)[0]
+    wrong = {**song,"title":"Die Nebensonnen aus Schwanengesang"}
+    assert select([{**child,"title_forms":[wrong["title"]]}],wrong)[0] == []
+
+
 @pytest.mark.parametrize("change", [
     lambda s:s.replace("[PROGRAM]", "[PROFILE]"), lambda s:s.replace("Sop. 주수연 · Kl. 이고은\n",""),
     lambda s:s+"\n2026.10.21", lambda s:s+"\nSop. 주수연 · Kl. 이고은",

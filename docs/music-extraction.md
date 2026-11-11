@@ -470,3 +470,11 @@ official detail, original cover, reading and catalogue again before writing.
 It records original source lines, a before/after history and both independent
 source hashes. Existing programmes are preserved. Public items cite KOPIS as
 official text, with no OCR accuracy or inferred performed edition.
+
+A numbered song can be linked to the individual song (not its cycle) when
+the archived work catalogue agrees on the title, collection and number.
+The live song must carry that member number in its Deutsch or documented
+opus numbering; an alias on a parent is insufficient. An unchanged
+previously published programme from these same sources may gain missing
+rows. This never replaces, renumbers, or deletes an existing row, and
+requires a matching prior publication audit.
