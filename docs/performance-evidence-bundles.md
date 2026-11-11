@@ -117,3 +117,21 @@ unreadable or absent programs, ambiguous/composerless titles, missing canonical
 records without authoritative evidence, and derived subitems without a saved
 selection. False date-heading cases such as a season or award name require a
 separate regression-backed date contract update, not a blanket warning bypass.
+
+### Direct programme sheets corroborated by KOPIS
+
+`vision_publication.publish_kopis_sheets` is an explicit, single-date path.
+The dated cover and first programme header must identify the same concert
+and venue. Later sheets need not repeat the date, but every original must
+have a complete, immutable direct reading. The typed KOPIS programme must
+agree on every credit, work, composition year, instrumentation and running
+order. Catalogue titles or source-verified aliases must independently resolve
+both spellings to the same unique work. Programme text cannot replace a
+missing original, and the path never infers that a work was played in full.
+
+A preview leaves the database unchanged. Applying it checks the current
+bytes of every original and revalidates the entire packet inside one
+transaction. Existing programmes are preserved; an identical published
+bundle is a no-op. The private audit retains the individual sheet provenance
+and the exact typed KOPIS lines. The rollback-only contract tests are in
+`supabase/tests/direct_kopis_sheet_bundle.sql`.

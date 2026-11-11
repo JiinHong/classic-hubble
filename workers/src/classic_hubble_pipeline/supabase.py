@@ -246,6 +246,13 @@ class SupabaseRepository:
                                  prefer="return=representation")
         return response.json() if response.content else None
 
+    def publish_direct_kopis_sheets(self, performance_id: str, detail_sha: str,
+                                   documents: list[dict], expected: list[dict] | None) -> dict:
+        return self._request("POST", "rpc/publish_direct_kopis_sheets",
+                             json={"p_id": performance_id, "p_sty_sha": detail_sha,
+                                   "p_documents": documents, "p_expected_items": expected},
+                             prefer="return=representation").json()
+
     def load_paddle_review(self, key: str) -> dict[str, Any] | None:
         rows = self._request(
             "GET", "provider_records",
