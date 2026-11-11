@@ -594,6 +594,15 @@ describe("targeted detail queries", () => {
     });
   });
 
+  it("labels a typed KOPIS programme as official text, without an OCR score", async () => {
+    database(false, "kopis");
+    const { getCatalogPerformanceById } = await import("./catalog");
+    const result = await getCatalogPerformanceById("PF123456");
+    expect(result.performance?.program[1].source).toEqual({
+      type: "official", label: "KOPIS 공식 프로그램", confidence: null,
+    });
+  });
+
   it("reads a component and its related works, preserving parent names and all concert program items", async () => {
     const { filters } = database();
     const { getCatalogWorkBySlug } = await import("./catalog");

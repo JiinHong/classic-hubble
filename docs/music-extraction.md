@@ -453,3 +453,20 @@ non-null start date was 2024-11-09. A complete 2023-to-present backfill has not 
 verified and must not be described as already collected. Next iterations should
 separate complex blocks into source-grounded individual works, research missing
 catalogue entries/aliases, and expand OCR coverage before claiming full coverage.
+
+### Typed KOPIS recital programmes
+
+A cover with no programme is not negative evidence about the official KOPIS
+detail. For a single-date Schubert song recital, a complete saved cover can
+corroborate the concert's identity, composer, venue, date and clock. The song
+list comes from the separately fetched, byte-checked `sty` field. It is never
+added to the image reading. The literal title and complete Deutsch number must
+identify the same live work in an independently archived authority. Ambiguous
+settings and cycle members without an individually established identity stay
+unlinked, without renumbering adjacent songs.
+
+The service-only `publish_kopis_typed_recital` checks the locked performance,
+official detail, original cover, reading and catalogue again before writing.
+It records original source lines, a before/after history and both independent
+source hashes. Existing programmes are preserved. Public items cite KOPIS as
+official text, with no OCR accuracy or inferred performed edition.
