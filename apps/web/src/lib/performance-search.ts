@@ -1,50 +1,54 @@
 import { unstable_cache } from "next/cache";
-import { mapPerformances, PERFORMANCE_COLUMNS, type PerformanceRow } from "./catalog";
-import { searchCatalog } from "./catalog-search";
+import { mapPerformances, mapWorks, PERFORMANCE_COLUMNS, WORK_COLUMNS, type PerformanceRow, type WorkRow } from "./catalog";
+import { workForCard, type CatalogSearchResult, type ConcertPeriod } from "./catalog-search";
 import { createSupabaseClient } from "./supabase/client";
 import { readRankedWorkCandidates } from "./work-candidates";
 
-const SEARCH_COLUMNS = `id, kopis_performance_id, title, starts_at, ends_on, status, artists,
-  venues(name, city), program_items(display_title, composer_name, source_type, confidence,
-    position, source_provider, works(slug))`;
-type SearchRow = Pick<PerformanceRow, "kopis_performance_id" | "title" | "starts_at" | "ends_on" | "status" | "artists" | "venues" | "program_items"> & { id: string };
+// Ranking depends on the term, not the requested page, region or date filter.
+const rankedIds = unstable_cache(async (query: string) => {
+  const { works, rows } = await readRankedWorkCandidates(createSupabaseClient(), query, "concerts");
+  const slugs = new Set(works.map(w => w.slug));
+  return rows.filter(r => slugs.has(r.slug)).map(r => r.id);
+}, ["concert-ranked-work-ids-v1"], { revalidate: 60 });
 
-const readPerformanceSearchPage = unstable_cache(async (query: string, city: string, offset: number) => {
-  const db = createSupabaseClient();
-  const { works, rows } = query ? await readRankedWorkCandidates(db, query) : { works: [], rows: [] };
-  const matchedSlugs = new Set(works.map(work => work.slug));
-  const matchedIds = rows.filter(row => matchedSlugs.has(row.slug)).map(row => row.id);
-  const rowsToSearch: SearchRow[] = [];
-  for (let start = 0; ; start += 1000) {
-    const result = await db.rpc("search_performance_candidates", {
-      search_term: query.toLowerCase(), city_name: city, matched_work_ids: matchedIds,
-    }).select(SEARCH_COLUMNS).order("starts_at").order("id").range(start, start + 999);
-    if (result.error) throw new Error("Performance candidate query failed", { cause: result.error });
-    const page = result.data as unknown as SearchRow[];
-    rowsToSearch.push(...page);
-    if (page.length < 1000) break;
-  }
-  const visibleRows = rowsToSearch.filter(row => !row.kopis_performance_id?.startsWith("perf-"));
-  const performances = mapPerformances(visibleRows.map(row => ({
-    ...row, booking_url: null, poster_url: null, price_range: null, program_image_urls: [],
-    program_source_url: null, program_status: null, source_label: null,
-  })));
-  const internalIds = new Map(performances.map((item, i) => [item, visibleRows[i].id]));
-  const result = searchCatalog({ works, performances }, { query, city, offset, mode: "performances" });
-  if (!result.performances.length) return result;
-  // Hydrate only the displayed page; search metadata never escapes as a partial card.
-  const ids = result.performances.map(item => internalIds.get(item)!);
-  const details = await db.from("performances").select(`id, ${PERFORMANCE_COLUMNS}`).in("id", ids);
+type Database = ReturnType<typeof createSupabaseClient>;
+type Page = { upcoming_count: number; past_count: number; performance_ids: string[]; match_slugs: (string | null)[]; available_cities: string[] };
+
+async function concertPage(db: Database, query: string | null, ids: string[], city: string, period: ConcertPeriod, offset: number): Promise<CatalogSearchResult> {
+  const index = await db.rpc("concert_search_page", { search_term: query, matched_work_ids: ids,
+    city_name: city, period_filter: period, page_offset: offset });
+  const page = (index.data as Page[] | null)?.[0];
+  if (index.error || !page) throw new Error("Concert search failed", { cause: index.error });
+  const periodCounts = { upcoming: Number(page.upcoming_count), past: Number(page.past_count) };
+  const total = period === "all" ? periodCounts.upcoming + periodCounts.past : periodCounts[period];
+  const result: CatalogSearchResult = { works: [], performances: [], total, hasMore: false, periodCounts, matchedWorkSlugs: {}, cities: page.available_cities };
+  if (!page.performance_ids.length) return result;
+  const details = await db.from("performances").select(`id, ${PERFORMANCE_COLUMNS}`).in("id", page.performance_ids);
   if (details.error) throw new Error("Performance details query failed", { cause: details.error });
-  const byId = new Map((details.data as unknown as (PerformanceRow & { id: string })[]).map(row => [row.id, row]));
-  const ordered = ids.map(id => {
-    const row = byId.get(id);
-    if (!row) throw new Error("Performance changed during search");
-    return row;
-  });
-  return { ...result, performances: mapPerformances(ordered) };
-}, ["targeted-performance-search-v1"], { revalidate: 60 });
-
-export function getPerformanceSearchPage(query = "", city = "전체", offset = 0) {
-  return readPerformanceSearchPage(query.trim(), city, offset);
+  const byId = new Map((details.data as unknown as (PerformanceRow & { id: string })[]).map(r => [r.id, r]));
+  const performances = mapPerformances(page.performance_ids.map(id => {
+    const r = byId.get(id);
+    if (!r) throw new Error("Performance changed during search");
+    return r;
+  }));
+  return { ...result, performances, hasMore: offset + performances.length < total,
+    matchedWorkSlugs: Object.fromEntries(performances.flatMap((p,i) => {
+      const slug = page.match_slugs[i];
+      return slug ? [[p.id,slug]] : [];
+    })) };
 }
+
+export const getPerformanceSearchPage = unstable_cache(async (query = "", city = "전체", offset = 0, period: ConcertPeriod = "all") => {
+  const term = query.trim().normalize("NFC");
+  return concertPage(createSupabaseClient(), term, term ? await rankedIds(term) : [], city, period, offset);
+}, ["concert-search-history-v1"], { revalidate: 60 });
+
+export const getSelectedConcertPage = unstable_cache(async (slug: string, city: string, offset: number, period: ConcertPeriod) => {
+  const db = createSupabaseClient();
+  const selected = await db.from("works").select(`id, ${WORK_COLUMNS}`).eq("slug",slug).maybeSingle();
+  if (selected.error) throw new Error("Selected work unavailable", { cause: selected.error });
+  if (!selected.data) return null;
+  const row = selected.data as unknown as WorkRow & { id: string };
+  const page = await concertPage(db, null, [row.id], city, period, offset);
+  return { ...page, works: [workForCard(mapWorks([row], [])[0])] };
+}, ["selected-concert-history-v1"], { revalidate: 60 });

@@ -2,12 +2,13 @@
 
 import { useState, useSyncExternalStore } from "react";
 import type { WorkSuggestion } from "@/lib/work-suggestions";
+import { concertPeriod, type ConcertPeriod } from "@/lib/catalog-search";
 import { SearchBox } from "./SearchBox";
 import { SearchResults } from "./SearchResults";
 import { SingleLineText } from "./SingleLineText";
 
-export type SearchState = { query: string; work: string; mode: "works" | "performances"; city: string };
-type Props = { initialQuery?: string; initialWork?: string; initialMode?: SearchState["mode"]; initialCity?: string };
+export type SearchState = { query: string; work: string; mode: "works" | "performances"; city: string; period: ConcertPeriod };
+type Props = { initialQuery?: string; initialWork?: string; initialMode?: SearchState["mode"]; initialCity?: string; initialPeriod?: ConcertPeriod };
 
 const changeEvent = "catalog-search-change";
 function subscribe(listener: () => void) {
@@ -22,12 +23,13 @@ function searchString(search: SearchState) {
   if (search.work) params.set("work", search.work);
   if (search.mode === "performances") params.set("mode", search.mode);
   if (search.city !== "전체") params.set("city", search.city);
+  if (search.period !== "all") params.set("period", search.period);
   return params.size ? `?${params}` : "";
 }
 
-export function SearchExperience({ initialQuery = "", initialWork = "", initialMode = "works", initialCity = "전체" }: Props) {
+export function SearchExperience({ initialQuery = "", initialWork = "", initialMode = "works", initialCity = "전체", initialPeriod = "all" }: Props) {
   // A cached Next.js page may have old initial props when restored from a detail page.
-  const snapshot = useSyncExternalStore(subscribe, getSnapshot, () => searchString({ query: initialQuery, work: initialWork, mode: initialMode, city: initialCity }));
+  const snapshot = useSyncExternalStore(subscribe, getSnapshot, () => searchString({ query: initialQuery, work: initialWork, mode: initialMode, city: initialCity, period: initialPeriod }));
   const params = new URLSearchParams(snapshot);
   const candidate = params.get("work") ?? "";
   const search: SearchState = {
@@ -35,6 +37,7 @@ export function SearchExperience({ initialQuery = "", initialWork = "", initialM
     work: /^[a-z0-9-]{1,160}$/.test(candidate) ? candidate : "",
     mode: params.get("mode") === "performances" ? "performances" : "works",
     city: (params.get("city") ?? "").slice(0, 80) || "전체",
+    period: concertPeriod(params.get("period")),
   };
   const [page, setPage] = useState({ snapshot, offset: 0 });
   const offset = page.snapshot === snapshot ? page.offset : 0;
@@ -48,8 +51,8 @@ export function SearchExperience({ initialQuery = "", initialWork = "", initialM
     if (location.pathname + location.search !== url) window.history.pushState({}, "", url);
     window.dispatchEvent(new Event(changeEvent));
   }
-  const clear = () => commit({ query: "", work: "", mode: "works", city: "전체" });
-  const select = (work: WorkSuggestion) => commit({ query: work.title, work: work.slug, mode: "works", city: "전체" });
+  const clear = () => commit({ query: "", work: "", mode: "works", city: "전체", period: "all" });
+  const select = (work: WorkSuggestion) => commit({ query: work.title, work: work.slug, mode: "works", city: "전체", period: "all" });
 
   return (
     <div className={submitted ? "mx-auto w-full max-w-4xl px-4 pb-16 pt-6 sm:px-8 sm:pt-10" : "mx-auto flex min-h-[calc(100svh-12rem)] w-full max-w-3xl flex-col justify-center px-4 pb-24 sm:px-8"}>
@@ -65,7 +68,8 @@ export function SearchExperience({ initialQuery = "", initialWork = "", initialM
         <SearchBox initialValue={search.query} onSubmit={query => commit({ ...search, query, work: "" })} onSelect={select} onClear={clear} />
       </div>
       {submitted ? <SearchResults search={search} offset={offset} onMore={() => setPage({ snapshot, offset: offset + 24 })}
-        onMode={mode => commit({ ...search, mode, work: "" })} onCity={city => commit({ ...search, city })} /> : null}
+        onMode={mode => commit({ ...search, mode, work: "" })} onCity={city => commit({ ...search, city })}
+        onPeriod={period => commit({ ...search, period })} /> : null}
     </div>
   );
 }

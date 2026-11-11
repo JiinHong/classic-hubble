@@ -1,4 +1,5 @@
 import { SearchExperience } from "@/components/SearchExperience";
+import { concertPeriod } from "@/lib/catalog-search";
 
 type HomeProps = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 const first = (value: string | string[] | undefined) => (Array.isArray(value) ? value[0] : value) ?? "";
@@ -11,5 +12,5 @@ export default async function Home({ searchParams }: HomeProps) {
   const initialMode = first(params.mode) === "performances" ? "performances" : "works";
   const initialCity = first(params.city).slice(0, 80) || "전체";
   return <main><SearchExperience key={JSON.stringify([initialQuery, initialWork, initialMode, initialCity])}
-    initialQuery={initialQuery} initialWork={initialWork} initialMode={initialMode} initialCity={initialCity} /></main>;
+    initialQuery={initialQuery} initialWork={initialWork} initialMode={initialMode} initialCity={initialCity} initialPeriod={concertPeriod(first(params.period))} /></main>;
 }
