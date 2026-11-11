@@ -153,6 +153,13 @@ const sourceLabels: Record<ConfidenceLevel, string> = {
   verified: "검수 완료",
 };
 
+// These sources certify provenance, not a measured recognition accuracy.
+const unscoredSources = new Map([
+  ["codex_vision", "이미지 판독"],
+  ["paddleocr", "OCR 근거 확인"],
+  ["kumho_official_correction", "주최 측 정정"],
+]);
+
 function firstRelation<T>(value: Relation<T> | undefined) {
   if (Array.isArray(value)) return value[0] ?? null;
   return value ?? null;
@@ -248,17 +255,13 @@ export function mapPerformances(rows: PerformanceRow[]): Performance[] {
             performedScope: item.performed_scope ?? null,
             scopeDetails: item.scope_details ?? [],
             source: {
-              confidence: ["codex_vision", "paddleocr"].includes(item.source_provider)
+              confidence: unscoredSources.has(item.source_provider)
                 ? null
                 : Number(item.confidence),
               label:
-                item.source_provider === "nol"
+                unscoredSources.get(item.source_provider) ?? (item.source_provider === "nol"
                   ? "NOL 원문"
-                  : item.source_provider === "codex_vision"
-                    ? "이미지 판독"
-                    : item.source_provider === "paddleocr"
-                      ? "OCR 근거 확인"
-                      : (sourceLabels[item.source_type] ?? sourceLabels.unknown),
+                  : (sourceLabels[item.source_type] ?? sourceLabels.unknown)),
               type: item.source_type,
             },
             workSlug: firstRelation(item.works)?.slug ?? "",

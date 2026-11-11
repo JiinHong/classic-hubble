@@ -585,6 +585,15 @@ describe("targeted detail queries", () => {
     });
   });
 
+  it("distinguishes a dated organizer correction from an OCR reading without an accuracy score", async () => {
+    database(false, "kumho_official_correction");
+    const { getCatalogPerformanceById } = await import("./catalog");
+    const result = await getCatalogPerformanceById("PF123456");
+    expect(result.performance?.program[1].source).toEqual({
+      type: "official", label: "주최 측 정정", confidence: null,
+    });
+  });
+
   it("reads a component and its related works, preserving parent names and all concert program items", async () => {
     const { filters } = database();
     const { getCatalogWorkBySlug } = await import("./catalog");
