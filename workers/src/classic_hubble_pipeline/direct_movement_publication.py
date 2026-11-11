@@ -1,5 +1,6 @@
 """Publish a work association with its printed movements, without inferring a full work."""
 import hashlib
+import re
 from datetime import UTC, datetime
 
 from .direct_vision import _cached, _identity, _match_reading, _original
@@ -32,7 +33,53 @@ def aligned_movement_matches(stored, current):
             for i in sorted(old) if i in new and new[i] == old[i]]
 
 
-def publish(repository, store, client, performance_id, *, apply=False):
+def registry_candidates(stored, current, authorities):
+    """A later parent identity may fill an empty match, never replace a different one."""
+    def indexed(result):
+        if (not result or result.get("validation_status") != "complete" or result.get("warnings")
+                or result.get("source_warnings") or result.get("rejected_items")):
+            return {}
+        rows = {}
+        for row in result["items"]:
+            if row.get("derived_from") or row["context"] != "program":
+                continue
+            i = row["source_index"]
+            if i in rows:
+                return {}
+            rows[i] = row
+        return rows
+
+    old, new = indexed(stored), indexed(current)
+    candidates = []
+    for i in sorted(old.keys() & new.keys()):
+        a, b = old[i], new[i]
+        if any(a[k] != b[k] for k in ("evidence", "fields", "scope")):
+            continue
+        f = b["fields"]
+        if not f.get("title") or not f.get("composer"):
+            continue
+        if b["scope"] == "full_work" and not any(f.get(k) for k in ("movements", "catalogue", "key")):
+            wid = b.get("suggested_work_id")
+            if not wid or any(x.get("reason") != "composer_and_alias" or x.get("identity_reason") != "composer_and_alias"
+                              or x.get("candidate_ids") != [wid] or x.get("suggested_work_id") != wid
+                              or x.get("scoped_work_id") for x in (a, b)):
+                continue
+        elif b["scope"] == "unknown" and all(f.get(k) for k in ("movements", "catalogue", "key")):
+            wid = b.get("scoped_work_id")
+            if (not wid or a.get("reason") != "scope_requires_review" or b.get("reason") != "scope_requires_review"
+                    or b.get("candidate_ids") != [wid] or b.get("identity_reason") != "composer_and_catalogue"
+                    or b.get("suggested_work_id") or a.get("suggested_work_id") or a.get("scoped_work_id")
+                    or a.get("candidate_ids") != [] or a.get("identity_reason") != "no_candidate"):
+                continue
+        else:
+            continue
+        key = authorities.get(wid)
+        if isinstance(key, str) and re.fullmatch("[0-9a-f]{64}", key):
+            candidates.append({"index": i, "work_id": wid, "scope": "unknown", "authority_key": key})
+    return candidates
+
+
+def publish(repository, store, client, performance_id, *, apply=False, authorities=None):
     target = repository.load_vision_target(performance_id)
     if (not target or not target.get("starts_on") or target["starts_on"] != target.get("ends_on")
             or len(target.get("intro_image_urls") or []) != 1):
@@ -53,11 +100,19 @@ def publish(repository, store, client, performance_id, *, apply=False):
             or not _date_matches(reading, target["starts_on"])):
         return {"status": "incomplete_or_undated_reading", "items": 0}
     _original(store, identity)
-    candidates = aligned_movement_matches(cached["matching"], _match_reading(repository, identity, reading))
+    current = _match_reading(repository, identity, reading)
+    candidates = (aligned_movement_matches(cached["matching"], current) if authorities is None
+                  else registry_candidates(cached["matching"], current, authorities))
     if not candidates:
         return {"status": "no_verified_catalogue_movements", "items": 0}
     packet = dict(url=url, sha=source["sha256"], reading_key=digest(identity),
                   envelope_utf8=json_bytes(cached).decode("utf-8"))
+    if authorities is not None:
+        packet["identity_mode"] = "independent_parent_registry_v1"
+        for key in {c["authority_key"] for c in candidates}:
+            data = store.read(f"extractions/sha256/{key[:2]}/{key}")
+            if hashlib.sha256(data).hexdigest() != key:
+                raise ValueError("Parent authority archive mismatch")
     preview = repository.publish_direct_movement_program(performance_id, packet, candidates, None)
     if not apply or preview["status"] != "ready":
         return preview
