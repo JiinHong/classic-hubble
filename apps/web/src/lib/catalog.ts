@@ -158,6 +158,7 @@ const unscoredSources = new Map([
   ["codex_vision", "이미지 판독"],
   ["paddleocr", "OCR 근거 확인"],
   ["kumho_official_correction", "주최 측 정정"],
+  ["organizer_program", "주최 측 공식 프로그램"],
 ]);
 
 function firstRelation<T>(value: Relation<T> | undefined) {
