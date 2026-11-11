@@ -188,6 +188,7 @@ def validate_response(
     *,
     automatic: bool = False,
     matcher: MusicMatcher | None = None,
+    program_lines: range | None = None,
 ) -> dict:
     request = prepare_request(document, document_sha256)
     try:
@@ -203,7 +204,12 @@ def validate_response(
     if status_conflict and not automatic:
         raise ValueError("Extraction status and items disagree")
     lines = {row["line_id"]: row["text"] for row in request["input"]["lines"]}
-    dates, invalid_date = date_headings(lines.values())
+    if program_lines is not None and (
+        not automatic or program_lines.step != 1 or not 0 <= program_lines.start < program_lines.stop <= len(lines)
+    ):
+        raise ValueError("Invalid programme line range")
+    allowed = None if program_lines is None else {f"L{i:06}" for i in program_lines}
+    dates, invalid_date = date_headings(text for key, text in lines.items() if allowed is None or key in allowed)
     multiple_dates = len(dates) > 1
     date_warnings = ["multiple_performance_dates"] if multiple_dates else []
     if invalid_date:
@@ -296,6 +302,12 @@ def validate_response(
         parent = None
         if reference.context != "program":
             suggested, candidates, reason = None, [], "not_confirmed_program"
+        elif allowed is not None and any(
+            span.line_id not in allowed
+            for spans in (reference.composer, reference.title, reference.catalogue, reference.key, *reference.movements)
+            for span in spans or []
+        ):
+            suggested, candidates, reason = None, [], "outside_performance_date_section"
         elif automatic and multiple_dates:
             suggested, reason = None, "performance_date_binding_required"
         elif status_conflict:
@@ -387,10 +399,10 @@ def validate_response(
         ),
         "status": response.status,
         "review_status": "automated" if automatic else "unverified",
-        "publishable": automatic and not date_warnings
+        "publishable": automatic and allowed is None and not date_warnings
         and any(item["suggested_work_id"] for item in items),
         "validation_status": validation_status,
-        "complete": bool(items)
+        "complete": allowed is None and bool(items)
         and not rejected
         and not status_conflict
         and not date_warnings

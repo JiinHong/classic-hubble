@@ -34,7 +34,7 @@ current DB checks and live source verification occur on apply.
 - Only single-day performances are currently supported.
 - At least one high-quality image date must match the performance. Another
   current image may supply the program without repeating that date.
-- A conflicting, invalid, or unsupported date on any image blocks the bundle.
+- By default, a conflicting, invalid, or unsupported date blocks the bundle.
 - Every image needs a saved selection. `no_program_identified` is explicit
   reviewed absence; `uncertain` is not and blocks a complete bundle.
 - Every original and OCR document hash is verified. Every live image is checked
@@ -59,6 +59,25 @@ The compatibility RPC preserves performances that already have scoped bundle
 rows, preventing older workers from replacing them with a full-work-only subset.
 Its previous implementation is retained as `publish_paddle_program_v1`; future
 contract changes must account for both entry points.
+
+### Dated programmes on the same poster
+
+For a reviewed **single-image, single-day concert**, pass `--dated-program`
+to require a programme section for that day. The opt-in proof currently accepts
+two consecutive, weekday-labelled Korean dates on separate rows beneath one
+programme heading, in a single centered column. A reliable cover date supplies
+the year, and an explicit artist heading closes the programme. Both the current
+OCR bytes and the citation positions must agree with the stored original. A
+date elsewhere on the poster, a sale date or an item in the artist biography
+cannot supply programme evidence. Other layouts remain private.
+
+The same restricted SQL function locates the section for preview and recomputes
+it under the publication lock. All cited composer, title, catalogue, key and
+movement spans must be inside its boundaries and meet the existing OCR quality
+threshold. Other dates can be present in the saved review; their items are
+withheld, not renumbered or copied. The private receipt retains the original
+review and OCR identities and the proof's line positions, not a second copy of
+the entire OCR document. A dated publication never confirms the full programme.
 
 ## Matching and reads
 
