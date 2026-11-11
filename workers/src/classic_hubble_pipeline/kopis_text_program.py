@@ -6,6 +6,7 @@ from datetime import UTC, date, datetime
 
 from .direct_vision import _cached, _identity, _original
 from . import festival_session as festival
+from . import venue_vocal as vocal
 from .kopis_typed_recital import _DETAIL
 from .music_extraction import digest, json_bytes
 from .organizer_program import _archive, _fetch
@@ -150,26 +151,36 @@ def publish(repository,store,client,kopis,performance_id,authority,*,apply=False
     if src.get("object_key")!=identity["source_object_key"]:return {"status":"stale_evidence","items":0}
     cached=_cached(repository,store,identity)
     is_festival=proof.get("style")==festival.STYLE
-    if not cached or digest(cached)!=proof["envelope_sha"] or (not is_festival and not cover_matches(cached["reading"],proof)):
+    is_vocal=proof.get("style")==vocal.STYLE
+    if not cached or digest(cached)!=proof["envelope_sha"] or (not (is_festival or is_vocal) and not cover_matches(cached["reading"],proof)):
         return {"status":"cover_binding_unverified","items":0}
     _original(store,identity)
     if not 1<=len(proof["sources"])<=60:return {"status":"work_evidence_unverified","items":0}
     for k,source in proof["sources"].items():
         raw=_archive(store,"originals",source["sha"])
         if len(raw)>2500000:return {"status":"work_evidence_unverified","items":0}
-        if is_festival:
+        if is_vocal:
+            if k!="venue" or vocal.venue_lines(raw)!=proof["session"]:
+                return {"status":"venue_program_changed","items":0}
+        elif is_festival:
             if k!="session" or festival.session_lines(raw,proof["sty"])!=proof["session"]:
                 return {"status":"organizer_session_changed","items":0}
         else:
             witnesses=[row[f] for row in proof["rows"] if row["source"]==k for f in ("work_witness","credit_witness")]
             if not source_supports(raw,witnesses):return {"status":"work_evidence_unverified","items":0}
-    rows=festival.verified_session(cached["reading"],proof) if is_festival else verified_items(proof["sty"],proof)
+    if is_vocal:rows=vocal.verified_songs(cached["reading"],proof)
+    elif is_festival:rows=festival.verified_session(cached["reading"],proof)
+    else:rows=verified_items(proof["sty"],proof)
     if not rows:return {"status":"work_evidence_unverified","items":0}
     packet=dict(authority=authority,sha=src["sha256"],reading_key=digest(identity),envelope_utf8=json_bytes(cached).decode())
     preview=repository.publish_kopis_text_program(performance_id,packet,None)
     if not apply or preview["status"]!="ready":return preview
     if preview.get("program")!=rows:raise ValueError("KOPIS text programme preview mismatch")
-    if is_festival:
+    if is_vocal:
+        section=vocal.venue_lines(_fetch(client,proof["sources"]["venue"]["url"],vocal.URL))
+        if section!=proof["session"]:return {"status":"venue_program_changed","items":0}
+        packet["live_session_sha"]=hashlib.sha256("\n".join(section).encode()).hexdigest()
+    elif is_festival:
         url2=festival.session_url(proof)
         section=festival.session_lines(_fetch(client,url2,re.escape(url2)),proof["sty"])
         if section!=proof["session"]:return {"status":"organizer_session_changed","items":0}
