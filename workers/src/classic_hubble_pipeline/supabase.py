@@ -261,6 +261,12 @@ class SupabaseRepository:
             prefer="return=representation",
         ).json()
 
+    def load_paddle_program_section(self, raw: str, sha: str, day: str) -> dict | None:
+        response = self._request("POST", "rpc/paddle_dated_program_section",
+                                 json={"p_ocr_utf8": raw, "p_sha": sha, "p_day": day, "p_entries": []},
+                                 prefer="return=representation")
+        return response.json() if response.content else None
+
     def save_direct_vision_result(
         self, key: str, payload: Mapping[str, object], run_id: str
     ) -> bool:

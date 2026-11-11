@@ -17,7 +17,7 @@ from types import SimpleNamespace
 import httpx
 from dotenv import load_dotenv
 
-from .music_extraction import digest, validate_response
+from .music_extraction import digest, json_bytes, validate_response
 from .music_review import _current_ocr
 from .performance_dates import DATE_BINDING_VERSION, date_headings
 from .r2 import R2Settings, R2Store
@@ -155,6 +155,8 @@ def publish(repository, store, client, performance_id, review_id, *, apply=False
 
 
 def _bundle_eligible(row, document):
+    if row["reason"] == "outside_performance_date_section":
+        return row["reason"]
     if row.get("derived_from"):
         return "derived_selection_requires_review"
     if row["scope"] not in PERFORMED_SCOPES:
@@ -170,7 +172,7 @@ def _bundle_eligible(row, document):
     return None
 
 
-def publish_bundle(repository, store, client, performance_id, review_ids, *, apply=False):
+def publish_bundle(repository, store, client, performance_id, review_ids, *, apply=False, dated_program=False):
     """Validate the current performance's complete image set, then publish a subset.
 
     Review identities remain v1. This distinct publication contract carries the
@@ -181,6 +183,7 @@ def publish_bundle(repository, store, client, performance_id, review_ids, *, app
         return {"status": "missing_performance", "items": 0}
     urls = target["intro_image_urls"]
     if (not urls or len(urls) > 50 or len(set(urls)) != len(urls)
+            or (dated_program and len(urls) != 1)
             or not target["starts_on"] or target["starts_on"] != target["ends_on"]):
         return {"status": "date_or_source_binding_required", "items": 0}
     sources = [repository.load_vision_source(url) for url in urls]
@@ -208,17 +211,38 @@ def publish_bundle(repository, store, client, performance_id, review_ids, *, app
     works = repository.load_work_catalog()
     documents, items, reasons, seen = [], [], Counter(), set()
     expected_date = tuple(map(int, target["starts_on"].split("-")))
+    evaluation = {"publication_version": BUNDLE_VERSION, "date_binding_version": DATE_BINDING_VERSION,
+                  "performance_date": target["starts_on"]}
     for source in sources:
         pointer = reviews[source["sha256"]]
         doc = _current_ocr(snapshot, store, pointer["document_sha256"])
         if hashlib.sha256(store.read(source["object_key"])).hexdigest() != source["sha256"]:
             raise ValueError("Original integrity verification failed")
-        dates, invalid = date_headings([line["text"] for line in doc["lines"]], fallback_year=expected_date[0])
-        if invalid or dates - {expected_date}:
-            return {"status": "date_binding_required", "items": 0}
-        if dates and not _date_matches({"lines": [line for line in doc["lines"] if _score_ok(line)]}, target["starts_on"]):
-            return {"status": "date_binding_required", "items": 0}
-        matching = validate_response(pointer["response"], doc, pointer["document_sha256"], works, automatic=True)
+        proof = {}
+        program_lines = None
+        if dated_program:
+            raw = json_bytes(doc)
+            if len(raw) > 524288 or hashlib.sha256(raw).hexdigest() != pointer["document_sha256"]:
+                return {"status": "unsupported_section_document", "items": 0}
+            raw = raw.decode("utf-8")
+            section = repository.load_paddle_program_section(raw, pointer["document_sha256"], target["starts_on"])
+            if not section:
+                return {"status": "date_binding_required", "items": 0}
+            if section["version"] != "dated-program-section-v1" or section["performance_date"] != target["starts_on"]:
+                raise ValueError("Unexpected programme section proof")
+            program_lines = range(section["heading_line"] + 1, section["end_line"])
+            proof["program_section"] = section
+            evaluation["section_ocr_utf8"] = raw
+            date_binding = "dated_section"
+        else:
+            dates, invalid = date_headings([line["text"] for line in doc["lines"]], fallback_year=expected_date[0])
+            if invalid or dates - {expected_date}:
+                return {"status": "date_binding_required", "items": 0}
+            if dates and not _date_matches({"lines": [line for line in doc["lines"] if _score_ok(line)]}, target["starts_on"]):
+                return {"status": "date_binding_required", "items": 0}
+            date_binding = "target" if dates else "absent"
+        matching = validate_response(pointer["response"], doc, pointer["document_sha256"], works,
+                                     automatic=True, program_lines=program_lines)
         if matching["validation_status"] != "complete" or matching["warnings"] or matching["source_warnings"]:
             return {"status": "invalid_selection", "items": 0}
         for row in matching["items"]:
@@ -235,15 +259,21 @@ def publish_bundle(repository, store, client, performance_id, review_ids, *, app
                 reasons["duplicate_evidence"] += 1
                 continue
             seen.add(signature)
+            display_title = " ".join(filter(None, [fields["title"], fields["catalogue"]]))
+            if dated_program and row["evidence"]["catalogue"] and all(
+                any(c["line_id"] == t["line_id"] and c["quote"] in t["quote"] for t in row["evidence"]["title"])
+                for c in row["evidence"]["catalogue"]
+            ):
+                display_title = fields["title"]
             items.append({"work_id": work_id, "position": len(items),
-                          "display_title": " ".join(filter(None, [fields["title"], fields["catalogue"]])),
+                          "display_title": display_title,
                           "composer_name": fields["composer"], "performed_scope": row["scope"],
                           "scope_details": fields["movements"], "source_url": source["source_url"]})
         documents.append({"source": source,
                           "ocr": next(r for r in ocr_rows if r["result_sha256"] == pointer["document_sha256"]),
                           "review": pointer, "matching": matching,
-                          "date_binding": "target" if dates else "absent"})
-    if not any(d["date_binding"] == "target" for d in documents):
+                          "date_binding": date_binding, **proof})
+    if not any(d["date_binding"] in {"target", "dated_section"} for d in documents):
         return {"status": "date_binding_required", "items": 0}
     result = {"status": "ready" if items else "no_eligible_items", "items": len(items),
               "program_status": "partially_confirmed", "withheld_reasons": dict(reasons)}
@@ -258,8 +288,7 @@ def publish_bundle(repository, store, client, performance_id, review_ids, *, app
     return repository.publish_paddle_program_bundle({
         "p_performance_id": performance_id, "p_expected_performance": target,
         "p_documents": documents, "p_items": items,
-        "p_evaluation": {"publication_version": BUNDLE_VERSION, "date_binding_version": DATE_BINDING_VERSION,
-                         "performance_date": target["starts_on"]},
+        "p_evaluation": evaluation,
     })
 
 
@@ -271,6 +300,7 @@ def main(argv=None, *, repository=None, store=None, stdout=None, stderr=None):
     parser.add_argument("--performance-id", required=True)
     parser.add_argument("--review-id", action="append", required=True)
     parser.add_argument("--apply", action="store_true", help="Publish after live-source and atomic DB checks.")
+    parser.add_argument("--dated-program", action="store_true", help="Require an explicitly dated section in one current poster.")
     args = parser.parse_args(argv)
     if len(args.review_id) > 50:
         parser.error("At most 50 saved reviews per performance")
@@ -292,7 +322,8 @@ def main(argv=None, *, repository=None, store=None, stdout=None, stderr=None):
                 timeout=30, follow_redirects=False,
                 headers={"User-Agent": "classic-hubble-pipeline/0.1"},
             )) if args.apply else None
-            result = publish_bundle(repository, store, client, args.performance_id, args.review_id, apply=args.apply)
+            result = publish_bundle(repository, store, client, args.performance_id, args.review_id,
+                                    apply=args.apply, dated_program=args.dated_program)
         output.write(json.dumps({"mode": "apply" if args.apply else "dry_run", **result}) + "\n")
         return 0
     except Exception as error:  # No source text or credentials in operational logs.
