@@ -135,3 +135,16 @@ transaction. Existing programmes are preserved; an identical published
 bundle is a no-op. The private audit retains the individual sheet provenance
 and the exact typed KOPIS lines. The rollback-only contract tests are in
 `supabase/tests/direct_kopis_sheet_bundle.sql`.
+
+### Direct readings with printed movements
+
+`direct_movement_publication.publish` associates only the dated programme's
+printed movements with their parent work. It keeps the exact movement text
+and does not reinterpret a list starting at I as a complete performance.
+The single current image, stored direct reading, KOPIS date, start time and
+venue must agree. Both the frozen match and a new catalogue match must have
+the same unique composer and work number; the database checks the current
+catalogue again under lock. A year, booking date, title alone or performer
+credit cannot authorize a publication. Unsupported items stay private, and
+the concert remains partially confirmed. The ordinary direct publisher
+cannot replace these scoped rows. See `supabase/tests/direct_movement_program.sql`.
