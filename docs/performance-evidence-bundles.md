@@ -148,3 +148,20 @@ catalogue again under lock. A year, booking date, title alone or performer
 credit cannot authorize a publication. Unsupported items stay private, and
 the concert remains partially confirmed. The ordinary direct publisher
 cannot replace these scoped rows. See `supabase/tests/direct_movement_program.sql`.
+
+### Independent parent-work evidence
+
+An optional direct-reading replay can recover a printed parent work that did not
+exist in an older match snapshot. It does not overwrite that snapshot. A private,
+content-addressed catalogue record identifies the edition-neutral parent, its
+composer and its literal title using a named authority. This is never a source
+for the concert programme. The worker checks its R2 bytes and the database checks
+its digest, the current canonical row and possible conflicting identities again.
+
+The concert still needs one current sheet with the same official date, time and
+venue. A previously empty match needs a unique present-day catalogue match,
+literal title, key, number, credited composer and cited movements. A title-only
+work needs the same unambiguous full-work identity in both match snapshots.
+Both publish only the association with unknown extent, retaining any movements
+as printed. An identified arrangement, changed credit, conflicting candidate or
+claimed edition is held. Existing concert links are never overwritten.
