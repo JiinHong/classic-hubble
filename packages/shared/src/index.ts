@@ -79,6 +79,7 @@ export type Performance = {
   program: ProgramItem[];
   programStatus?: ProgramPublicationStatus;
   programSourceUrl?: string | null;
+  programSourceLabel?: string;
   programImageUrls?: string[];
 };
 

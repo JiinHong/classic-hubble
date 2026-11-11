@@ -612,6 +612,16 @@ describe("targeted detail queries", () => {
     });
   });
 
+  it("distinguishes the organizer's post-concert record from the advance programme", async () => {
+    database(false, "organizer_post_concert");
+    const { getCatalogPerformanceById } = await import("./catalog");
+    const result = await getCatalogPerformanceById("PF123456");
+    expect(result.performance?.program[1].source).toEqual({
+      type: "official", label: "공연 후 주최 측 확인", confidence: null,
+    });
+    expect(result.performance?.programSourceLabel).toBe("주최 측 공연 후 기록 보기");
+  });
+
   it("reads a component and its related works, preserving parent names and all concert program items", async () => {
     const { filters } = database();
     const { getCatalogWorkBySlug } = await import("./catalog");

@@ -157,14 +157,14 @@ export default async function PerformancePage({ params }: PerformancePageProps) 
                   </div>
                 );
               })}
-              {performance.program.length === 0 && performance.programSourceUrl ? (
+              {(performance.programSourceLabel || performance.program.length === 0) && performance.programSourceUrl ? (
                 <a
                   href={performance.programSourceUrl}
                   target="_blank"
                   rel="noreferrer"
                   className="inline-flex items-center gap-2 text-sm font-bold text-emerald-800 hover:text-emerald-950"
                 >
-                  NOL 상세 정보 보기
+                  {performance.programSourceLabel ?? "NOL 상세 정보 보기"}
                   <ExternalLink aria-hidden="true" className="size-4" />
                 </a>
               ) : null}
