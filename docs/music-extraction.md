@@ -506,3 +506,13 @@ separate programme items but count as one concert/work association. No
 complete opera, edition, OCR confidence or other festival date is inferred.
 Both authority documents, the original and the unchanged reading are kept
 with the atomic publication history. Existing programmes are not replaced.
+## Bilingual festival sessions
+
+For ISCM Korea's PAN Music Festival, the common festival poster establishes the
+festival and its date range only. A single KOPIS concert may use the existing
+typed-programme publication path when the bilingual titles, instrumentation and
+credits match one organizer section with the same session, venue, date and time.
+The worker rechecks that live section as well as the KOPIS detail and original
+cover. A changed programme, duplicate identity, or previously protected programme
+does not write. Scope is unspecified; the catalogue does not infer a complete
+performance from a printed work title.
