@@ -273,6 +273,12 @@ class SupabaseRepository:
                                  prefer="return=representation")
         return response.json() if response.content else None
 
+    def load_paddle_numbered_excerpt(self, reference: dict, composer_line: str, title_line: str) -> str | None:
+        response = self._request("POST", "rpc/paddle_numbered_excerpt",
+                                 json={"p_ref": reference, "p_composer": composer_line, "p_title": title_line},
+                                 prefer="return=representation")
+        return response.json() if response.content else None
+
     def save_direct_vision_result(
         self, key: str, payload: Mapping[str, object], run_id: str
     ) -> bool:

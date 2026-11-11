@@ -29,6 +29,7 @@ VERSION = "paddle-partial-program-v1"
 METHOD = "reviewed_paddle_text"
 MIN_LINE_SCORE = 0.9
 MATCH_REASONS = {"composer_and_catalogue", "composer_and_alias"}
+NUMBERED_EXCERPT = "composer_and_numbered_excerpt"
 BUNDLE_VERSION = "paddle-performance-bundle-v2"
 PERFORMED_SCOPES = {"full_work", "movement", "excerpt", "arrangement", "unknown"}
 
@@ -38,14 +39,14 @@ def _score_ok(line):
     return type(score) in (int, float) and math.isfinite(score) and MIN_LINE_SCORE <= score <= 1
 
 
-def _eligible(item, document):
+def _eligible(item, document, *, match_reasons=MATCH_REASONS):
     if item["context"] != "program":
         return "not_confirmed_program"
     if item["scope"] != "full_work":
         return "scope_requires_review"
     if not item["suggested_work_id"]:
         return item["reason"]
-    if not item["fields"]["composer"] or item["reason"] not in MATCH_REASONS:
+    if not item["fields"]["composer"] or item["reason"] not in match_reasons:
         return "explicit_composer_match_required"
     for field in ("composer", "title", "catalogue", "key"):
         for quote in item["evidence"][field] or []:
@@ -154,7 +155,22 @@ def publish(repository, store, client, performance_id, review_id, *, apply=False
     })
 
 
-def _bundle_eligible(row, document):
+def _numbered_excerpt(repository, row, document, known_ids):
+    ref = row["evidence"]
+    if (row["reason"] != "scope_requires_review" or row["identity_reason"] != "no_candidate"
+            or row["context"] != "program" or row["scope"] != "excerpt" or ref["scope"] != "excerpt"
+            or not row["fields"]["movements"] or "~" not in row["fields"]["title"]
+            or len(ref["title"] or []) != 1 or len(ref["composer"] or []) != 1):
+        return
+    composer, title = (document["lines"][int(ref[k][0]["line_id"][1:])] for k in ("composer", "title"))
+    if not _score_ok(composer) or not _score_ok(title):
+        return
+    parent = repository.load_paddle_numbered_excerpt(ref, composer["text"], title["text"])
+    if parent in known_ids:
+        row.update(scoped_work_id=parent, candidate_ids=[parent], identity_reason=NUMBERED_EXCERPT)
+
+
+def _bundle_eligible(row, document, *, dated_program=False):
     if row["reason"] == "outside_performance_date_section":
         return row["reason"]
     if row.get("derived_from"):
@@ -162,8 +178,11 @@ def _bundle_eligible(row, document):
     if row["scope"] not in PERFORMED_SCOPES:
         return "unsupported_scope"
     identity = row["suggested_work_id"] or row["scoped_work_id"]
+    reasons = MATCH_REASONS
+    if dated_program and row["scope"] == "excerpt" and row["scoped_work_id"] and not row["suggested_work_id"]:
+        reasons = MATCH_REASONS | {NUMBERED_EXCERPT}
     reason = _eligible({**row, "scope": "full_work", "suggested_work_id": identity,
-                        "reason": row["identity_reason"]}, document)
+                        "reason": row["identity_reason"]}, document, match_reasons=reasons)
     if reason:
         return reason
     for movement in row["evidence"]["movements"]:
@@ -210,6 +229,7 @@ def publish_bundle(repository, store, client, performance_id, review_ids, *, app
     snapshot = SimpleNamespace(load_ocr_results=lambda: ocr_rows, load_source_archives=lambda: sources)
     works = repository.load_work_catalog()
     documents, items, reasons, seen = [], [], Counter(), set()
+    known_ids = {w.id for w in works if not w.requires_review} if dated_program else set()
     expected_date = tuple(map(int, target["starts_on"].split("-")))
     evaluation = {"publication_version": BUNDLE_VERSION, "date_binding_version": DATE_BINDING_VERSION,
                   "performance_date": target["starts_on"]}
@@ -246,7 +266,9 @@ def publish_bundle(repository, store, client, performance_id, review_ids, *, app
         if matching["validation_status"] != "complete" or matching["warnings"] or matching["source_warnings"]:
             return {"status": "invalid_selection", "items": 0}
         for row in matching["items"]:
-            reason = _bundle_eligible(row, doc)
+            if dated_program:
+                _numbered_excerpt(repository, row, doc, known_ids)
+            reason = _bundle_eligible(row, doc, dated_program=dated_program)
             row["publication_eligible"] = reason is None
             if reason:
                 reasons[reason] += 1

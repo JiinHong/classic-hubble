@@ -79,6 +79,15 @@ withheld, not renumbered or copied. The private receipt retains the original
 review and OCR identities and the proof's line positions, not a second copy of
 the entire OCR document. A dated publication never confirms the full programme.
 
+A numbered selection can identify a collection without identifying a complete
+performance of it. The first supported authority is [Poulenc's fifteen piano
+improvisations](https://catalogue.bnf.fr/ark:/12148/cb139840284). The exact
+composer and title lines must be adjacent inside the date section, and each
+printed range must also be cited in the saved selection. Numbers wholly within
+the overlapping ten-piece set stay unresolved. Separate selections retain their
+own positions and literal ranges, even if both point to the same work. A later
+subset cannot erase a previously published excerpt with explicit scope details.
+
 ## Matching and reads
 
 A composer-family surname plus a composer-specific catalogue and a named title
