@@ -478,3 +478,19 @@ opus numbering; an alias on a parent is insufficient. An unchanged
 previously published programme from these same sources may gain missing
 rows. This never replaces, renumbers, or deletes an existing row, and
 requires a matching prior publication audit.
+
+### Gala programmes inside festival brochures
+
+For a named single-composer gala, a separate event calendar can corroborate
+the programme even when the surrounding festival spans several days. Both
+the calendar row and the printed schedule must agree with the current KOPIS
+title, venue, weekday and time. Only the named programme between the
+exclusive composer credit and festival footer is considered.
+
+The publisher checks the parent title against an independent composer's
+catalogue and the live work list. Each excerpt must cite its parent and
+its own printed number on the same line. Repeated arias from an opera are
+separate programme items but count as one concert/work association. No
+complete opera, edition, OCR confidence or other festival date is inferred.
+Both authority documents, the original and the unchanged reading are kept
+with the atomic publication history. Existing programmes are not replaced.

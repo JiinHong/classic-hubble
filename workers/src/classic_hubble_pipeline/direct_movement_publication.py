@@ -1,5 +1,6 @@
 """Publish a work association with its printed movements, without inferring a full work."""
 import hashlib
+import json
 import re
 from datetime import UTC, datetime
 
@@ -79,7 +80,61 @@ def registry_candidates(stored, current, authorities):
     return candidates
 
 
-def publish(repository, store, client, performance_id, *, apply=False, authorities=None):
+def gala_candidates(frozen, proof):
+    """A reviewed parent can fill an empty identity, not reinterpret a numbered excerpt."""
+    if (not frozen or frozen.get("validation_status") != "complete"
+            or any(frozen.get(k) != [] for k in ("warnings", "source_warnings", "rejected_items"))):
+        return []
+    parents = {}
+    for w in proof["works"]:
+        name = w["printed_title"]
+        if not name or name in parents or not w["work_id"]:
+            return []
+        parents[name] = w["work_id"]
+    matches, seen = [], set()
+    for r in frozen["items"]:
+        i, ref, f = r["source_index"], r["evidence"], r["fields"]
+        if (i in seen or "derived_from" in r or
+                any(x.get("context") != "program" or x.get("scope") != "excerpt" for x in (r, ref))
+                or r.get("reason") != "scope_requires_review" or r.get("identity_reason") != "no_candidate"
+                or r.get("candidate_ids") != [] or r.get("suggested_work_id") or r.get("scoped_work_id")
+                or any(x.get(k) is not None for x in (f, ref) for k in ("catalogue", "key"))
+                or f.get("composer") != proof["printed_composer"] or not f.get("title") or f["title"] not in parents
+                or len(ref.get("composer") or []) != 1 or ref["composer"][0].get("quote") != f["composer"]
+                or len(ref.get("title") or []) != 1 or ref["title"][0].get("quote") != f["title"]
+                or len(ref.get("movements") or []) != 1 or len(ref["movements"][0]) != 1):
+            return []
+        part = ref["movements"][0][0]
+        if (not part.get("quote") or part.get("line_id") != ref["title"][0].get("line_id")
+                or f.get("movements") != [part["quote"]] or part["quote"] == f["title"]):
+            return []
+        seen.add(i)
+        matches.append(dict(index=i, work_id=parents[f["title"]], scope="excerpt"))
+    return sorted(matches, key=lambda x: x["index"])
+
+
+def _gala_proof(store, key, target, performance_id, source_sha):
+    if not isinstance(key, str) or not re.fullmatch("[0-9a-f]{64}", key):
+        raise ValueError("Invalid gala programme authority")
+    raw = store.read(f"extractions/sha256/{key[:2]}/{key}")
+    if hashlib.sha256(raw).hexdigest() != key:
+        raise ValueError("Changed gala programme authority")
+    proof = json.loads(raw)
+    if (proof.get("purpose") != "named_gala_excerpts_v1" or proof.get("edition_identified") is not False
+            or proof.get("performance_id") != performance_id or proof.get("source_sha") != source_sha
+            or proof.get("date") != target["starts_on"] or proof.get("event_title") != target["title"]
+            or not proof.get("works")):
+        return None
+    for k in ("calendar", "catalogue_source"):
+        sha = proof[k]["sha256"]
+        if not re.fullmatch("[0-9a-f]{64}", sha) or hashlib.sha256(store.read(f"originals/sha256/{sha[:2]}/{sha}")).hexdigest() != sha:
+            raise ValueError("Gala authority source identity mismatch")
+    return proof
+
+
+def publish(repository, store, client, performance_id, *, apply=False, authorities=None, gala_key=None):
+    if authorities is not None and gala_key is not None:
+        raise ValueError("Select one programme authority")
     target = repository.load_vision_target(performance_id)
     if (not target or not target.get("starts_on") or target["starts_on"] != target.get("ends_on")
             or len(target.get("intro_image_urls") or []) != 1):
@@ -97,17 +152,23 @@ def publish(repository, store, client, performance_id, *, apply=False, authoriti
         return {"status": "not_read", "items": 0}
     reading = cached["reading"]
     if (reading["coverage"] != "complete" or reading["extraction_status"] != "items_extracted"
-            or not _date_matches(reading, target["starts_on"])):
+            or (gala_key is None and not _date_matches(reading, target["starts_on"]))):
         return {"status": "incomplete_or_undated_reading", "items": 0}
     _original(store, identity)
-    current = _match_reading(repository, identity, reading)
-    candidates = (aligned_movement_matches(cached["matching"], current) if authorities is None
-                  else registry_candidates(cached["matching"], current, authorities))
+    if gala_key is not None:
+        proof = _gala_proof(store, gala_key, target, performance_id, source["sha256"])
+        candidates = gala_candidates(cached["matching"], proof) if proof else []
+    else:
+        current = _match_reading(repository, identity, reading)
+        candidates = (aligned_movement_matches(cached["matching"], current) if authorities is None
+                      else registry_candidates(cached["matching"], current, authorities))
     if not candidates:
         return {"status": "no_verified_catalogue_movements", "items": 0}
     packet = dict(url=url, sha=source["sha256"], reading_key=digest(identity),
                   envelope_utf8=json_bytes(cached).decode("utf-8"))
-    if authorities is not None:
+    if gala_key is not None:
+        packet.update(identity_mode="named_gala_excerpts_v1", gala_key=gala_key)
+    elif authorities is not None:
         packet["identity_mode"] = "independent_parent_registry_v1"
         for key in {c["authority_key"] for c in candidates}:
             data = store.read(f"extractions/sha256/{key[:2]}/{key}")
