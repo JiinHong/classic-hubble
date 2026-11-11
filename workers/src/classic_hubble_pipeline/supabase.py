@@ -267,6 +267,11 @@ class SupabaseRepository:
                                    "p_candidates": candidates, "p_expected": expected},
                              prefer="return=representation").json()
 
+    def publish_organizer_program(self, performance_id: str, document: dict, expected: list[dict] | None) -> dict:
+        return self._request("POST", "rpc/publish_organizer_program",
+                             json={"p_id": performance_id, "p_document": document, "p_expected": expected},
+                             prefer="return=representation").json()
+
     def load_paddle_review(self, key: str) -> dict[str, Any] | None:
         rows = self._request(
             "GET", "provider_records",

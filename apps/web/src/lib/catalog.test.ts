@@ -603,6 +603,15 @@ describe("targeted detail queries", () => {
     });
   });
 
+  it("shows the organizer as the source of a corroborated programme, without an OCR score", async () => {
+    database(false, "organizer_program");
+    const { getCatalogPerformanceById } = await import("./catalog");
+    const result = await getCatalogPerformanceById("PF123456");
+    expect(result.performance?.program[1].source).toEqual({
+      type: "official", label: "주최 측 공식 프로그램", confidence: null,
+    });
+  });
+
   it("reads a component and its related works, preserving parent names and all concert program items", async () => {
     const { filters } = database();
     const { getCatalogWorkBySlug } = await import("./catalog");
