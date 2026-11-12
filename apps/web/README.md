@@ -16,17 +16,21 @@ pnpm --filter web build
 - `/`: search-first discovery surface.
 - `/works/[slug]`: work detail and upcoming performances.
 - `/performances/[id]`: performance detail and booking link.
-- `/watchlist`: saved works and notification channels.
+- `/watchlist`: saved works and their upcoming performances.
 - `/auth/callback`: completes Google sign-in and returns to the originating page.
 - `/admin/review`: OCR review queue.
 
 The catalog reads from the Classic Hubble Supabase project and falls back to
 `@classic-hubble/shared` seed data if Supabase is unavailable. This version starts
-Google sign-in through Supabase Auth. Signed-in users can persist watched works and email
-notification preferences. Web push remains disabled in the UI until VAPID keys and
-browser subscription registration are configured.
+Google sign-in through Supabase Auth. Signed-in users can persist watched works.
+Only email is eligible for concert alerts. Browsing the watchlist does not read
+or change existing notification preferences. The eligibility rule alone does not deliver mail.
 
 ## Google sign-in
+
+Header and watchlist actions open the same welcome dialog. Only its Google button
+starts OAuth; dismissing it leaves the current page and saved works unchanged.
+The local Google mark is from the [Google sign-in button assets](https://developers.google.com/identity/branding-guidelines).
 
 Google and Supabase need two different redirect URLs:
 

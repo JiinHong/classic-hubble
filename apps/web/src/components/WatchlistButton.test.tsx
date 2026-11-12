@@ -30,9 +30,6 @@ function createLibraryClient(requests: Request[]) {
     if (path.endsWith("/watchlist_items") && request.method === "GET") {
       return Response.json([]);
     }
-    if (path.endsWith("/notification_preferences") && request.method === "GET") {
-      return Response.json([]);
-    }
     if (path.endsWith("/works")) {
       return Response.json([{ id: "work-1" }]);
     }
@@ -100,8 +97,10 @@ describe("WatchlistButton", () => {
       await screen.findByRole("button", { name: "이 곡 알림 받기" }),
     );
 
+    expect(screen.getByRole("dialog")).toBeTruthy();
+    expect(client.auth.signInWithOAuth).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Google로 계속하기" }));
     expect(client.auth.signInWithOAuth).toHaveBeenCalledOnce();
-    expect(screen.queryByRole("dialog")).toBeNull();
     expect(requests).toHaveLength(0);
   });
 });

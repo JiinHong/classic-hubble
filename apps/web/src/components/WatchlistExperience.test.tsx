@@ -34,12 +34,6 @@ function createLibraryClient(watchedSlugs: string[]) {
     if (path.endsWith("/watchlist_items") && request.method === "GET") {
       return Response.json(watchedSlugs.map((slug) => ({ works: { slug } })));
     }
-    if (
-      path.endsWith("/notification_preferences") &&
-      request.method === "GET"
-    ) {
-      return Response.json([{ channel: "email", enabled: true }]);
-    }
     return new Response(null, { status: 201 });
   };
 
@@ -89,6 +83,9 @@ describe("WatchlistExperience", () => {
       await screen.findByRole("link", { name: /피아노 협주곡 2번/ }),
     ).toBeTruthy();
     expect(screen.queryByRole("link", { name: /교향곡 5번/ })).toBeNull();
+    expect(screen.queryByText("알림 채널")).toBeNull();
+    expect(screen.queryByText("웹 푸시")).toBeNull();
+    expect(screen.queryByRole("checkbox")).toBeNull();
     expect(
       await screen.findByText("김정원과 친구들 - 저먼 로맨틱스"),
     ).toBeTruthy();

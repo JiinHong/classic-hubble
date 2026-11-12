@@ -33,6 +33,11 @@ body {
   .search-welcome-enter { animation: none; }
 }
 
+body:has(.sign-in-dialog[open]) { overflow: hidden; }
+@media (prefers-reduced-motion: no-preference) {
+  .sign-in-dialog[open] { animation: search-welcome-enter 160ms ease-out both; }
+}
+
 .icon-button {
   display: inline-grid;
   width: 2.5rem;

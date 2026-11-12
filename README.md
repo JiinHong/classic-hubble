@@ -47,13 +47,13 @@ is being established. The workflow requires `KOPIS_API_KEY`, `SUPABASE_URL`, and
 ## Architecture Notes
 
 - Supabase Auth is the default login layer. Anonymous browsing can stay open, while watchlists and notifications require a user.
-- Email/password login, email-confirmed signup, user watchlists, and email notification preferences are connected to the Classic Hubble Supabase project.
+- The web app uses Supabase Google sign-in and per-user watchlists. The watchlist does not change existing email preferences.
 - KOPIS supplies the baseline performance/facility records. The optional deterministic NOL adapter enriches KOPIS-linked goods with text programs or an explicit image-only/not-published state; venue adapters and OCR remain later stages.
 - The `kopis-sync` worker stores raw KOPIS and NOL records first, then idempotently upserts facilities, halls, performances, NOL-owned program rows, and detail images.
 - KOPIS list requests are split into at most 31-day windows and 100-row pages; provider failures are retried and API result codes remain distinguishable from transport errors.
 - OCR/LLM matches below the confidence threshold should be routed to the admin review queue.
 - Email and web push share the same watchlist matching logic, then diverge only at delivery.
-- Web push delivery endpoints are scaffolded, but the user-facing switch stays disabled until VAPID keys and browser subscription registration are configured.
+- Concert alert eligibility is email-only. The email delivery integration is not yet implemented.
 
 ## Supabase
 

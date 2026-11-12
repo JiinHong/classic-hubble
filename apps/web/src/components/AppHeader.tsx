@@ -2,12 +2,32 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { Bell, LibraryBig, LogOut, Menu, X } from "lucide-react";
+import type { User } from "@supabase/supabase-js";
+import { Bell, LibraryBig, LogOut, Menu, UserRound, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "./AuthProvider";
 
+function googlePhoto(user: User) {
+  const identity = user.identities?.find(({ provider }) => provider === "google")?.identity_data;
+  for (const value of [identity?.picture, identity?.avatar_url, user.user_metadata?.picture, user.user_metadata?.avatar_url]) {
+    if (typeof value === "string" && /^https:\/\/(?:[a-z0-9-]+\.)*googleusercontent\.com\//i.test(value)) return value;
+  }
+  return null;
+}
+
+function ProfileAvatar({ photo }: { photo: string | null }) {
+  const [failed, setFailed] = useState(false);
+  const style = "size-9 shrink-0 rounded-full";
+  if (!photo || failed) return <span role="img" aria-label="내 프로필" className={`${style} grid place-items-center bg-neutral-100 text-neutral-600`}>
+    <UserRound aria-hidden="true" className="size-5" />
+  </span>;
+  return <Image src={photo} alt="내 프로필" width={36} height={36} unoptimized referrerPolicy="no-referrer"
+    className={`${style} bg-neutral-100 object-cover`} onError={() => setFailed(true)} />;
+}
+
 export function AppHeader() {
   const { loading, signIn, signOut, user } = useAuth();
+  const photo = user ? googlePhoto(user) : null;
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
   const toggle = useRef<HTMLButtonElement>(null);
@@ -32,7 +52,7 @@ export function AppHeader() {
           </nav> : null}
         </div>
         {user ? <div className="flex min-w-0 items-center gap-1">
-          <span className="hidden max-w-44 truncate text-xs text-neutral-500 sm:block">{user.email}</span>
+          <ProfileAvatar key={user.id + ":" + photo} photo={photo} />
           <button type="button" className="icon-button" aria-label="로그아웃" title="로그아웃" onClick={() => void signOut()}><LogOut aria-hidden="true" className="size-4" /></button>
         </div> : <button type="button" aria-label="로그인" disabled={loading} onClick={() => signIn()} className="h-9 rounded-md bg-neutral-900 px-4 text-sm font-medium text-white hover:bg-neutral-700 disabled:opacity-40">로그인</button>}
       </div>

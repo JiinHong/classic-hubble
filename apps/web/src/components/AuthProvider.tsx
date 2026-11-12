@@ -13,6 +13,7 @@ import {
 } from "react";
 
 import { callbackPath, saveReturnPath, tabStorage } from "@/lib/google-auth";
+import { SignInDialog } from "./SignInDialog";
 import {
   createSupabaseClient,
   isSupabaseConfigured,
@@ -20,7 +21,7 @@ import {
 
 type AuthContextValue = {
   loading: boolean;
-  signIn: () => Promise<void>;
+  signIn: () => void;
   session: Session | null;
   signOut: () => Promise<void>;
   user: User | null;
@@ -43,6 +44,8 @@ export function AuthProvider({ children, client: providedClient }: AuthProviderP
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(() => Boolean(client));
   const [redirecting, setRedirecting] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [dialogError, setDialogError] = useState<string | null>(null);
   const starting = useRef(false);
   const [notice, setNotice] = useState<string | null>(null);
 
@@ -55,18 +58,25 @@ export function AuthProvider({ children, client: providedClient }: AuthProviderP
       queueMicrotask(() => setNotice(reason === "cancelled" ? "Google 로그인이 취소되었습니다." : "Google 로그인을 완료하지 못했습니다."));
     }
     const restore = (event: PageTransitionEvent) => {
-      if (event.persisted) { starting.current = false; setRedirecting(false); }
+      if (event.persisted) { starting.current = false; setRedirecting(false); setDialogOpen(false); }
     };
     window.addEventListener("pageshow", restore);
     return () => window.removeEventListener("pageshow", restore);
   }, []);
 
-  const signIn = useCallback(async () => {
+  const signIn = useCallback(() => {
     if (starting.current || window.location.pathname === callbackPath) return;
-    if (!client) { setNotice("현재 Google 로그인을 사용할 수 없습니다."); return; }
+    setDialogError(null);
+    setDialogOpen(true);
+  }, []);
+
+  const continueWithGoogle = async () => {
+    if (starting.current || window.location.pathname === callbackPath) return;
+    if (!client) { setDialogError("현재 Google 로그인을 사용할 수 없습니다."); return; }
     starting.current = true;
     setRedirecting(true);
     setNotice(null);
+    setDialogError(null);
     const { origin, pathname, search } = window.location;
     saveReturnPath(pathname + search, origin, tabStorage());
     try {
@@ -77,9 +87,9 @@ export function AuthProvider({ children, client: providedClient }: AuthProviderP
     } catch {
       starting.current = false;
       setRedirecting(false);
-      setNotice("Google 로그인을 시작하지 못했습니다.");
+      setDialogError("Google 로그인을 시작하지 못했습니다. 다시 시도해 주세요.");
     }
-  }, [client]);
+  };
 
   useEffect(() => {
     if (!client) return;
@@ -94,6 +104,7 @@ export function AuthProvider({ children, client: providedClient }: AuthProviderP
 
     const { data } = client.auth.onAuthStateChange((_event, nextSession) => {
       if (!active) return;
+      if (nextSession) setDialogOpen(false);
       setSession(nextSession);
       setLoading(false);
     });
@@ -127,6 +138,8 @@ export function AuthProvider({ children, client: providedClient }: AuthProviderP
         <button type="button" onClick={() => setNotice(null)}>닫기</button>
       </div>}
       {children}
+      {dialogOpen && !session && <SignInDialog busy={redirecting} error={dialogError}
+        onClose={() => setDialogOpen(false)} onContinue={continueWithGoogle} />}
     </AuthContext.Provider>
   );
 }

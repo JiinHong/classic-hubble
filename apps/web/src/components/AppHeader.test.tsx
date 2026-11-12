@@ -62,7 +62,7 @@ describe("AppHeader authentication", () => {
     ).toBe("클래식허블 홈");
   });
 
-  it("starts Google directly and ignores a second click during navigation", async () => {
+  it("only starts Google from the welcome dialog and ignores a second submit", async () => {
     const { client } = createClient(null);
     render(
       <AuthProvider client={client}>
@@ -73,12 +73,31 @@ describe("AppHeader authentication", () => {
     const loginButton = await screen.findByRole("button", { name: "로그인" });
     await waitFor(() => expect(loginButton.hasAttribute("disabled")).toBe(false));
     fireEvent.click(loginButton);
+    expect(client.auth.signInWithOAuth).not.toHaveBeenCalled();
+    expect(screen.getByRole("dialog", { name: "클래식허블 로그인" })).toBeTruthy();
+    expect(screen.queryByText("만나서 반가워요")).toBeNull();
 
-    fireEvent.click(loginButton);
+    const google = screen.getByRole("button", { name: "Google로 계속하기" });
+    fireEvent.click(google);
+    fireEvent.click(google);
     expect(client.auth.signInWithOAuth).toHaveBeenCalledExactlyOnceWith({
       provider: "google", options: { redirectTo: window.location.origin + "/auth/callback" },
     });
+  });
+
+  it("can dismiss the welcome dialog without starting sign-in", async () => {
+    const { client } = createClient(null);
+    render(<AuthProvider client={client}><AppHeader /></AuthProvider>);
+    const login = screen.getByRole("button", { name: "로그인" });
+    await waitFor(() => expect(login.hasAttribute("disabled")).toBe(false));
+    login.focus();
+    fireEvent.click(login);
+    const close = screen.getByRole("button", { name: "닫기" });
+    close.focus();
+    fireEvent.click(close);
     expect(screen.queryByRole("dialog")).toBeNull();
+    expect(client.auth.signInWithOAuth).not.toHaveBeenCalled();
+    expect(document.activeElement).toBe(login);
   });
 
   it("allows retry after a failed sign-in start without displaying raw errors", async () => {
@@ -88,15 +107,17 @@ describe("AppHeader authentication", () => {
     const login = screen.getByRole("button", { name: "로그인" });
     await waitFor(() => expect(login.hasAttribute("disabled")).toBe(false));
     fireEvent.click(login);
+    fireEvent.click(screen.getByRole("button", { name: "Google로 계속하기" }));
     const alert = await screen.findByRole("alert");
     expect(alert.textContent).not.toContain("private-detail");
-    fireEvent.click(screen.getByRole("button", { name: "다시 시도" }));
+    fireEvent.click(screen.getByRole("button", { name: "Google로 계속하기" }));
     expect(client.auth.signInWithOAuth).toHaveBeenCalledTimes(2);
   });
 
-  it("shows the signed-in email and signs out", async () => {
+  it("shows the Google profile photo instead of the email and still signs out", async () => {
+    const picture = "https://lh3.googleusercontent.com/a/example";
     const session = {
-      user: { email: "member@example.com", id: "user-1" },
+      user: { email: "member@example.com", id: "user-1", user_metadata: { picture } },
     } as Session;
     const { client, signOut } = createClient(session);
     render(
@@ -105,9 +126,31 @@ describe("AppHeader authentication", () => {
       </AuthProvider>,
     );
 
-    expect(await screen.findByText("member@example.com")).toBeTruthy();
+    const avatar = await screen.findByRole("img", { name: "내 프로필" });
+    expect(avatar.getAttribute("src")).toBe(picture);
+    expect(screen.queryByText("member@example.com")).toBeNull();
+    fireEvent.error(avatar);
+    expect(screen.getByRole("img", { name: "내 프로필" }).tagName).not.toBe("IMG");
     fireEvent.click(screen.getByRole("button", { name: "로그아웃" }));
 
     await waitFor(() => expect(signOut).toHaveBeenCalledOnce());
+  });
+
+  it.each([undefined, "https://googleusercontent.com.example.test/photo"])("uses a neutral avatar for an absent or non-Google photo (%s)", async (picture) => {
+    const { client } = createClient({ user: { id: "u", email: "hidden@example.com", user_metadata: { picture } } } as Session);
+    render(<AuthProvider client={client}><AppHeader /></AuthProvider>);
+    const avatar = await screen.findByRole("img", { name: "내 프로필" });
+    expect(avatar.tagName).not.toBe("IMG");
+    expect(screen.queryByText("hidden@example.com")).toBeNull();
+  });
+
+  it("prefers the linked Google identity photo over stale account metadata", async () => {
+    const picture = "https://lh3.googleusercontent.com/a/current";
+    const { client } = createClient({ user: {
+      id: "u", user_metadata: { avatar_url: "https://lh3.googleusercontent.com/a/old" },
+      identities: [{ provider: "google", identity_data: { picture } }],
+    } } as Session);
+    render(<AuthProvider client={client}><AppHeader /></AuthProvider>);
+    expect((await screen.findByRole("img", { name: "내 프로필" })).getAttribute("src")).toBe(picture);
   });
 });
