@@ -2,7 +2,9 @@
 
 ## Operation
 
-Open `/youtube` from the home search link. A supported YouTube video URL is
+Paste a YouTube or YouTube Music video link into the home search box. The
+YouTube button changes its prompt in place and is optional. The standalone
+`/youtube` form remains available for bookmarks. A supported video URL is
 converted to a video ID, and the server retrieves title, description and channel
 name through `videos.list`. Audio, captions, automatic chapters and YouTube's
 music attribution cards are not retrieved. No YouTube account login is required.

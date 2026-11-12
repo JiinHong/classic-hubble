@@ -1,9 +1,9 @@
 "use client";
 
 import { ArrowRight, ArrowUpLeft, X, Youtube } from "lucide-react";
-import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
 import type { WorkSuggestion } from "@/lib/work-suggestions";
+import { parseYouTubeUrl } from "@/lib/youtube";
 import { SingleLineText } from "./SingleLineText";
 
 type Props = {
@@ -11,11 +11,15 @@ type Props = {
   onSubmit: (query: string) => void;
   onSelect: (work: WorkSuggestion) => void;
   onClear: () => void;
+  onVideo: (id: string | null, retry?: boolean) => void;
 };
 
-const searchPlaceholder = "클래식 곡명이나 작곡가를 입력하세요";
+const looksLikeLink = (text: string) => /^(?:[a-z][a-z\d+.-]*:\/\/|(?:www\.|m\.|music\.)?(?:youtube(?:-nocookie)?\.com|youtu\.be)(?:[/?#:]|$))/i.test(text.trim());
 
-export function SearchBox({ initialValue, onSubmit, onSelect, onClear }: Props) {
+export function SearchBox({ initialValue, onSubmit, onSelect, onClear, onVideo }: Props) {
+  const [linkHint, setLinkHint] = useState(false);
+  const [invalidLink, setInvalidLink] = useState(false);
+  const searchPlaceholder = linkHint ? "마음에 드는 클래식 음악의 유튜브 링크를 넣어보세요" : "클래식 곡명이나 작곡가를 입력하세요";
   const [value, setValue] = useState(initialValue);
   const [lastInitialValue, setLastInitialValue] = useState(initialValue);
   const [open, setOpen] = useState(false);
@@ -31,11 +35,12 @@ export function SearchBox({ initialValue, onSubmit, onSelect, onClear }: Props) 
   if (initialValue !== lastInitialValue) {
     setLastInitialValue(initialValue);
     setValue(initialValue);
+    setInvalidLink(false);
     setOpen(false);
     setActive(-1);
   }
   const query = value.trim();
-  const suggestionsEnabled = open && !!query;
+  const suggestionsEnabled = open && !!query && !looksLikeLink(query);
   const loading = result.query !== query;
   const visible = suggestionsEnabled && !loading;
   const items = loading ? [] : result.items;
@@ -87,7 +92,11 @@ export function SearchBox({ initialValue, onSubmit, onSelect, onClear }: Props) 
   }
   function submit() {
     if (composingRef.current || !query) return;
-    setOpen(false); setActive(-1); onSubmit(query);
+    setOpen(false); setActive(-1);
+    const id = parseYouTubeUrl(query);
+    if (id) onVideo(id, true);
+    else if (looksLikeLink(query)) setInvalidLink(true);
+    else onSubmit(query);
   }
 
   return (
@@ -97,14 +106,19 @@ export function SearchBox({ initialValue, onSubmit, onSelect, onClear }: Props) 
       <form role="search" onSubmit={event => { event.preventDefault(); submit(); }}
         className="flex min-h-16 items-center gap-2 rounded-full border border-neutral-300 bg-white pr-3 pl-6 shadow-[0_2px_12px_0_rgb(0_0_0/0.04)] transition focus-within:border-neutral-500 sm:min-h-18 sm:gap-3 sm:pr-4 sm:pl-7">
         <div className="relative min-w-0 flex-1">
-        <input ref={input} role="combobox" aria-label="곡명, 작곡가, 별칭 검색"
+        <input ref={input} role="combobox" aria-label={linkHint ? "유튜브 또는 유튜브 뮤직 영상 링크" : "곡명, 작곡가, 별칭 검색"}
+          aria-invalid={invalidLink || undefined} aria-describedby={invalidLink ? listId + "-error" : undefined}
           aria-autocomplete="list" aria-expanded={visible} aria-controls={visible ? listId : undefined}
           aria-activedescendant={visible && active >= 0 && items[active] ? `${listId}-${active}` : undefined}
-          autoComplete="off" enterKeyHint="search" maxLength={200} value={value}
+          autoComplete="off" inputMode={linkHint ? "url" : "search"} enterKeyHint="search" maxLength={2048} value={value}
           placeholder={searchPlaceholder} className="block w-full min-w-0 bg-transparent py-5 text-base text-neutral-900 outline-none placeholder:text-transparent"
           onFocus={() => setOpen(true)} onChange={event => {
-            setValue(event.target.value); setActive(-1); setOpen(true);
-            if (!event.target.value.trim()) onClear();
+            const raw = event.target.value;
+            const next = looksLikeLink(raw) ? raw : raw.slice(0, 200);
+            const id = looksLikeLink(next) ? parseYouTubeUrl(next) : null;
+            setValue(next); setActive(-1); setOpen(!id); setInvalidLink(false);
+            onVideo(id);
+            if (!next.trim()) onClear();
           }}
           onCompositionStart={() => { composingRef.current = true; setComposing(true); }}
           onCompositionEnd={event => { clearCompositionState(); setValue(event.currentTarget.value); }}
@@ -127,11 +141,17 @@ export function SearchBox({ initialValue, onSubmit, onSelect, onClear }: Props) 
         </div>
         {value ? <button type="button" className="icon-button size-8!" title="검색어 지우기" aria-label="검색어 지우기" onClick={() => {
           clearCompositionState();
-          setValue(""); setActive(-1); setOpen(false); onClear(); input.current?.focus();
+          setValue(""); setInvalidLink(false); setActive(-1); setOpen(false); onClear(); input.current?.focus();
         }}><X aria-hidden="true" className="size-4" /></button> : null}
-        <Link href="/youtube" className="icon-button text-red-600!" title="유튜브로 찾기" aria-label="유튜브로 찾기"><Youtube aria-hidden="true" className="size-5" /></Link>
+        <button type="button" className="icon-button text-red-600! aria-pressed:bg-red-50" title="유튜브로 찾기" aria-label="유튜브로 찾기" aria-pressed={linkHint} onClick={() => {
+          setLinkHint(!linkHint); clearCompositionState(); setInvalidLink(false);
+          setOpen(false); setActive(-1);
+          input.current?.focus();
+          if (value) input.current?.select();
+        }}><Youtube aria-hidden="true" className="size-5" /></button>
         <button type="submit" disabled={!query || composing} title="검색" aria-label="검색" className="grid size-10 shrink-0 place-items-center rounded-full bg-neutral-900 text-white transition hover:bg-emerald-800 disabled:bg-neutral-100 disabled:text-neutral-400"><ArrowRight aria-hidden="true" className="size-5" /></button>
       </form>
+      {invalidLink ? <p id={listId + "-error"} role="alert" className="mt-3 text-sm text-red-700">유튜브 또는 유튜브 뮤직의 개별 영상 링크를 입력해 주세요.</p> : null}
       {visible ? <div className="absolute inset-x-0 top-full z-30 mt-2 max-h-[min(26rem,50svh)] overflow-y-auto rounded-lg border border-neutral-200 bg-white p-1.5 shadow-lg">
         {result.error ? <p role="alert" className="px-3 py-4 text-sm text-neutral-600">추천 작품을 불러오지 못했습니다.</p> : null}
         <ul id={listId} role="listbox" aria-label="추천 작품">

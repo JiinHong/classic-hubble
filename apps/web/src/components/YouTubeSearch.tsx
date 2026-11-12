@@ -2,7 +2,7 @@
 
 import { ArrowUpRight, Link2, LoaderCircle, Search } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 
 import { parseYouTubeUrl, type YouTubeVideo } from "@/lib/youtube";
 import {
@@ -32,8 +32,7 @@ const reasons: Record<YouTubeMatchReason, string> = {
   distinctive_title: "작품명·별칭 일치",
 };
 
-export function YouTubeSearch() {
-  const [input, setInput] = useState("");
+export function useYouTubeLookup() {
   const [video, setVideo] = useState<YouTubeVideo | null>(null);
   const [result, setResult] = useState<{ entries: YouTubeWorkEntry[] } | null>(
     null,
@@ -41,25 +40,22 @@ export function YouTubeSearch() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const pending = useRef<AbortController | null>(null);
+  const lastId = useRef<string | null>(null);
   useEffect(() => () => pending.current?.abort(), []);
 
-  function changeInput(value: string) {
+  const reset = useCallback(() => {
     pending.current?.abort();
     pending.current = null;
-    setInput(value);
+    lastId.current = null;
     setVideo(null);
     setResult(null);
     setError(null);
     setLoading(false);
-  }
+  }, []);
 
-  async function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const id = parseYouTubeUrl(input);
-    if (!id) {
-      setError(errors.invalid_url);
-      return;
-    }
+  async function identify(id: string, retry = false) {
+    if (lastId.current === id && (!retry || loading)) return;
+    lastId.current = id;
     pending.current?.abort();
     const controller = new AbortController();
     pending.current = controller;
@@ -90,6 +86,26 @@ export function YouTubeSearch() {
     }
   }
 
+  return { video, result, error, loading, identify, reset };
+}
+
+export function YouTubeSearch() {
+  const [input, setInput] = useState("");
+  const [invalid, setInvalid] = useState(false);
+  const lookup = useYouTubeLookup();
+  const { loading, error } = lookup;
+  function changeInput(value: string) {
+    lookup.reset();
+    setInvalid(false);
+    setInput(value);
+  }
+  function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const id = parseYouTubeUrl(input);
+    if (id) void lookup.identify(id, true);
+    else setInvalid(true);
+  }
+
   return (
     <div className="min-w-0">
       <form onSubmit={submit} className="border-b border-stone-200 pb-6">
@@ -115,8 +131,8 @@ export function YouTubeSearch() {
               value={input}
               onChange={(event) => changeInput(event.target.value)}
               placeholder="https://www.youtube.com/watch?v=…"
-              aria-invalid={Boolean(error)}
-              aria-describedby={error ? "youtube-error" : undefined}
+              aria-invalid={invalid || Boolean(error)}
+              aria-describedby={invalid || error ? "youtube-error" : undefined}
               className="h-13 w-full min-w-0 rounded-md border border-stone-300 bg-white pl-10 pr-3 text-base text-stone-950 outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
             />
           </div>
@@ -136,17 +152,25 @@ export function YouTubeSearch() {
             {loading ? "찾는 중" : "작품 찾기"}
           </button>
         </div>
-        {error && (
+        {(invalid || error) && (
           <p
             id="youtube-error"
             role="alert"
             className="mt-3 text-sm text-red-700"
           >
-            {error}
+            {invalid ? errors.invalid_url : error}
           </p>
         )}
       </form>
+      <YouTubeResults lookup={lookup} />
+    </div>
+  );
+}
 
+export function YouTubeResults({ lookup, inline = false }: { lookup: ReturnType<typeof useYouTubeLookup>; inline?: boolean }) {
+  const { video, result, loading } = lookup;
+  return (
+    <div className="min-w-0">
       <div aria-live="polite" aria-busy={loading}>
         {loading && (
           <p role="status" className="py-8 text-sm text-stone-500">
@@ -255,13 +279,13 @@ export function YouTubeSearch() {
                   영상의 작품 정보가 부족하거나 아직 작품 DB와 연결하지
                   못했습니다.
                 </p>
-                <Link
+                {!inline && <Link
                   href="/"
                   className="mt-4 inline-flex items-center gap-1 text-sm font-bold text-emerald-800"
                 >
                   곡명으로 검색
                   <ArrowUpRight aria-hidden="true" className="size-4" />
-                </Link>
+                </Link>}
               </section>
             )}
           </>

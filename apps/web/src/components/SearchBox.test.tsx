@@ -9,7 +9,7 @@ function setup() {
   const onSubmit = vi.fn(), onSelect = vi.fn(), onClear = vi.fn();
   const fetcher = vi.fn<typeof fetch>(async () => Response.json({ suggestions: [suggestion] }));
   vi.stubGlobal("fetch", fetcher);
-  render(<SearchBox initialValue="" onSubmit={onSubmit} onSelect={onSelect} onClear={onClear} />);
+  render(<SearchBox initialValue="" onSubmit={onSubmit} onSelect={onSelect} onClear={onClear} onVideo={vi.fn()} />);
   const input = screen.getByRole("combobox");
   fireEvent.focus(input);
   return { input, onSubmit, onSelect, onClear, fetcher };
@@ -30,12 +30,25 @@ describe("autocomplete search input", () => {
     expect(form.querySelector(".lucide-search")).toBeNull();
     expect(form.firstElementChild?.contains(input)).toBe(true);
     expect(input.getAttribute("aria-label")).toBe("곡명, 작곡가, 별칭 검색");
-    expect(screen.getByRole("link", { name: "유튜브로 찾기" })).toBeTruthy();
+    const toggle = screen.getByRole("button", { name: "유튜브로 찾기" });
+    fireEvent.click(toggle);
+    expect(input.getAttribute("placeholder")).toBe("마음에 드는 클래식 음악의 유튜브 링크를 넣어보세요");
+    expect(toggle.getAttribute("aria-pressed")).toBe("true");
+    expect(document.activeElement).toBe(input);
+    fireEvent.click(toggle);
+    expect(input.getAttribute("placeholder")).toBe("클래식 곡명이나 작곡가를 입력하세요");
   });
   it("uses a capsule field and a circular submit button", () => {
     setup();
     expect(screen.getByRole("search").classList.contains("rounded-full")).toBe(true);
     expect(screen.getByRole("button", { name: /^검색$/ }).classList.contains("rounded-full")).toBe(true);
+  });
+  it("changes the hint without erasing the user's draft", () => {
+    const { input, onClear } = setup();
+    fireEvent.change(input, { target: { value: "베토벤" } });
+    fireEvent.click(screen.getByRole("button", { name: "유튜브로 찾기" }));
+    expect((input as HTMLInputElement).value).toBe("베토벤");
+    expect(onClear).not.toHaveBeenCalled();
   });
   it("only fetches lightweight suggestions while typing; Enter submits the draft", async () => {
     const { input, fetcher, onSubmit } = setup();
