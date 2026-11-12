@@ -23,6 +23,28 @@ function serve(data = { works, performances }) {
   vi.stubGlobal("fetch", fetcher); return fetcher;
 }
 describe("search-first experience", () => {
+  it.each(["https://youtu.be/AbCdEf123_-?si=private", "https://music.youtube.com/watch?v=AbCdEf123_-&list=RD123"])("identifies %s in place without a mode switch or a catalog request", async url => {
+    const fetcher = vi.fn(async () => Response.json({ video: { id: "AbCdEf123_-", title: "링크 속 음악", channelTitle: "Concert" }, result: { entries: [] } }));
+    vi.stubGlobal("fetch", fetcher);
+    render(<SearchExperience />);
+    const field = input();
+    fireEvent.change(field, { target: { value: url } });
+    await settle();
+    expect(screen.getByRole("heading", { name: "링크 속 음악" })).toBeTruthy();
+    fireEvent.keyDown(field, { key: "Enter" }); await settle();
+    expect(fetcher.mock.calls).toHaveLength(1);
+    expect(fetcher).toHaveBeenCalledWith("/api/youtube", expect.objectContaining({ method: "POST", body: JSON.stringify({ url: "https://www.youtube.com/watch?v=AbCdEf123_-" }) }));
+    expect(location.pathname + location.search).toBe("/");
+    fireEvent.click(screen.getByRole("button", { name: "검색어 지우기" })); await settle();
+    expect(screen.queryByText("링크 속 음악")).toBeNull();
+    expect(welcome()).toBeTruthy();
+  });
+  it("keeps unsupported video links out of catalog and provider requests", async () => {
+    const fetcher = serve(); render(<SearchExperience />);
+    submit("https://music.youtube.com/playlist?list=PL123"); await settle();
+    expect(screen.getByRole("alert").textContent).toMatch(/영상 링크/);
+    expect(fetcher).not.toHaveBeenCalled();
+  });
   it("shows a past-only result under its own heading, year and matching work", async () => {
     const concert = { ...performances[0], title: "공개 공연", id: "PFtest", date: "2024-05-11", program: [
       { ...performances[0].program[0], workSlug: "other", displayTitle: "다른 곡" },

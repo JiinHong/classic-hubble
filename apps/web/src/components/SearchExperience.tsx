@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import type { WorkSuggestion } from "@/lib/work-suggestions";
 import { concertPeriod, type ConcertPeriod } from "@/lib/catalog-search";
 import { SearchBox } from "./SearchBox";
 import { SearchResults } from "./SearchResults";
 import { SingleLineText } from "./SingleLineText";
+import { useYouTubeLookup, YouTubeResults } from "./YouTubeSearch";
 
 export type SearchState = { query: string; work: string; mode: "works" | "performances"; city: string; period: ConcertPeriod };
 type Props = { initialQuery?: string; initialWork?: string; initialMode?: SearchState["mode"]; initialCity?: string; initialPeriod?: ConcertPeriod };
@@ -41,9 +42,19 @@ export function SearchExperience({ initialQuery = "", initialWork = "", initialM
   };
   const [page, setPage] = useState({ snapshot, offset: 0 });
   const offset = page.snapshot === snapshot ? page.offset : 0;
-  const submitted = !!(search.query || search.work);
+  const lookup = useYouTubeLookup();
+  const { reset } = lookup;
+  const [navigation, setNavigation] = useState(0);
+  useEffect(() => {
+    const restore = () => { reset(); setNavigation(n => n + 1); };
+    window.addEventListener("popstate", restore);
+    return () => window.removeEventListener("popstate", restore);
+  }, [reset]);
+  const showingVideo = !!(lookup.loading || lookup.error || lookup.video);
+  const submitted = showingVideo || !!(search.query || search.work);
   const [showEntrance, setShowEntrance] = useState(!submitted);
   function commit(next: SearchState) {
+    reset();
     setShowEntrance(false);
     const nextSnapshot = searchString(next);
     const url = `/${nextSnapshot}`;
@@ -65,9 +76,17 @@ export function SearchExperience({ initialQuery = "", initialWork = "", initialM
         </h1>
       ) : null}
       <div className={submitted ? "mx-auto max-w-3xl" : ""}>
-        <SearchBox initialValue={search.query} onSubmit={query => commit({ ...search, query, work: "" })} onSelect={select} onClear={clear} />
+        <SearchBox key={navigation} initialValue={search.query} onSubmit={query => commit({ ...search, query, work: "" })} onSelect={select} onClear={clear}
+          onVideo={(id, retry) => {
+            if (!id) { reset(); return; }
+            setShowEntrance(false);
+            void lookup.identify(id, retry && !!lookup.error);
+          }} />
       </div>
-      {submitted ? <SearchResults search={search} offset={offset} onMore={() => setPage({ snapshot, offset: offset + 24 })}
+      {showingVideo ? <>
+        {lookup.error && <p role="alert" className="mt-4 text-sm text-red-700">{lookup.error}</p>}
+        <YouTubeResults lookup={lookup} inline />
+      </> : submitted ? <SearchResults search={search} offset={offset} onMore={() => setPage({ snapshot, offset: offset + 24 })}
         onMode={mode => commit({ ...search, mode, work: "" })} onCity={city => commit({ ...search, city })}
         onPeriod={period => commit({ ...search, period })} /> : null}
     </div>
