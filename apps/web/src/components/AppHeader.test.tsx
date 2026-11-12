@@ -41,7 +41,7 @@ describe("AppHeader authentication", () => {
     expect(home.querySelector(".lucide-headphones")).toBeNull();
   });
 
-  it("keeps secondary navigation accessible without exposing review or dashboard links", async () => {
+  it("shows a direct composers link without a hamburger or a guest watchlist shortcut", async () => {
     const { client } = createClient(null);
     render(
       <AuthProvider client={client}>
@@ -51,7 +51,8 @@ describe("AppHeader authentication", () => {
 
     expect(screen.queryByRole("link", { name: "검수" })).toBeNull();
     expect(screen.queryByRole("link", { name: "탐색" })).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: "메뉴" }));
+    expect(screen.queryByRole("button", { name: "메뉴" })).toBeNull();
+    expect(screen.queryByRole("link", { name: /관심곡/ })).toBeNull();
     expect(screen.getByRole("link", { name: "작곡가" }).getAttribute("href")).toBe(
       "/composers",
     );
@@ -127,6 +128,12 @@ describe("AppHeader authentication", () => {
     );
 
     const avatar = await screen.findByRole("img", { name: "내 프로필" });
+    const watchlist = screen.getByRole("link", { name: "내 관심곡" });
+    expect(watchlist.getAttribute("href")).toBe("/watchlist");
+    expect(watchlist.contains(avatar)).toBe(true);
+    expect(screen.getAllByRole("link", { name: /관심곡/ })).toHaveLength(1);
+    expect(screen.queryByText("관심곡")).toBeNull();
+    expect(screen.getByRole("link", { name: "작곡가" }).getAttribute("href")).toBe("/composers");
     expect(avatar.getAttribute("src")).toBe(picture);
     expect(screen.queryByText("member@example.com")).toBeNull();
     fireEvent.error(avatar);
@@ -141,6 +148,7 @@ describe("AppHeader authentication", () => {
     render(<AuthProvider client={client}><AppHeader /></AuthProvider>);
     const avatar = await screen.findByRole("img", { name: "내 프로필" });
     expect(avatar.tagName).not.toBe("IMG");
+    expect(screen.getByRole("link", { name: "내 관심곡" }).contains(avatar)).toBe(true);
     expect(screen.queryByText("hidden@example.com")).toBeNull();
   });
 
