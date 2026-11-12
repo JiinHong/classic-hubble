@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import type { Session, SupabaseClient } from "@supabase/supabase-js";
 import { describe, expect, it, vi } from "vitest";
 
@@ -26,6 +26,17 @@ function createClient(session: Session | null) {
 }
 
 describe("AppHeader authentication", () => {
+  it.each([false, true])("places home immediately before composers in the main navigation (signed in: %s)", async (signedIn) => {
+    const { client } = createClient(signedIn ? { user: { id: "u" } } as Session : null);
+    render(<AuthProvider client={client}><AppHeader /></AuthProvider>);
+    const nav = within(screen.getByRole("navigation", { name: "주요 메뉴" }));
+    if (signedIn) await nav.findByRole("link", { name: "내 관심곡" });
+    else await waitFor(() => expect(nav.getByRole("button", { name: "로그인" }).hasAttribute("disabled")).toBe(false));
+    const home = nav.getByRole("link", { name: "홈", exact: true });
+    expect(home.getAttribute("href")).toBe("/");
+    expect(nav.getAllByRole("link").slice(0, 2)).toEqual([home, nav.getByRole("link", { name: "작곡가" })]);
+  });
+
   it("uses the Hubble logo without a separate wordmark as the accessible home link", async () => {
     const { client } = createClient(null);
     render(<AuthProvider client={client}><AppHeader /></AuthProvider>);
