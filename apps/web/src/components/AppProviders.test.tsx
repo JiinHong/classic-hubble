@@ -21,10 +21,9 @@ function AppShellProbe() {
 
   async function runAnonymousMutations() {
     try {
-      auth.openAuth("signin");
+      auth.signIn();
       await auth.signOut();
       await library.toggleWork("beethoven-symphony-5");
-      await library.setPreference("email", false);
       setMutationStatus("resolved");
     } catch {
       setMutationStatus("rejected");
@@ -39,8 +38,6 @@ function AppShellProbe() {
       <output data-testid="library-defaults">
         {[
           library.watchedSlugs.length,
-          library.preferences.email,
-          library.preferences.web_push,
           library.isWatched("beethoven-symphony-5"),
           library.isPending("beethoven-symphony-5"),
         ].join(",")}
@@ -74,7 +71,7 @@ describe("app provider stack without Supabase", () => {
     expect(screen.getByTestId("auth-loading").textContent).toBe("false");
     expect(screen.getByTestId("library-loading").textContent).toBe("false");
     expect(screen.getByTestId("library-defaults").textContent).toBe(
-      "0,true,false,false,false",
+      "0,false,false",
     );
 
     fireEvent.click(screen.getByRole("button", { name: "익명 동작 실행" }));

@@ -15,9 +15,8 @@ function createAuthClient(session: Session | null) {
       onAuthStateChange() {
         return { data: { subscription: { unsubscribe: () => undefined } } };
       },
-      signInWithPassword: vi.fn(),
+      signInWithOAuth: vi.fn(async () => ({ error: null })),
       signOut: vi.fn(async () => ({ error: null })),
-      signUp: vi.fn(),
     },
   } as unknown as SupabaseClient;
 }
@@ -29,9 +28,6 @@ function createLibraryClient(requests: Request[]) {
     const path = new URL(request.url).pathname;
 
     if (path.endsWith("/watchlist_items") && request.method === "GET") {
-      return Response.json([]);
-    }
-    if (path.endsWith("/notification_preferences") && request.method === "GET") {
       return Response.json([]);
     }
     if (path.endsWith("/works")) {
@@ -88,8 +84,9 @@ describe("WatchlistButton", () => {
 
   it("opens authentication instead of writing for an anonymous visitor", async () => {
     const requests: Request[] = [];
+    const client = createAuthClient(null);
     render(
-      <AuthProvider client={createAuthClient(null)}>
+      <AuthProvider client={client}>
         <UserLibraryProvider client={createLibraryClient(requests)}>
           <WatchlistButton workSlug="beethoven-symphony-5" />
         </UserLibraryProvider>
@@ -100,7 +97,10 @@ describe("WatchlistButton", () => {
       await screen.findByRole("button", { name: "이 곡 알림 받기" }),
     );
 
-    expect(await screen.findByRole("dialog")).toBeTruthy();
+    expect(screen.getByRole("dialog")).toBeTruthy();
+    expect(client.auth.signInWithOAuth).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Google로 계속하기" }));
+    expect(client.auth.signInWithOAuth).toHaveBeenCalledOnce();
     expect(requests).toHaveLength(0);
   });
 });

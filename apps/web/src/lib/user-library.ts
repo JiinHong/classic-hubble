@@ -1,11 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-export type NotificationChannel = "email" | "web_push";
-
-export type NotificationPreferences = Record<NotificationChannel, boolean>;
-
 export type UserLibrarySnapshot = {
-  preferences: NotificationPreferences;
   watchedSlugs: string[];
 };
 
@@ -20,29 +15,12 @@ type WatchlistRow = {
   works: Relation<{ slug: string }>;
 };
 
-type PreferenceRow = {
-  channel: NotificationChannel;
-  enabled: boolean;
-};
-
-const defaultPreferences: NotificationPreferences = {
-  email: true,
-  web_push: false,
-};
-
 export async function loadUserLibrary(
   client: SupabaseClient,
   userId: string,
 ): Promise<UserLibrarySnapshot> {
-  const [watchlistResult, preferencesResult] = await Promise.all([
-    client.from("watchlist_items").select("works(slug)").eq("user_id", userId),
-    client
-      .from("notification_preferences")
-      .select("channel, enabled")
-      .eq("user_id", userId),
-  ]);
-
-  if (watchlistResult.error || preferencesResult.error) {
+  const watchlistResult = await client.from("watchlist_items").select("works(slug)").eq("user_id", userId);
+  if (watchlistResult.error) {
     throw new Error("관심곡 정보를 불러오지 못했습니다.");
   }
 
@@ -53,13 +31,7 @@ export async function loadUserLibrary(
         .filter((slug): slug is string => Boolean(slug)),
     ),
   );
-  const preferences = { ...defaultPreferences };
-
-  for (const row of (preferencesResult.data ?? []) as unknown as PreferenceRow[]) {
-    preferences[row.channel] = row.enabled;
-  }
-
-  return { preferences, watchedSlugs };
+  return { watchedSlugs };
 }
 
 export async function saveWatchedWork(
@@ -90,23 +62,6 @@ export async function saveWatchedWork(
 
   if (result.error) {
     throw new Error(watched ? "관심곡을 저장하지 못했습니다." : "관심곡을 해제하지 못했습니다.");
-  }
-}
-
-export async function saveNotificationPreference(
-  client: SupabaseClient,
-  user: LibraryUser,
-  channel: NotificationChannel,
-  enabled: boolean,
-) {
-  await ensureProfile(client, user);
-  const { error } = await client.from("notification_preferences").upsert(
-    { channel, enabled, user_id: user.id },
-    { onConflict: "user_id,channel" },
-  );
-
-  if (error) {
-    throw new Error("알림 설정을 저장하지 못했습니다.");
   }
 }
 

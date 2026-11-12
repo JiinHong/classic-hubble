@@ -4,12 +4,9 @@ import type { Performance, Work } from "@classic-hubble/shared";
 import {
   Bell,
   BellOff,
-  BellRing,
   LoaderCircle,
   LogIn,
-  Mail,
   Search,
-  Smartphone,
 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -20,13 +17,11 @@ import { useUserLibrary } from "./UserLibraryProvider";
 import { WorkCard } from "./WorkCard";
 
 export function WatchlistExperience() {
-  const { loading: authLoading, openAuth, user } = useAuth();
+  const { loading: authLoading, signIn, user } = useAuth();
   const {
     error,
     isPending,
     loading: libraryLoading,
-    preferences,
-    setPreference,
     toggleWork,
     watchedSlugs,
   } = useUserLibrary();
@@ -92,7 +87,7 @@ export function WatchlistExperience() {
 
   return (
     <>
-      <section className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+      <section>
         <div>
           <div className="flex items-center gap-2 text-sm font-black text-emerald-700">
             <Bell aria-hidden="true" className="size-4" />
@@ -127,7 +122,7 @@ export function WatchlistExperience() {
               </p>
               <button
                 className="mt-4 inline-flex h-10 items-center gap-2 rounded-md bg-stone-950 px-4 text-sm font-black text-white transition hover:bg-emerald-800"
-                onClick={() => openAuth("signin")}
+                onClick={() => signIn()}
                 type="button"
               >
                 <LogIn aria-hidden="true" className="size-4" />
@@ -190,51 +185,6 @@ export function WatchlistExperience() {
           )}
         </div>
 
-        {user && !loading ? (
-          <aside>
-            <div className="rounded-lg border border-stone-200 bg-white p-5 shadow-sm">
-              <div className="flex items-center gap-2">
-                <BellRing aria-hidden="true" className="size-5 text-rose-700" />
-                <h2 className="text-base font-black text-stone-950">
-                  알림 채널
-                </h2>
-              </div>
-              <div className="mt-4 grid gap-3">
-                <label className="flex items-center justify-between rounded-lg border border-stone-200 p-3">
-                  <span className="inline-flex items-center gap-2 text-sm font-bold text-stone-700">
-                    <Mail aria-hidden="true" className="size-4 text-sky-700" />
-                    이메일
-                  </span>
-                  <input
-                    checked={preferences.email}
-                    className="size-4 accent-emerald-700"
-                    onChange={(event) =>
-                      void setPreference("email", event.target.checked)
-                    }
-                    type="checkbox"
-                  />
-                </label>
-                <label className="flex items-center justify-between rounded-lg border border-stone-200 p-3 opacity-60">
-                  <span className="inline-flex items-center gap-2 text-sm font-bold text-stone-700">
-                    <Smartphone
-                      aria-hidden="true"
-                      className="size-4 text-emerald-700"
-                    />
-                    웹 푸시
-                    <span className="text-xs text-stone-500">준비 중</span>
-                  </span>
-                  <input
-                    checked={false}
-                    className="size-4 accent-emerald-700"
-                    disabled
-                    readOnly
-                    type="checkbox"
-                  />
-                </label>
-              </div>
-            </div>
-          </aside>
-        ) : null}
       </section>
 
       {user && !loading && watchedWorks.length > 0 ? (

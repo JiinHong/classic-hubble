@@ -17,9 +17,6 @@ import {
 } from "@/lib/supabase/client";
 import {
   loadUserLibrary,
-  type NotificationChannel,
-  type NotificationPreferences,
-  saveNotificationPreference,
   saveWatchedWork,
 } from "@/lib/user-library";
 
@@ -30,23 +27,16 @@ type UserLibraryContextValue = {
   isPending: (workSlug: string) => boolean;
   isWatched: (workSlug: string) => boolean;
   loading: boolean;
-  preferences: NotificationPreferences;
-  setPreference: (channel: NotificationChannel, enabled: boolean) => Promise<void>;
   toggleWork: (workSlug: string) => Promise<void>;
   watchedSlugs: string[];
 };
 
 const UserLibraryContext = createContext<UserLibraryContextValue | null>(null);
 
-const initialPreferences: NotificationPreferences = {
-  email: true,
-  web_push: false,
-};
 const emptyWatchedSlugs: string[] = [];
 
 type LoadedLibrary = {
   error: string | null;
-  preferences: NotificationPreferences;
   userId: string;
   watchedSlugs: string[];
 };
@@ -60,7 +50,7 @@ export function UserLibraryProvider({
   children,
   client: providedClient,
 }: UserLibraryProviderProps) {
-  const { loading: authLoading, openAuth, user } = useAuth();
+  const { loading: authLoading, signIn, user } = useAuth();
   const userId = user?.id;
   const client = useMemo(
     () =>
@@ -85,7 +75,6 @@ export function UserLibraryProvider({
         if (!active) return;
         setLibrary({
           error: null,
-          preferences: snapshot.preferences,
           userId,
           watchedSlugs: snapshot.watchedSlugs,
         });
@@ -97,7 +86,6 @@ export function UserLibraryProvider({
             loadError instanceof Error
               ? loadError.message
               : "관심곡을 불러오지 못했습니다.",
-          preferences: initialPreferences,
           userId,
           watchedSlugs: [],
         });
@@ -112,15 +100,12 @@ export function UserLibraryProvider({
   const visibleWatchedSlugs = hasLoadedLibrary
     ? library!.watchedSlugs
     : emptyWatchedSlugs;
-  const visiblePreferences = hasLoadedLibrary
-    ? library!.preferences
-    : initialPreferences;
   const visibleError = hasLoadedLibrary ? library!.error : null;
 
   const toggleWork = useCallback(
     async (workSlug: string) => {
       if (!user || !client) {
-        if (!user) openAuth("signin");
+        if (!user) signIn();
         return;
       }
       const pendingKey = `${user.id}:${workSlug}`;
@@ -162,44 +147,7 @@ export function UserLibraryProvider({
           return next;
         });
       }
-    }, [client, openAuth, pendingItems, user, visibleWatchedSlugs],
-  );
-
-  const setPreference = useCallback(
-    async (channel: NotificationChannel, enabled: boolean) => {
-      if (!user || !client) {
-        if (!user) openAuth("signin");
-        return;
-      }
-
-      setLibrary((current) =>
-        current?.userId === user.id ? { ...current, error: null } : current,
-      );
-      try {
-        await saveNotificationPreference(client, user, channel, enabled);
-        setLibrary((current) =>
-          current?.userId === user.id
-            ? {
-                ...current,
-                preferences: { ...current.preferences, [channel]: enabled },
-              }
-            : current,
-        );
-      } catch (saveError) {
-        setLibrary((current) =>
-          current?.userId === user.id
-            ? {
-                ...current,
-                error:
-                  saveError instanceof Error
-                    ? saveError.message
-                    : "알림 설정을 저장하지 못했습니다.",
-              }
-            : current,
-        );
-      }
-    },
-    [client, openAuth, user],
+    }, [client, signIn, pendingItems, user, visibleWatchedSlugs],
   );
 
   const value = useMemo<UserLibraryContextValue>(
@@ -209,8 +157,6 @@ export function UserLibraryProvider({
         Boolean(user && pendingItems.has(`${user.id}:${workSlug}`)),
       isWatched: (workSlug) => visibleWatchedSlugs.includes(workSlug),
       loading: authLoading || Boolean(user && client && !hasLoadedLibrary),
-      preferences: visiblePreferences,
-      setPreference,
       toggleWork,
       watchedSlugs: visibleWatchedSlugs,
     }),
@@ -219,11 +165,9 @@ export function UserLibraryProvider({
       client,
       hasLoadedLibrary,
       pendingItems,
-      setPreference,
       toggleWork,
       user,
       visibleError,
-      visiblePreferences,
       visibleWatchedSlugs,
     ],
   );

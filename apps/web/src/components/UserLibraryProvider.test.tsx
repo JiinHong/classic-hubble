@@ -10,7 +10,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   loadUserLibrary,
-  saveNotificationPreference,
   saveWatchedWork,
 } from "@/lib/user-library";
 
@@ -19,7 +18,6 @@ import { UserLibraryProvider, useUserLibrary } from "./UserLibraryProvider";
 
 vi.mock("@/lib/user-library", () => ({
   loadUserLibrary: vi.fn(),
-  saveNotificationPreference: vi.fn(),
   saveWatchedWork: vi.fn(),
 }));
 
@@ -80,14 +78,12 @@ describe("UserLibraryProvider session isolation", () => {
   beforeEach(() => {
     vi.mocked(loadUserLibrary).mockReset();
     vi.mocked(saveWatchedWork).mockReset();
-    vi.mocked(saveNotificationPreference).mockReset();
   });
 
   it("does not reload the library when the same user's session is refreshed", async () => {
     const auth = createAuthHarness(sessionFor("user-a"));
     const client = {} as SupabaseClient;
     vi.mocked(loadUserLibrary).mockResolvedValue({
-      preferences: { email: true, web_push: false },
       watchedSlugs: ["a-work"],
     });
     render(
@@ -108,7 +104,6 @@ describe("UserLibraryProvider session isolation", () => {
     const pendingSave = deferred();
     const auth = createAuthHarness(sessionFor("user-a"));
     vi.mocked(loadUserLibrary).mockImplementation(async (_client, userId) => ({
-      preferences: { email: true, web_push: false },
       watchedSlugs: userId === "user-b" ? ["b-work"] : [],
     }));
     vi.mocked(saveWatchedWork).mockReturnValue(pendingSave.promise);

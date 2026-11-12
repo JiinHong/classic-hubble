@@ -3,7 +3,6 @@ import { describe, expect, it } from "vitest";
 
 import {
   loadUserLibrary,
-  saveNotificationPreference,
   saveWatchedWork,
 } from "./user-library";
 
@@ -58,7 +57,7 @@ async function captureRequest(request: Request): Promise<CapturedRequest> {
 }
 
 describe("Supabase user library", () => {
-  it("loads watched work slugs and applies channel defaults", async () => {
+  it("loads only the current user's watched works without reading or changing alert settings", async () => {
     const requests: CapturedRequest[] = [];
     const client = createTestClient(async (request) => {
       requests.push(await captureRequest(request));
@@ -76,11 +75,9 @@ describe("Supabase user library", () => {
     const result = await loadUserLibrary(client, "user-1");
 
     expect(result).toEqual({
-      preferences: { email: false, web_push: false },
       watchedSlugs: ["beethoven-symphony-5", "dvorak-symphony-9"],
     });
     expect(requests.map((request) => request.url.pathname).sort()).toEqual([
-      "/rest/v1/notification_preferences",
       "/rest/v1/watchlist_items",
     ]);
     const watchlistRequest = requests.find((request) =>
@@ -142,28 +139,4 @@ describe("Supabase user library", () => {
     expect(deletion?.url.searchParams.get("work_id")).toBe("eq.work-1");
   });
 
-  it("upserts a notification preference after preparing the profile", async () => {
-    const requests: CapturedRequest[] = [];
-    const client = createTestClient(async (request) => {
-      requests.push(await captureRequest(request));
-      return emptyResponse();
-    });
-
-    await saveNotificationPreference(
-      client,
-      { id: "user-1", email: "member@example.com" },
-      "email",
-      true,
-    );
-
-    expect(requests.map((request) => request.url.pathname)).toEqual([
-      "/rest/v1/profiles",
-      "/rest/v1/notification_preferences",
-    ]);
-    expect(requests[1]?.body).toEqual({
-      channel: "email",
-      enabled: true,
-      user_id: "user-1",
-    });
-  });
 });
