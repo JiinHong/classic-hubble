@@ -17,13 +17,24 @@ pnpm --filter web build
 - `/works/[slug]`: work detail and upcoming performances.
 - `/performances/[id]`: performance detail and booking link.
 - `/watchlist`: saved works and notification channels.
+- `/auth/callback`: completes Google sign-in and returns to the originating page.
 - `/admin/review`: OCR review queue.
 
 The catalog reads from the Classic Hubble Supabase project and falls back to
-`@classic-hubble/shared` seed data if Supabase is unavailable. Supabase Auth handles
-email/password sessions, and signed-in users can persist watched works and email
+`@classic-hubble/shared` seed data if Supabase is unavailable. This version starts
+Google sign-in through Supabase Auth. Signed-in users can persist watched works and email
 notification preferences. Web push remains disabled in the UI until VAPID keys and
 browser subscription registration are configured.
+
+## Google sign-in
+
+Google and Supabase need two different redirect URLs:
+
+- Google Cloud's web OAuth client redirects to `https://klnfamtwxwrelrjeguqb.supabase.co/auth/v1/callback`.
+- Supabase Auth must allow the app URL `https://classichubble.com/auth/callback`. To test on a local server, allow its exact callback separately (for example, `http://127.0.0.1:3001/auth/callback`).
+
+Set the Google client ID and secret in the Supabase provider settings, not in the browser or this repository.
+Before replacing the production login screen or disabling email, follow the [rollout checklist](../../docs/superpowers/specs/2026-11-12-google-only-auth-design.md) to verify real sign-in and existing users' access to their saved works.
 
 ## Learn More
 

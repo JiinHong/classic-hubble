@@ -21,7 +21,7 @@ function AppShellProbe() {
 
   async function runAnonymousMutations() {
     try {
-      auth.openAuth("signin");
+      auth.signIn();
       await auth.signOut();
       await library.toggleWork("beethoven-symphony-5");
       await library.setPreference("email", false);

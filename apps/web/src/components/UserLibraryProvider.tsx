@@ -60,7 +60,7 @@ export function UserLibraryProvider({
   children,
   client: providedClient,
 }: UserLibraryProviderProps) {
-  const { loading: authLoading, openAuth, user } = useAuth();
+  const { loading: authLoading, signIn, user } = useAuth();
   const userId = user?.id;
   const client = useMemo(
     () =>
@@ -120,7 +120,7 @@ export function UserLibraryProvider({
   const toggleWork = useCallback(
     async (workSlug: string) => {
       if (!user || !client) {
-        if (!user) openAuth("signin");
+        if (!user) signIn();
         return;
       }
       const pendingKey = `${user.id}:${workSlug}`;
@@ -162,13 +162,13 @@ export function UserLibraryProvider({
           return next;
         });
       }
-    }, [client, openAuth, pendingItems, user, visibleWatchedSlugs],
+    }, [client, signIn, pendingItems, user, visibleWatchedSlugs],
   );
 
   const setPreference = useCallback(
     async (channel: NotificationChannel, enabled: boolean) => {
       if (!user || !client) {
-        if (!user) openAuth("signin");
+        if (!user) signIn();
         return;
       }
 
@@ -199,7 +199,7 @@ export function UserLibraryProvider({
         );
       }
     },
-    [client, openAuth, user],
+    [client, signIn, user],
   );
 
   const value = useMemo<UserLibraryContextValue>(

@@ -15,9 +15,8 @@ function createAuthClient(session: Session | null) {
       onAuthStateChange() {
         return { data: { subscription: { unsubscribe: () => undefined } } };
       },
-      signInWithPassword: vi.fn(),
+      signInWithOAuth: vi.fn(async () => ({ error: null })),
       signOut: vi.fn(async () => ({ error: null })),
-      signUp: vi.fn(),
     },
   } as unknown as SupabaseClient;
 }
@@ -88,8 +87,9 @@ describe("WatchlistButton", () => {
 
   it("opens authentication instead of writing for an anonymous visitor", async () => {
     const requests: Request[] = [];
+    const client = createAuthClient(null);
     render(
-      <AuthProvider client={createAuthClient(null)}>
+      <AuthProvider client={client}>
         <UserLibraryProvider client={createLibraryClient(requests)}>
           <WatchlistButton workSlug="beethoven-symphony-5" />
         </UserLibraryProvider>
@@ -100,7 +100,8 @@ describe("WatchlistButton", () => {
       await screen.findByRole("button", { name: "이 곡 알림 받기" }),
     );
 
-    expect(await screen.findByRole("dialog")).toBeTruthy();
+    expect(client.auth.signInWithOAuth).toHaveBeenCalledOnce();
+    expect(screen.queryByRole("dialog")).toBeNull();
     expect(requests).toHaveLength(0);
   });
 });

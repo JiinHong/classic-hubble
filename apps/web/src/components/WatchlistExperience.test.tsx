@@ -20,9 +20,8 @@ function createAuthClient(session: Session | null) {
       onAuthStateChange() {
         return { data: { subscription: { unsubscribe: () => undefined } } };
       },
-      signInWithPassword: vi.fn(),
+      signInWithOAuth: vi.fn(async () => ({ error: null })),
       signOut: vi.fn(async () => ({ error: null })),
-      signUp: vi.fn(),
     },
   } as unknown as SupabaseClient;
 }

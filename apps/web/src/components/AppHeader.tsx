@@ -7,7 +7,7 @@ import { useEffect, useRef, useState } from "react";
 import { useAuth } from "./AuthProvider";
 
 export function AppHeader() {
-  const { loading, openAuth, signOut, user } = useAuth();
+  const { loading, signIn, signOut, user } = useAuth();
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
   const toggle = useRef<HTMLButtonElement>(null);
@@ -34,7 +34,7 @@ export function AppHeader() {
         {user ? <div className="flex min-w-0 items-center gap-1">
           <span className="hidden max-w-44 truncate text-xs text-neutral-500 sm:block">{user.email}</span>
           <button type="button" className="icon-button" aria-label="로그아웃" title="로그아웃" onClick={() => void signOut()}><LogOut aria-hidden="true" className="size-4" /></button>
-        </div> : <button type="button" aria-label="로그인" disabled={loading} onClick={() => openAuth("signin")} className="h-9 rounded-md bg-neutral-900 px-4 text-sm font-medium text-white hover:bg-neutral-700 disabled:opacity-40">로그인</button>}
+        </div> : <button type="button" aria-label="로그인" disabled={loading} onClick={() => signIn()} className="h-9 rounded-md bg-neutral-900 px-4 text-sm font-medium text-white hover:bg-neutral-700 disabled:opacity-40">로그인</button>}
       </div>
     </div>
   </header>;

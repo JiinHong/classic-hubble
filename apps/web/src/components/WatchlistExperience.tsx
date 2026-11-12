@@ -20,7 +20,7 @@ import { useUserLibrary } from "./UserLibraryProvider";
 import { WorkCard } from "./WorkCard";
 
 export function WatchlistExperience() {
-  const { loading: authLoading, openAuth, user } = useAuth();
+  const { loading: authLoading, signIn, user } = useAuth();
   const {
     error,
     isPending,
@@ -127,7 +127,7 @@ export function WatchlistExperience() {
               </p>
               <button
                 className="mt-4 inline-flex h-10 items-center gap-2 rounded-md bg-stone-950 px-4 text-sm font-black text-white transition hover:bg-emerald-800"
-                onClick={() => openAuth("signin")}
+                onClick={() => signIn()}
                 type="button"
               >
                 <LogIn aria-hidden="true" className="size-4" />

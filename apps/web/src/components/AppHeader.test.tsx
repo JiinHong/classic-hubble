@@ -17,9 +17,8 @@ function createClient(session: Session | null) {
           data: { subscription: { unsubscribe: () => undefined } },
         };
       },
-      signInWithPassword: vi.fn(),
+      signInWithOAuth: vi.fn(async () => ({ error: null })),
       signOut,
-      signUp: vi.fn(),
     },
   } as unknown as SupabaseClient;
 
@@ -63,7 +62,7 @@ describe("AppHeader authentication", () => {
     ).toBe("클래식허블 홈");
   });
 
-  it("opens the login dialog for an anonymous visitor", async () => {
+  it("starts Google directly and ignores a second click during navigation", async () => {
     const { client } = createClient(null);
     render(
       <AuthProvider client={client}>
@@ -75,8 +74,24 @@ describe("AppHeader authentication", () => {
     await waitFor(() => expect(loginButton.hasAttribute("disabled")).toBe(false));
     fireEvent.click(loginButton);
 
-    expect(await screen.findByRole("dialog")).toBeTruthy();
-    expect(screen.getByLabelText("이메일")).toBeTruthy();
+    fireEvent.click(loginButton);
+    expect(client.auth.signInWithOAuth).toHaveBeenCalledExactlyOnceWith({
+      provider: "google", options: { redirectTo: window.location.origin + "/auth/callback" },
+    });
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("allows retry after a failed sign-in start without displaying raw errors", async () => {
+    const { client } = createClient(null);
+    vi.mocked(client.auth.signInWithOAuth).mockRejectedValueOnce(new Error("private-detail"));
+    render(<AuthProvider client={client}><AppHeader /></AuthProvider>);
+    const login = screen.getByRole("button", { name: "로그인" });
+    await waitFor(() => expect(login.hasAttribute("disabled")).toBe(false));
+    fireEvent.click(login);
+    const alert = await screen.findByRole("alert");
+    expect(alert.textContent).not.toContain("private-detail");
+    fireEvent.click(screen.getByRole("button", { name: "다시 시도" }));
+    expect(client.auth.signInWithOAuth).toHaveBeenCalledTimes(2);
   });
 
   it("shows the signed-in email and signs out", async () => {
