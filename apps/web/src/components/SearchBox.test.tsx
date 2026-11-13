@@ -1,6 +1,11 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
+import { hydrateRoot } from "react-dom/client";
+import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { SearchBox } from "./SearchBox";
+vi.mock("@/data/starter-suggestions.json", () => ({ default: { "베토": [
+  { slug: "work-a", title: "교향곡", composer: "베토벤" },
+] } }));
 const suggestion = { slug: "exact-work", title: "피아노 협주곡 2번", composer: "라흐마니노프" };
 beforeEach(() => vi.useFakeTimers());
 afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); });
@@ -15,6 +20,57 @@ function setup() {
   return { input, onSubmit, onSelect, onClear, fetcher };
 }
 describe("autocomplete search input", () => {
+  it("adopts a draft typed into the server HTML before hydration", async () => {
+    const box = <SearchBox initialValue="" onSubmit={vi.fn()} onSelect={vi.fn()} onClear={vi.fn()} onVideo={vi.fn()} />;
+    const host = document.body.appendChild(document.createElement("div"));
+    host.innerHTML = renderToString(box);
+    const field = host.querySelector("input")!;
+    field.focus();
+    field.value = "베토";
+    const root = await act(() => hydrateRoot(host, box));
+    try {
+      expect(field.value).toBe("베토");
+      expect(screen.getByRole("option").textContent).toContain("베토벤");
+      expect(document.activeElement).toBe(field);
+    } finally {
+      await act(() => root.unmount());
+      host.remove();
+    }
+  });
+  it("renders a prepared prefix before any timer and revalidates the order", async () => {
+    const { input, fetcher } = setup();
+    fireEvent.change(input, { target: { value: "베토" } });
+    expect(screen.getByRole("option").textContent).toContain("베토벤");
+    expect(fetcher).not.toHaveBeenCalled();
+    await settle();
+    expect(screen.getByRole("option").textContent).toContain(suggestion.title);
+  });
+  it("keeps only compatible candidates while extending a draft, never an unrelated one", async () => {
+    const { input } = setup();
+    fireEvent.change(input, { target: { value: "라" } }); await settle();
+    fireEvent.change(input, { target: { value: "라흐마" } });
+    expect(screen.getByRole("option").textContent).toContain("라흐마니노프");
+    fireEvent.change(input, { target: { value: "다른" } });
+    expect(screen.queryByRole("option")).toBeNull();
+  });
+  it("preserves a keyboard choice by identity when live suggestions reorder it", async () => {
+    const { input, fetcher, onSelect } = setup();
+    const seed = { slug: "work-a", title: "교향곡", composer: "베토벤" };
+    fetcher.mockResolvedValueOnce(Response.json({ suggestions: [suggestion, seed] }));
+    fireEvent.change(input, { target: { value: "베토" } });
+    fireEvent.keyDown(input, { key: "ArrowDown" });
+    await settle();
+    fireEvent.keyDown(input, { key: "Enter" });
+    expect(onSelect).toHaveBeenCalledWith(seed);
+  });
+  it("does not keep prepared candidates after a successful empty response", async () => {
+    const { input, fetcher } = setup();
+    fetcher.mockResolvedValueOnce(Response.json({ suggestions: [] }));
+    fireEvent.change(input, { target: { value: "베토" } });
+    await settle();
+    expect(screen.queryByRole("option")).toBeNull();
+    expect(screen.getByRole("status").textContent).toContain("없습니다");
+  });
   it("invites searches by classical work title or composer", () => {
     const { input } = setup();
     expect(input.getAttribute("placeholder")).toBe("클래식 곡명이나 작곡가를 입력하세요");

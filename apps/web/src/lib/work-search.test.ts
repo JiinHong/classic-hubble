@@ -34,7 +34,7 @@ function database() {
     return query;
   };
   const rpc = vi.fn((name: string) => builder(name,
-    name === "search_work_candidates" ? state.candidates : name === "work_upcoming_links" ? state.links :
+    name === "search_work_candidates_v2" ? state.candidates : name === "work_upcoming_links" ? state.links :
       [{ work_count: 20000, upcoming_count: 300, confirmed_count: 99, performance_ids: [] }],
   ));
   mocks.client.mockReturnValue({ from: (table: string) => builder(table, state.rows), rpc });
@@ -60,7 +60,7 @@ describe("targeted work search", () => {
       const result = await getWorkSearchPage(query);
       expect(result.works.map(work => work.slug)).toEqual(expected.map(work => work.slug));
       expect(result.total).toBe(expected.length);
-      expect(rpc).toHaveBeenCalledWith("search_work_candidates", { search_term: expect.any(String) });
+      expect(rpc).toHaveBeenCalledWith("search_work_candidates_v2", { search_term: expect.any(String) });
       if (expected.length) expect(rpc).toHaveBeenCalledWith("work_upcoming_links", {
         work_ids: expected.map(work => state.rows.find(row => row.slug === work.slug)!.id),
       });
@@ -73,7 +73,7 @@ describe("targeted work search", () => {
     const result = await getWorkSearchPage("needle", 984);
     expect(result.total).toBe(1001);
     expect(result.works).toHaveLength(17);
-    expect(reads.filter(read => read.table === "search_work_candidates").map(read => read.range)).toEqual([[0, 999], [1000, 1999]]);
+    expect(reads.filter(read => read.table === "search_work_candidates_v2").map(read => read.range)).toEqual([[0, 999], [1000, 1999]]);
   });
 
   it("retrieves a child through its parent's title and preserves parent context", async () => {
@@ -98,7 +98,7 @@ describe("targeted work search", () => {
     const { state, rpc } = database();
     expect((await getWorkSearchPage("---")).total).toBe(0);
     expect(rpc).not.toHaveBeenCalled();
-    state.fail = "search_work_candidates";
+    state.fail = "search_work_candidates_v2";
     await expect(getWorkSearchPage("운명")).rejects.toThrow();
     state.fail = "";
     expect((await getWorkSearchPage("운명")).works.length).toBeGreaterThan(0);
@@ -128,6 +128,6 @@ describe("targeted work search", () => {
     const { state, reads } = database();
     state.candidates = [];
     expect((await getWorkSearchPage("nothingmatches")).total).toBe(0);
-    expect(reads.map(read => read.table)).toEqual(["search_work_candidates"]);
+    expect(reads.map(read => read.table)).toEqual(["search_work_candidates_v2"]);
   });
 });

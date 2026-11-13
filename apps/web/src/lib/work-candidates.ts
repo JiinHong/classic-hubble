@@ -7,7 +7,7 @@ import { attachWorkComponents } from "./work-components";
 export type WorkCandidateRow = WorkRow & { id: string };
 type Database = ReturnType<typeof createSupabaseClient>;
 
-export async function readWorkCandidates(db: Database, name: "search_work_candidates" | "concert_rank_work_candidates" | "youtube_work_candidates", args: Record<string, string>) {
+export async function readWorkCandidates(db: Database, name: "search_work_candidates_v2" | "concert_rank_work_candidates" | "youtube_work_candidates", args: Record<string, string>) {
   const rows: WorkCandidateRow[] = [];
   for (let start = 0; ; start += 1000) {
     const result = await db.rpc(name, args).select(`id, ${WORK_COLUMNS}`)
@@ -36,7 +36,7 @@ export async function readRankedWorkCandidates(db: Database, query: string, scop
   if (!anchor) return { rows: [] as WorkCandidateRow[], works: [] };
   const rows = scope === "concerts"
     ? await readWorkCandidates(db, "concert_rank_work_candidates", { search_term: anchor, literal_name: query })
-    : await readWorkCandidates(db, "search_work_candidates", { search_term: anchor });
+    : await readWorkCandidates(db, "search_work_candidates_v2", { search_term: anchor });
   // Synthetic position labels live in component context, not in source work names.
   const seeds = workComponents.filter(relation => relation.position !== null &&
     [`${relation.position}번`, `no ${relation.position}`].some(label => label.includes(anchor)),

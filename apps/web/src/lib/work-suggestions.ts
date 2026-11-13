@@ -5,10 +5,10 @@ import { createSupabaseClient } from "./supabase/client";
 export type WorkSuggestion = { slug: string; title: string; composer: string };
 
 const readSuggestions = unstable_cache(async (query: string): Promise<WorkSuggestion[]> => {
-  const { data, error } = await createSupabaseClient().rpc("suggest_works", { search_term: query });
+  const { data, error } = await createSupabaseClient().rpc("suggest_works_v2", { search_term: query });
   if (error) throw new Error("Work suggestions unavailable");
   return (data ?? []) as WorkSuggestion[];
-}, ["work-suggestions-v1"], { revalidate: 60 });
+}, ["work-suggestions-v2"], { revalidate: 60 });
 
 export function getWorkSuggestions(query: string): Promise<WorkSuggestion[]> {
   const value = query.trim();
