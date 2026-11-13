@@ -7,7 +7,6 @@ import { useMemo, useState } from "react";
 import {
   filterAndSortComposers,
   type ComposerDirectoryEntry,
-  type ComposerDirectorySort,
   type ComposerPeriodKey,
 } from "@/lib/composer-directory";
 
@@ -21,11 +20,10 @@ export function ComposerDirectory({
 }) {
   const [period, setPeriod] = useState<"all" | ComposerPeriodKey>("all");
   const [query, setQuery] = useState("");
-  const [sort, setSort] = useState<ComposerDirectorySort>("ko");
 
   const visibleComposers = useMemo(
-    () => filterAndSortComposers(composers, { period, query, sort }),
-    [composers, period, query, sort],
+    () => filterAndSortComposers(composers, { period, query, sort: "ko" }),
+    [composers, period, query],
   );
 
   if (composers.length === 0) {
@@ -51,34 +49,10 @@ export function ComposerDirectory({
     <>
       <section className="border-b border-stone-200 bg-white">
         <div className="mx-auto max-w-7xl px-4 py-7 sm:px-6 lg:px-8">
-          <div className="flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <h1 className="text-3xl font-black text-stone-950">작곡가</h1>
-              <p
-                aria-live="polite"
-                className="mt-1 text-sm font-bold text-stone-500"
-              >
-                {visibleComposers.length}명의 작곡가
-              </p>
-            </div>
-            <div className="grid grid-cols-2 border border-stone-200 bg-stone-100 p-1">
-              {(["ko", "latin"] as const).map((option) => (
-                <button
-                  aria-pressed={sort === option}
-                  className={`h-9 px-3 text-sm font-black ${
-                    sort === option
-                      ? "bg-white text-stone-950 shadow-sm"
-                      : "text-stone-500"
-                  }`}
-                  key={option}
-                  onClick={() => setSort(option)}
-                  type="button"
-                >
-                  {option === "ko" ? "가나다순" : "A–Z"}
-                </button>
-              ))}
-            </div>
-          </div>
+          <h1 className="text-3xl font-black text-stone-950">작곡가</h1>
+          <p aria-live="polite" className="mt-1 text-sm font-bold text-stone-500">
+            {visibleComposers.length}명의 작곡가
+          </p>
 
           <label
             className="mt-6 block text-sm font-black text-stone-800"
@@ -110,7 +84,7 @@ export function ComposerDirectory({
         {visibleComposers.length ? (
           <ComposerList
             composers={visibleComposers}
-            showFeatured={!query.trim()}
+            searching={Boolean(query.trim())}
           />
         ) : (
           <p className="border-y border-stone-200 py-14 text-center text-sm font-bold text-stone-500">
