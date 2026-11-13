@@ -23,3 +23,9 @@ The individual movements of Chopin Op. 4 and 58 follow the
 the same catalogue identifies the funeral march as movement III of Op. 35.
 Both existing entries for that movement remain linkable. These are catalogue
 changes, not evidence that an entire work was performed.
+
+For local opera identifiers without a Wikidata genre, compare the exact whole
+work against the [Puccini catalogue](https://catalog.puccini.it/works),
+[Verdi publisher catalogue](https://www.umpclassicsandscreen.com/en-GB/Composers/V/Verdi-Giuseppe.aspx),
+and the respective composer's stage catalogue. Do not propagate an opera's
+form to arias or transcriptions by title.

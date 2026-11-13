@@ -23,6 +23,9 @@ describe("composer repertoire", () => {
     expect(classify(work("wikidata-q471821", "Uninformative title"))).toBe("opera");
     expect(classify(work("mozart-die-zauberflote-k620", "Die Zauberflöte"))).toBe("opera");
     expect(classify(work("wikidata-q201873", "Le nozze di Figaro"))).toBe("opera");
+    expect(classify(work("puccini-tosca", "Tosca"))).toBe("opera");
+    expect(classify(work("verdi-aida", "Aida"))).toBe("opera");
+    expect(classify(work("wikidata-q2401650", "Celeste Aida"))).not.toBe("opera");
   });
   it("keeps verified parts under parents and counts categories before pagination", () => {
     const works = [work("p", "Piano Sonata No. 2"), work("c", "Scherzo"), work("a", "Scherzo No. 2"),

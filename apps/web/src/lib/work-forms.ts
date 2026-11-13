@@ -120,8 +120,9 @@ for (const { label, works } of Object.values(claims)) {
   }
 }
 export function classify(w: { slug: string; title: string; title_ko: string | null; instrumentation?: string | null }): Form {
-  // Exact catalogue identities reviewed against the Mozarteum; never infer opera from an aria title.
-  if (mozartOperas.has(w.slug)) return "opera";
+  // An aria or transcription mentioning an opera does not identify the full opera.
+  if (cataloguedOperas.has(w.slug)) return "opera";
+  if (w.slug === "wikidata-q2401650" || w.slug === "wikidata-q924223") return "aria";
   const names = [namedForm(w.title), namedForm(w.title_ko || "")].filter((x): x is Form => !!x);
   const claims = claimForms.get(Number(/^wikidata-q(\d+)$/.exec(w.slug)?.[1]));
   const sourced = [...(claims ?? [])];
@@ -132,4 +133,10 @@ export function classify(w: { slug: string; title: string; title_ko: string | nu
   if (first) return first;
   return broadForm(w.instrumentation || "") ?? "other";
 }
-const mozartOperas = new Set(["mozart-die-zauberflote-k620","mozart-don-giovanni-k527","mozart-cosi-fan-tutte-k588","wikidata-q201873","wikidata-q578526"]);
+const cataloguedOperas = new Set([
+  "mozart-die-zauberflote-k620", "mozart-don-giovanni-k527", "mozart-cosi-fan-tutte-k588", "wikidata-q201873", "wikidata-q578526",
+  "verdi-la-traviata", "verdi-rigoletto", "verdi-aida", "verdi-falstaff", "verdi-la-forza-del-destino",
+  "verdi-simon-boccanegra", "verdi-don-carlos", "verdi-un-ballo-in-maschera",
+  "puccini-madama-butterfly", "puccini-gianni-schicchi", "puccini-la-boheme", "puccini-turandot", "puccini-manon-lescaut", "puccini-tosca",
+  "wagner-die-meistersinger-wwv96", "wagner-lohengrin-wwv75", "bizet-carmen",
+]);
