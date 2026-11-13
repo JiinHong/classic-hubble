@@ -44,7 +44,7 @@ export function ComposerList({
             {featuredComposers.length ? (
               <ul
                 aria-label={`${group.label} 먼저 만나는 작곡가`}
-                className="mb-4 grid grid-cols-2 gap-2 sm:gap-3 xl:grid-cols-4"
+                className="mb-4 grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-3 xl:grid-cols-4"
               >
                 {featuredComposers.map((composer, featuredIndex) => (
                   <FeaturedComposerCard

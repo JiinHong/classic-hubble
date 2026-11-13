@@ -19,9 +19,9 @@ const composers = [
     period: "Baroque",
   }),
   toComposerDirectoryEntry({
-    id: "scarlatti",
-    name: "Domenico Scarlatti",
-    nameKo: "도메니코 스카를라티",
+    id: "biber",
+    name: "Heinrich Franz von Biber",
+    nameKo: "하인리히 프란츠 폰 비버",
     period: "Baroque",
   }),
   toComposerDirectoryEntry({
@@ -98,17 +98,17 @@ describe("ComposerDirectory", () => {
       within(plainList)
         .getAllByRole("link")
         .map((link) => link.getAttribute("href")),
-    ).toEqual([composerHref("scarlatti")]);
+    ).toEqual([composerHref("biber")]);
     expect(
       within(baroqueSection!).getAllByRole("link", {
         name: /요한 제바스티안 바흐/,
       }),
     ).toHaveLength(1);
     const plainLink = within(plainList).getByRole("link", {
-      name: /도메니코 스카를라티.*Domenico Scarlatti/,
+      name: /하인리히 프란츠 폰 비버.*Heinrich Franz von Biber/,
     });
-    expect(plainLink.children[0]?.textContent).toBe("도메니코 스카를라티");
-    expect(plainLink.children[1]?.textContent).toBe("Domenico Scarlatti");
+    expect(plainLink.children[0]?.textContent).toBe("하인리히 프란츠 폰 비버");
+    expect(plainLink.children[1]?.textContent).toBe("Heinrich Franz von Biber");
     expect(
       within(featuredList)
         .getByRole("link", { name: /요한 제바스티안 바흐/ })
@@ -147,15 +147,15 @@ describe("ComposerDirectory", () => {
       <ComposerDirectory
         composers={[
           toComposerDirectoryEntry({
-            id: "scarlatti",
-            name: "Domenico Scarlatti",
-            nameKo: "도메니코 스카를라티",
+            id: "biber",
+            name: "Heinrich Franz von Biber",
+            nameKo: "하인리히 프란츠 폰 비버",
             period: "Baroque",
           }),
           toComposerDirectoryEntry({
-            id: "rameau",
-            name: "Jean-Philippe Rameau",
-            nameKo: "장필리프 라모",
+            id: "marais",
+            name: "Marin Marais",
+            nameKo: "마랭 마레",
             period: "Baroque",
           }),
           toComposerDirectoryEntry({
@@ -183,8 +183,8 @@ describe("ComposerDirectory", () => {
         .getAllByRole("link")
         .map((link) => link.getAttribute("href")),
     ).toEqual([
-      composerHref("scarlatti"),
-      composerHref("rameau"),
+      composerHref("biber"),
+      composerHref("marais"),
     ]);
     expect(otherHeading).toBeTruthy();
     const completeOtherList = within(otherHeading.closest("section")!).getByRole(

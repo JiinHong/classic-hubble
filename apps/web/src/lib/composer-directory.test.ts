@@ -145,13 +145,15 @@ describe("composer directory rules", () => {
     ]);
   });
 
-  it("selects at most four featured composers in editorial order", () => {
+  it("selects every curated portrait in editorial order, without a per-period cap", () => {
     const candidates = [
       { ...bach, id: "fifth", featuredRank: 5, name: "Five" },
       { ...bach, id: "third", featuredRank: 3, name: "Three" },
       { ...bach, id: "first", featuredRank: 1, name: "One" },
       { ...bach, id: "fourth", featuredRank: 4, name: "Four" },
       { ...bach, id: "second", featuredRank: 2, name: "Two" },
+      { ...bach, id: "no-portrait", portraitSrc: null },
+      { ...bach, id: "not-curated", featuredRank: null },
       unknown,
     ];
 
@@ -160,10 +162,11 @@ describe("composer directory rules", () => {
       "second",
       "third",
       "fourth",
+      "fifth",
     ]);
   });
 
-  it("keeps four romantic representatives when Beethoven is curated as classical", () => {
+  it("keeps representatives in their catalog period when Beethoven is curated as classical", () => {
     const entries = [
       {
         ...toComposerDirectoryEntry({

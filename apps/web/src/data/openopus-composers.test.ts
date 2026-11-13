@@ -131,7 +131,7 @@ describe("Open Opus composer snapshot", () => {
     }
   });
 
-  it("has four local portrait representatives for every named period", () => {
+  it("features recognizable composers from each period with local portraits", () => {
     const directory = composers.map((composer, index) =>
       toComposerDirectoryEntry({
         id: `openopus:${index}`,
@@ -145,20 +145,22 @@ describe("Open Opus composer snapshot", () => {
       }))
       .filter((group) => group.composers.length > 0);
 
-    expect(
-      featuredGroups.map((group) => ({
-        count: group.composers.length,
-        key: group.key,
-      })),
-    ).toEqual([
-      { count: 4, key: "medieval" },
-      { count: 4, key: "renaissance" },
-      { count: 4, key: "baroque" },
-      { count: 4, key: "classical" },
-      { count: 4, key: "romantic" },
-      { count: 4, key: "twentieth" },
-      { count: 4, key: "contemporary" },
-    ]);
+    const namesByPeriod = Object.fromEntries(featuredGroups.map(({ key, composers }) =>
+      [key, composers.map(({ name }) => name)]));
+    expect(namesByPeriod).toMatchObject({
+      medieval: expect.arrayContaining(["Guillaume de Machaut", "Pérotin"]),
+      renaissance: expect.arrayContaining(["William Byrd", "Thomas Tallis"]),
+      baroque: expect.arrayContaining(["Antonio Vivaldi", "Domenico Scarlatti"]),
+      classical: expect.arrayContaining(["Wolfgang Amadeus Mozart", "Carl Philipp Emanuel Bach"]),
+      romantic: expect.arrayContaining([
+        "Niccolò Paganini", "Robert Schumann", "Gustav Mahler", "Richard Wagner",
+        "Richard Strauss", "Johann Strauss Jr", "Sergei Rachmaninoff", "Antonín Dvořák",
+        "Alexander Scriabin", "Edward Elgar", "Jean Sibelius", "Camille Saint-Saëns",
+        "Claude Debussy", "Felix Mendelssohn", "Franz Liszt",
+      ]),
+      twentieth: expect.arrayContaining(["George Gershwin", "Leonard Bernstein"]),
+      contemporary: expect.arrayContaining(["John Cage", "György Ligeti"]),
+    });
 
     for (const composer of featuredGroups.flatMap((group) => group.composers)) {
       expect(composer.portraitSrc).not.toBeNull();
