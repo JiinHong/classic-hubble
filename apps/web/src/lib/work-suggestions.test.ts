@@ -14,7 +14,7 @@ describe("lightweight work suggestions", () => {
     mocks.client.mockReturnValue({ rpc: mocks.rpc });
     mocks.rpc.mockResolvedValue({ data: [{ slug: "work-1", title: "피아노 협주곡 2번", composer: "라흐마니노프" }], error: null });
     expect(await getWorkSuggestions("라흐 피협 2번")).toEqual([{ slug: "work-1", title: "피아노 협주곡 2번", composer: "라흐마니노프" }]);
-    expect(mocks.rpc).toHaveBeenCalledExactlyOnceWith("suggest_works", { search_term: "라흐 피협 2번" });
+    expect(mocks.rpc).toHaveBeenCalledExactlyOnceWith("suggest_works_v2", { search_term: "라흐 피협 2번" });
   });
   it("does not turn DB failure into no suggestions", async () => {
     mocks.client.mockReturnValue({ rpc: mocks.rpc });
