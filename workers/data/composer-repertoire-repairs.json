@@ -1,0 +1,32 @@
+{
+  "repairs": [
+    {
+      "new": true, "slug": "wikidata-q9008175", "composer": "Frédéric Chopin",
+      "title": "Impromptu No. 1 in A-flat major", "title_ko": "즉흥곡 1번 내림가장조",
+      "catalogue": "Op. 29", "aliases": ["Impromptu in A-flat major, Op. 29"],
+      "source_url": "https://www.henle.de/us/Impromptus/HN-236",
+      "identity_url": "https://www.wikidata.org/wiki/Q9008175"
+    },
+    {
+      "new": true, "slug": "wikidata-q6007782", "composer": "Frédéric Chopin",
+      "title": "Impromptu No. 2 in F-sharp major", "title_ko": "즉흥곡 2번 올림바장조",
+      "catalogue": "Op. 36", "aliases": ["Impromptu in F-sharp major, Op. 36"],
+      "source_url": "https://www.henle.de/us/Impromptus/HN-236",
+      "identity_url": "https://www.wikidata.org/wiki/Q6007782"
+    },
+    {
+      "new": true, "slug": "wikidata-q201873", "composer": "Wolfgang Amadeus Mozart",
+      "title": "Le nozze di Figaro", "title_ko": "피가로의 결혼",
+      "catalogue": "K. 492", "aliases": ["The Marriage of Figaro"],
+      "source_url": "https://kv.mozarteum.at/en/work/le-nozze-di-figaro-opera-buffa-commedia-per-musica-in-4-acts-11980",
+      "identity_url": "https://www.wikidata.org/wiki/Q201873"
+    },
+    {
+      "new": true, "slug": "wikidata-q578526", "composer": "Wolfgang Amadeus Mozart",
+      "title": "La clemenza di Tito", "title_ko": "티토 황제의 자비",
+      "catalogue": "K. 621", "aliases": ["The Clemency of Titus"],
+      "source_url": "https://kv.mozarteum.at/en/work/la-clemenza-di-tito-the-clemency-of-titus-7241",
+      "identity_url": "https://www.wikidata.org/wiki/Q578526"
+    }
+  ]
+}

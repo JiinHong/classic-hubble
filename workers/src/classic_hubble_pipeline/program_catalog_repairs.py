@@ -1,8 +1,19 @@
 """Additive, source-backed corrections to catalogue identities used by NOL."""
 
+import re
 from uuid import NAMESPACE_URL, uuid5
 
 from .work_matching import _normalize
+from .work_catalog import source_id
+
+
+def _new_work_id(repair):
+    if "identity_url" in repair:
+        match = re.fullmatch(r"https://www\.wikidata\.org/wiki/(Q[1-9][0-9]*)", repair["identity_url"])
+        if not match or repair["slug"] != "wikidata-" + match[1].lower():
+            raise ValueError("Catalogue source identity and slug must agree")
+        return source_id(match[1])
+    return str(uuid5(NAMESPACE_URL, "https://classichubble.com/works/" + repair["slug"]))
 
 
 def build_repair_plan(manifest, works, composers):
@@ -36,12 +47,7 @@ def build_repair_plan(manifest, works, composers):
                     "Possible duplicate work requires identity reconciliation"
                 )
             work = {
-                "id": str(
-                    uuid5(
-                        NAMESPACE_URL,
-                        "https://classichubble.com/works/" + repair["slug"],
-                    )
-                ),
+                "id": _new_work_id(repair),
                 "slug": repair["slug"],
                 "composer_id": composer_id,
                 "title": repair["title"],

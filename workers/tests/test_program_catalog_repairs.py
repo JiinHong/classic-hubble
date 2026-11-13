@@ -6,6 +6,7 @@ from classic_hubble_pipeline.music_matching import MusicMatcher
 from classic_hubble_pipeline.program_catalog_repairs import build_repair_plan
 from classic_hubble_pipeline.program_split import split_program_block
 from classic_hubble_pipeline.work_matching import CanonicalWork
+from classic_hubble_pipeline.work_catalog import source_id
 
 MANIFEST = json.loads(
     (Path(__file__).parents[1] / "data/program-catalog-repairs.json").read_text()
@@ -13,6 +14,19 @@ MANIFEST = json.loads(
 FIXTURE = json.loads(
     (Path(__file__).parent / "fixtures/program-repair-nine.json").read_text()
 )
+
+
+def test_verified_repertoire_repairs_reuse_import_identity():
+    manifest = json.loads((Path(__file__).parents[1] / "data/composer-repertoire-repairs.json").read_text())
+    composers = [{"id": name, "name": name} for name in {r["composer"] for r in manifest["repairs"]}]
+    plan = build_repair_plan(manifest, [], composers)
+    assert len(plan["new_works"]) == 4
+    for work, repair in zip(plan["new_works"], manifest["repairs"], strict=True):
+        assert work["id"] == source_id(repair["identity_url"].split("/")[-1])
+    assert not build_repair_plan(manifest, plan["new_works"], composers)["new_works"]
+    bad = dict(manifest["repairs"][0], identity_url="https://www.wikidata.org/wiki/Q1")
+    with pytest.raises(ValueError, match="identity"):
+        build_repair_plan({"repairs": [bad]}, [], composers)
 
 
 @pytest.mark.parametrize(

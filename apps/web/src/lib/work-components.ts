@@ -7,11 +7,9 @@ export type WorkComponent = {
   source_url?: string;
 };
 
-export function attachWorkComponents(works: Work[], relations: WorkComponent[]): Work[] {
-  const index = new Map(works.map((work) => [work.slug, work]));
+export function validComponentEdges(relations: WorkComponent[], belongs: (parent: string, child: string) => boolean) {
   const edges = relations.filter(({ parent_slug, child_slug, position }) => {
-    const parent = index.get(parent_slug), child = index.get(child_slug);
-    return parent && child && parent !== child && parent.composer.id === child.composer.id
+    return parent_slug !== child_slug && belongs(parent_slug, child_slug)
       && (position === null || (Number.isInteger(position) && position > 0));
   });
   const graph = new Map<string, string[]>();
@@ -30,7 +28,13 @@ export function attachWorkComponents(works: Work[], relations: WorkComponent[]):
     }
     return false;
   };
-  const valid = edges.filter(edge => !reachable(edge.child_slug, edge.parent_slug));
+  return edges.filter(edge => !reachable(edge.child_slug, edge.parent_slug));
+}
+
+export function attachWorkComponents(works: Work[], relations: WorkComponent[]): Work[] {
+  const index = new Map(works.map((work) => [work.slug, work]));
+  const valid = validComponentEdges(relations, (p, c) =>
+    index.has(p) && index.has(c) && index.get(p)!.composer.id === index.get(c)!.composer.id);
   const reference = (slug: string, position: number | null, includeAliases = false): WorkReference => {
     const { title, titleKo, catalogue, aliases } = index.get(slug)!;
     return { slug, title, titleKo, catalogue, position, ...(includeAliases ? { aliases } : {}) };

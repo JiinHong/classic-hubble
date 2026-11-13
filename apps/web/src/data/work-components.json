@@ -1,5 +1,71 @@
 [
   {
+    "parent_slug": "wikidata-q1746036",
+    "child_slug": "component-wikidata-q1746036-1",
+    "position": 1,
+    "source_url": "https://www.chopin.pl/katalog_part_09.en.html"
+  },
+  {
+    "parent_slug": "wikidata-q1746036",
+    "child_slug": "component-wikidata-q1746036-2",
+    "position": 2,
+    "source_url": "https://www.chopin.pl/katalog_part_09.en.html"
+  },
+  {
+    "parent_slug": "wikidata-q1746036",
+    "child_slug": "component-wikidata-q1746036-3",
+    "position": 3,
+    "source_url": "https://www.chopin.pl/katalog_part_09.en.html"
+  },
+  {
+    "parent_slug": "wikidata-q1746036",
+    "child_slug": "component-wikidata-q1746036-4",
+    "position": 4,
+    "source_url": "https://www.chopin.pl/katalog_part_09.en.html"
+  },
+  {
+    "parent_slug": "wikidata-q1746043",
+    "child_slug": "component-wikidata-q1746043-1",
+    "position": 1,
+    "source_url": "https://www.chopin.pl/katalog_part_09.en.html"
+  },
+  {
+    "parent_slug": "wikidata-q1746043",
+    "child_slug": "component-wikidata-q1746043-2",
+    "position": 2,
+    "source_url": "https://www.chopin.pl/katalog_part_09.en.html"
+  },
+  {
+    "parent_slug": "wikidata-q1746043",
+    "child_slug": "component-wikidata-q1746043-3",
+    "position": 3,
+    "source_url": "https://www.chopin.pl/katalog_part_09.en.html"
+  },
+  {
+    "parent_slug": "wikidata-q1746043",
+    "child_slug": "component-wikidata-q1746043-4",
+    "position": 4,
+    "source_url": "https://www.chopin.pl/katalog_part_09.en.html"
+  },
+  {
+    "parent_slug": "mozart-don-giovanni-k527",
+    "child_slug": "wikidata-q924223",
+    "position": 4,
+    "source_url": "https://dme.mozarteum.at/libretti-edition/pdf/LV_511_517_0.pdf"
+  },
+  {
+    "parent_slug": "wikidata-q201873",
+    "child_slug": "wikidata-q3828895",
+    "position": null,
+    "source_url": "https://kv.mozarteum.at/de/work/sinfonia-5678"
+  },
+  {
+    "parent_slug": "wikidata-q201873",
+    "child_slug": "wikidata-q7049139",
+    "position": 10,
+    "source_url": "https://kv.mozarteum.at/en/work/5701"
+  },
+  {
     "parent_slug": "wikidata-q6544099",
     "child_slug": "component-wikidata-q6544099-9",
     "position": 9,
