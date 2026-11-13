@@ -142,7 +142,7 @@ describe("ComposerDirectory", () => {
     expect(within(baroqueSection!).getAllByRole("list")).toHaveLength(1);
   });
 
-  it("keeps period headings and sorts original names within a period in A–Z mode", () => {
+  it("keeps period headings and Korean name order without sort controls", () => {
     render(
       <ComposerDirectory
         composers={[
@@ -168,10 +168,11 @@ describe("ComposerDirectory", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "A–Z" }));
+    expect(screen.queryByRole("button", { name: "A–Z" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "가나다순" })).toBeNull();
 
     const baroqueHeading = screen.getByRole("heading", { name: "바로크" });
-    const otherHeading = screen.getByRole("heading", { name: "기타" });
+    const otherHeading = screen.getByRole("heading", { name: /^기타/ });
     const baroqueSection = baroqueHeading.closest("section");
     const completeBaroqueList = within(baroqueSection!).getByRole("list", {
       name: "바로크 작곡가 목록",
@@ -183,10 +184,15 @@ describe("ComposerDirectory", () => {
         .getAllByRole("link")
         .map((link) => link.getAttribute("href")),
     ).toEqual([
-      composerHref("biber"),
       composerHref("marais"),
+      composerHref("biber"),
     ]);
     expect(otherHeading).toBeTruthy();
+    const toggle = within(otherHeading).getByRole("button", { name: /기타/ });
+    expect(toggle.getAttribute("aria-expanded")).toBe("false");
+    expect(screen.queryByRole("link", { name: /테스트 작곡가/ })).toBeNull();
+    fireEvent.click(toggle);
+    expect(toggle.getAttribute("aria-expanded")).toBe("true");
     const completeOtherList = within(otherHeading.closest("section")!).getByRole(
       "list",
       { name: "기타 작곡가 목록" },
@@ -196,6 +202,13 @@ describe("ComposerDirectory", () => {
         .getByRole("link", { name: /테스트 작곡가/ })
         .getAttribute("href"),
     ).toBe(composerHref("test-composer"));
+    fireEvent.click(toggle);
+    expect(screen.queryByRole("link", { name: /테스트 작곡가/ })).toBeNull();
+    const search = screen.getByLabelText("작곡가 이름 검색");
+    fireEvent.change(search, { target: { value: "Test Composer" } });
+    expect(screen.getByRole("link", { name: /테스트 작곡가/ })).toBeTruthy();
+    fireEvent.change(search, { target: { value: "" } });
+    expect(screen.queryByRole("link", { name: /테스트 작곡가/ })).toBeNull();
   });
 
   it("exposes period controls as a named group and updates pressed state", () => {
