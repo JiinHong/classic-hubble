@@ -1,8 +1,11 @@
 "use client";
 
-import { ArrowRight, ArrowUpLeft, X, Youtube } from "lucide-react";
-import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import { ArrowRight, ArrowUpLeft, UserRound, X, Youtube } from "lucide-react";
+import Image from "next/image";
+import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import starterData from "@/data/starter-suggestions.json";
+import { matchComposers } from "@/lib/composer-search";
+import { PERIOD_LABELS, type ComposerDirectoryEntry } from "@/lib/composer-directory";
 import type { WorkSuggestion } from "@/lib/work-suggestions";
 import { parseYouTubeUrl } from "@/lib/youtube";
 import { SingleLineText } from "./SingleLineText";
@@ -11,6 +14,7 @@ type Props = {
   initialValue: string;
   onSubmit: (query: string) => void;
   onSelect: (work: WorkSuggestion) => void;
+  onComposer?: (person: ComposerDirectoryEntry) => void;
   onClear: () => void;
   onVideo: (id: string | null, retry?: boolean) => void;
 };
@@ -19,7 +23,9 @@ const looksLikeLink = (text: string) => /^(?:[a-z][a-z\d+.-]*:\/\/|(?:www\.|m\.|
 const starters: Record<string, WorkSuggestion[]> = starterData;
 const limitDraft = (raw: string) => looksLikeLink(raw) ? raw : raw.slice(0, 200);
 
-export function SearchBox({ initialValue, onSubmit, onSelect, onClear, onVideo }: Props) {
+type Option = WorkSuggestion & { person?: ComposerDirectoryEntry };
+
+export function SearchBox({ initialValue, onSubmit, onSelect, onComposer, onClear, onVideo }: Props) {
   const [linkHint, setLinkHint] = useState(false);
   const [invalidLink, setInvalidLink] = useState(false);
   const searchPlaceholder = linkHint ? "마음에 드는 클래식 음악의 유튜브 링크를 넣어보세요" : "클래식 곡명이나 작곡가를 입력하세요";
@@ -67,7 +73,12 @@ export function SearchBox({ initialValue, onSubmit, onSelect, onClear, onVideo }
   const compatible = loading && result.query && query.startsWith(result.query)
     ? result.items.filter(item => [item.title, item.composer].some(label => label.toLowerCase().includes(query.toLowerCase())))
     : [];
-  const items = loading ? prepared ?? compatible : result.error ? prepared ?? [] : result.items;
+  const people = useMemo(() => onComposer && query && !looksLikeLink(query) ? matchComposers(query) : null, [onComposer, query]);
+  const works = loading ? prepared ?? compatible : result.error ? prepared ?? [] : result.items;
+  const items: Option[] = [...(people?.matches ?? []).map(person => ({
+    slug: "composer:" + person.id, title: person.nameKo, person,
+    composer: person.period === "other" ? "작곡가" : PERIOD_LABELS[person.period] + " 시대 작곡가",
+  })), ...works];
   const visible = suggestionsEnabled && (!loading || items.length > 0);
   const active = items.findIndex(item => item.slug === activeSlug);
 
@@ -112,8 +123,9 @@ export function SearchBox({ initialValue, onSubmit, onSelect, onClear, onVideo }
     composingRef.current = false;
     setComposing(false);
   }
-  function choose(work: WorkSuggestion) {
+  function choose(work: Option) {
     clearCompositionState();
+    if (work.person && onComposer) { setOpen(false); setActiveSlug(null); onComposer(work.person); return; }
     if (input.current) input.current.value = work.title;
     setValue(work.title); setOpen(false); setActiveSlug(null); onSelect(work);
   }
@@ -123,6 +135,7 @@ export function SearchBox({ initialValue, onSubmit, onSelect, onClear, onVideo }
     const id = parseYouTubeUrl(query);
     if (id) onVideo(id, true);
     else if (looksLikeLink(query)) setInvalidLink(true);
+    else if (people?.exact && onComposer) onComposer(people.exact);
     else onSubmit(query);
   }
 
@@ -183,10 +196,13 @@ export function SearchBox({ initialValue, onSubmit, onSelect, onClear, onVideo }
       {invalidLink ? <p id={listId + "-error"} role="alert" className="mt-3 text-sm text-red-700">유튜브 또는 유튜브 뮤직의 개별 영상 링크를 입력해 주세요.</p> : null}
       {visible ? <div className="absolute inset-x-0 top-full z-30 mt-2 max-h-[min(26rem,50svh)] overflow-y-auto rounded-lg border border-neutral-200 bg-white p-1.5 shadow-lg">
         {!loading && result.error && !items.length ? <p role="alert" className="px-3 py-4 text-sm text-neutral-600">추천 작품을 불러오지 못했습니다.</p> : null}
-        <ul id={listId} role="listbox" aria-label="추천 작품">
+        <ul id={listId} role="listbox" aria-label="작곡가 및 작품 추천">
           {items.map((work, index) => <li id={`${listId}-${index}`} key={work.slug} role="option" aria-selected={active === index}
             className={`flex cursor-pointer items-center gap-3 rounded-md px-3 py-3 ${active === index ? "bg-neutral-100" : "hover:bg-neutral-50"}`}
             onPointerMove={() => setActiveSlug(work.slug)} onPointerDown={event => event.preventDefault()} onClick={() => choose(work)}>
+            {work.person && <span className="grid size-10 shrink-0 place-items-center overflow-hidden rounded-md bg-neutral-100 text-neutral-500">
+              {work.person.portraitSrc ? <Image alt="" src={work.person.portraitSrc} width={40} height={40} className="size-full object-cover" /> : <UserRound className="size-5" aria-hidden="true" />}
+            </span>}
             <div className="min-w-0 flex-1"><p className="break-words text-sm font-medium text-neutral-900">{work.title}</p><p className="mt-1 break-words text-xs text-neutral-500">{work.composer}</p></div>
             <ArrowUpLeft aria-hidden="true" className="size-4 shrink-0 text-neutral-400" />
           </li>)}

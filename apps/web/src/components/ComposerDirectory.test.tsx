@@ -32,8 +32,8 @@ const composers = [
   }),
 ];
 
-function composerHref(nameKo: string) {
-  return `/?composer=${encodeURIComponent(nameKo)}`;
+function composerHref(id: string) {
+  return `/composers/${id}`;
 }
 
 describe("ComposerDirectory", () => {
@@ -91,14 +91,14 @@ describe("ComposerDirectory", () => {
         .getAllByRole("link")
         .map((link) => link.getAttribute("href")),
     ).toEqual([
-      composerHref("요한 제바스티안 바흐"),
-      composerHref("안토니오 비발디"),
+      composerHref("bach"),
+      composerHref("vivaldi"),
     ]);
     expect(
       within(plainList)
         .getAllByRole("link")
         .map((link) => link.getAttribute("href")),
-    ).toEqual([composerHref("도메니코 스카를라티")]);
+    ).toEqual([composerHref("scarlatti")]);
     expect(
       within(baroqueSection!).getAllByRole("link", {
         name: /요한 제바스티안 바흐/,
@@ -113,7 +113,7 @@ describe("ComposerDirectory", () => {
       within(featuredList)
         .getByRole("link", { name: /요한 제바스티안 바흐/ })
         .getAttribute("href"),
-    ).toBe(`/?composer=${encodeURIComponent("요한 제바스티안 바흐")}`);
+    ).toBe(composerHref("bach"));
   });
 
   it("omits a plain list when a period contains only featured composers", () => {
@@ -183,8 +183,8 @@ describe("ComposerDirectory", () => {
         .getAllByRole("link")
         .map((link) => link.getAttribute("href")),
     ).toEqual([
-      composerHref("도메니코 스카를라티"),
-      composerHref("장필리프 라모"),
+      composerHref("scarlatti"),
+      composerHref("rameau"),
     ]);
     expect(otherHeading).toBeTruthy();
     const completeOtherList = within(otherHeading.closest("section")!).getByRole(
@@ -195,7 +195,7 @@ describe("ComposerDirectory", () => {
       within(completeOtherList)
         .getByRole("link", { name: /테스트 작곡가/ })
         .getAttribute("href"),
-    ).toBe(composerHref("테스트 작곡가"));
+    ).toBe(composerHref("test-composer"));
   });
 
   it("exposes period controls as a named group and updates pressed state", () => {

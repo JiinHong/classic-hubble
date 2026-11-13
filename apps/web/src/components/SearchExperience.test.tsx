@@ -3,6 +3,8 @@ import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { searchCatalog } from "@/lib/catalog-search";
 import { SearchExperience } from "./SearchExperience";
+const { push } = vi.hoisted(() => ({ push: vi.fn() }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push }) }));
 const input = () => screen.getByRole("combobox", { name: "곡명, 작곡가, 별칭 검색" });
 const welcome = () => screen.getByRole("heading", { name: "어떤 곡을 공연장에서 듣고 싶으세요?" });
 const submit = (value: string) => { fireEvent.change(input(), { target: { value } }); fireEvent.keyDown(input(), { key: "Enter" }); };
@@ -23,6 +25,23 @@ function serve(data = { works, performances }) {
   vi.stubGlobal("fetch", fetcher); return fetcher;
 }
 describe("search-first experience", () => {
+  it("immediately offers a portrait, and Enter opens the exact composer's profile", () => {
+    serve(); render(<SearchExperience />);
+    fireEvent.change(input(), { target: { value: "쇼팽" } });
+    const first = screen.getAllByRole("option")[0];
+    expect(first.textContent).toContain("쇼팽");
+    expect(first.querySelector("img")).not.toBeNull();
+    fireEvent.keyDown(input(), { key: "Enter" });
+    expect(push).toHaveBeenCalledWith("/composers/6a3a69b3-185b-5d27-bbba-e50a7c23aaed");
+  });
+  it("keeps ambiguous surnames and mixed work queries in search", async () => {
+    push.mockClear(); serve(); render(<SearchExperience />);
+    for (const query of ["바흐", "모차르트 레퀴엠"]) {
+      submit(query); await settle();
+      expect(new URLSearchParams(location.search).get("q")).toBe(query);
+    }
+    expect(push).not.toHaveBeenCalled();
+  });
   it.each(["https://youtu.be/AbCdEf123_-?si=private", "https://music.youtube.com/watch?v=AbCdEf123_-&list=RD123"])("identifies %s in place without a mode switch or a catalog request", async url => {
     const fetcher = vi.fn(async () => Response.json({ video: { id: "AbCdEf123_-", title: "링크 속 음악", channelTitle: "Concert" }, result: { entries: [] } }));
     vi.stubGlobal("fetch", fetcher);

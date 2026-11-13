@@ -216,7 +216,7 @@ describe("composer directory rules", () => {
 
   it("builds an encoded composer discovery link", () => {
     expect(composerDiscoveryHref(bach)).toBe(
-      `/?composer=${encodeURIComponent("요한 제바스티안 바흐")}`,
+      "/composers/bach",
     );
     expect(composerIdentityKey("Frédéric Chopin")).toBe("frederic chopin");
   });

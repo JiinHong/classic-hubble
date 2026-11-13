@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useState, useSyncExternalStore } from "react";
+import { useRouter } from "next/navigation";
+import { composerDiscoveryHref, type ComposerDirectoryEntry } from "@/lib/composer-directory";
 import type { WorkSuggestion } from "@/lib/work-suggestions";
 import { concertPeriod, type ConcertPeriod } from "@/lib/catalog-search";
 import { SearchBox } from "./SearchBox";
@@ -29,6 +31,8 @@ function searchString(search: SearchState) {
 }
 
 export function SearchExperience({ initialQuery = "", initialWork = "", initialMode = "works", initialCity = "전체", initialPeriod = "all" }: Props) {
+  const router = useRouter();
+  const openComposer = useCallback((person: ComposerDirectoryEntry) => router.push(composerDiscoveryHref(person)), [router]);
   // A cached Next.js page may have old initial props when restored from a detail page.
   const snapshot = useSyncExternalStore(subscribe, getSnapshot, () => searchString({ query: initialQuery, work: initialWork, mode: initialMode, city: initialCity, period: initialPeriod }));
   const params = new URLSearchParams(snapshot);
@@ -76,7 +80,7 @@ export function SearchExperience({ initialQuery = "", initialWork = "", initialM
         </h1>
       ) : null}
       <div className={submitted ? "mx-auto max-w-3xl" : ""}>
-        <SearchBox key={navigation} initialValue={search.query} onSubmit={query => commit({ ...search, query, work: "" })} onSelect={select} onClear={clear}
+        <SearchBox key={navigation} initialValue={search.query} onSubmit={query => commit({ ...search, query, work: "" })} onSelect={select} onComposer={openComposer} onClear={clear}
           onVideo={(id, retry) => {
             if (!id) { reset(); return; }
             setShowEntrance(false);

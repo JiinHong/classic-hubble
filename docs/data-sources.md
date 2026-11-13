@@ -98,6 +98,23 @@ counting toward `reviewed`; for example Daejeon Arts Center identifies
 - Local destination: `apps/web/public/composer-portraits/`
 - File count: 29 curated period representatives and fallbacks
 
-Portraits are committed as local 200-by-200 JPEG files. The application does
-not call Open Opus or its asset host at runtime, and no birth or death fields
-are retained.
+The original 29 JPEGs are unchanged. Composer search and profiles also use 191
+local 200px WebP portraits generated from the remaining named files in
+[Open Opus's official portrait collection](https://github.com/openopus-org/openopus_api/tree/fc713e1bdb1e5704ae93e6f3f60ee5e028cb8a73/portraits).
+Files are matched against the reviewed full-name baseline; shared surnames
+have explicit mappings. No remote portrait provider is called during search.
+
+## Composer profiles and suggestions (2026-11-13)
+
+- The small, checked-in name index contains only public IDs, names and periods
+  from Classic Hubble and the Open Opus baseline. After composer imports, run
+  `node --env-file=<public-web-env> apps/web/scripts/refresh-composer-index.mjs`
+  and deploy the refreshed snapshot. Work lists are not in the index: profile
+  pages read the current composer's works by ID, 24 at a time.
+- 130 short Korean descriptions are sourced from Wikidata (CC0) using the
+  individually reviewed entity IDs in the Korean-name provenance. The four
+  longer editorial notes link to their institutional sources on each profile.
+  Where no description exists we use catalog facts, not generated biographies.
+- To refresh media, extract the pinned Open Opus source and run
+  `node apps/web/scripts/refresh-composer-media.mjs /path/to/openopus/portraits`.
+  Source identities and Korean descriptions are resolved at refresh time only.

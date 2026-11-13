@@ -1,4 +1,5 @@
 import koreanComposerNames from "@/data/composer-korean-names.json";
+import portraitFiles from "@/data/composer-portrait-files.json";
 
 export const PERIOD_OPTIONS = [
   { key: "all", label: "전체" },
@@ -56,7 +57,7 @@ const PERIOD_ORDER: ComposerPeriodKey[] = [
   "other",
 ];
 
-const PERIOD_LABELS: Record<ComposerPeriodKey, string> = {
+export const PERIOD_LABELS: Record<ComposerPeriodKey, string> = {
   baroque: "바로크",
   classical: "고전",
   contemporary: "현대",
@@ -67,75 +68,37 @@ const PERIOD_LABELS: Record<ComposerPeriodKey, string> = {
   twentieth: "20세기",
 };
 
-const FEATURED_COMPOSER_METADATA = new Map(
-  (
-    [
-      ["Guillaume de Machaut", 1, "guillaume-de-machaut"],
-      ["Guillaume Dufay", 2, "guillaume-dufay"],
-      ["Léonin", 3, "leonin"],
-      ["Pérotin", 4, "perotin"],
-      ["Claudio Monteverdi", 1, "claudio-monteverdi"],
-      [
-        "Giovanni Pierluigi da Palestrina",
-        2,
-        "giovanni-pierluigi-da-palestrina",
-      ],
-      ["Josquin Des Prez", 3, "josquin-des-prez"],
-      ["William Byrd", 4, "william-byrd"],
-      ["Johann Sebastian Bach", 1, "johann-sebastian-bach"],
-      [
-        "George Frideric Handel",
-        2,
-        "george-frideric-handel",
-      ],
-      ["Antonio Vivaldi", 3, "antonio-vivaldi"],
-      ["Henry Purcell", 4, "henry-purcell"],
-      [
-        "Wolfgang Amadeus Mozart",
-        1,
-        "wolfgang-amadeus-mozart",
-      ],
-      ["Franz Joseph Haydn", 2, "franz-joseph-haydn"],
-      [
-        "Christoph Willibald von Gluck",
-        3,
-        "christoph-willibald-von-gluck",
-      ],
-      ["Luigi Boccherini", 4, "luigi-boccherini"],
-      [
-        "Ludwig van Beethoven",
-        1,
-        "ludwig-van-beethoven",
-      ],
-      ["Frédéric Chopin", 2, "frederic-chopin"],
-      [
-        "Pyotr Ilyich Tchaikovsky",
-        3,
-        "pyotr-ilyich-tchaikovsky",
-      ],
-      ["Johannes Brahms", 4, "johannes-brahms"],
-      ["Franz Schubert", 5, "franz-schubert"],
-      ["Igor Stravinsky", 1, "igor-stravinsky"],
-      [
-        "Dmitri Shostakovich",
-        2,
-        "dmitri-shostakovich",
-      ],
-      ["Sergei Prokofiev", 3, "sergei-prokofiev"],
-      ["Béla Bartók", 4, "bela-bartok"],
-      ["Arvo Pärt", 1, "arvo-part"],
-      ["Philip Glass", 2, "philip-glass"],
-      ["Steve Reich", 3, "steve-reich"],
-      ["John Adams", 4, "john-adams"],
-    ] as const
-  ).map(([name, featuredRank, portraitSlug]) => [
-    normalizeText(name),
-    {
-      featuredRank,
-      portraitSrc: `/composer-portraits/${portraitSlug}.jpg`,
-    },
-  ]),
-);
+const featuredRanks = new Map<string, number>(([
+  ["Guillaume de Machaut", 1],
+  ["Guillaume Dufay", 2],
+  ["Léonin", 3],
+  ["Pérotin", 4],
+  ["Claudio Monteverdi", 1],
+  ["Giovanni Pierluigi da Palestrina", 2],
+  ["Josquin Des Prez", 3],
+  ["William Byrd", 4],
+  ["Johann Sebastian Bach", 1],
+  ["George Frideric Handel", 2],
+  ["Antonio Vivaldi", 3],
+  ["Henry Purcell", 4],
+  ["Wolfgang Amadeus Mozart", 1],
+  ["Franz Joseph Haydn", 2],
+  ["Christoph Willibald von Gluck", 3],
+  ["Luigi Boccherini", 4],
+  ["Ludwig van Beethoven", 1],
+  ["Frédéric Chopin", 2],
+  ["Pyotr Ilyich Tchaikovsky", 3],
+  ["Johannes Brahms", 4],
+  ["Franz Schubert", 5],
+  ["Igor Stravinsky", 1],
+  ["Dmitri Shostakovich", 2],
+  ["Sergei Prokofiev", 3],
+  ["Béla Bartók", 4],
+  ["Arvo Pärt", 1],
+  ["Philip Glass", 2],
+  ["Steve Reich", 3],
+  ["John Adams", 4],
+] as const).map(([name, rank]) => [normalizeText(name), rank]));
 
 const KOREAN_COMPOSER_LABELS = new Map(
   Object.entries(koreanComposerNames).map(([name, nameKo]) => [
@@ -143,6 +106,9 @@ const KOREAN_COMPOSER_LABELS = new Map(
     nameKo,
   ]),
 );
+
+const portraits = new Map(Object.entries(portraitFiles).map(([name, file]) =>
+  [normalizeText(name), "/composer-portraits/" + file]));
 
 export function koreanComposerLabel(identityKey: string) {
   return KOREAN_COMPOSER_LABELS.get(identityKey);
@@ -186,10 +152,9 @@ function normalizePeriod(value: string | null): ComposerPeriodKey {
 
 export function toComposerDirectoryEntry(input: RawComposer): ComposerDirectoryEntry {
   const identityKey = normalizeText(input.name);
-  const featuredMetadata = FEATURED_COMPOSER_METADATA.get(identityKey);
 
   return {
-    featuredRank: featuredMetadata?.featuredRank ?? null,
+    featuredRank: featuredRanks.get(identityKey) ?? null,
     id: input.id,
     name: input.name.trim(),
     nameKo:
@@ -197,7 +162,7 @@ export function toComposerDirectoryEntry(input: RawComposer): ComposerDirectoryE
       koreanComposerLabel(identityKey) ||
       input.name.trim(),
     period: normalizePeriod(input.period),
-    portraitSrc: featuredMetadata?.portraitSrc ?? null,
+    portraitSrc: portraits.get(identityKey) ?? null,
   };
 }
 
@@ -246,9 +211,9 @@ export function selectFeaturedComposers(entries: ComposerDirectoryEntry[]) {
 }
 
 export function composerDiscoveryHref(
-  composer: Pick<ComposerDirectoryEntry, "name" | "nameKo">,
+  composer: Pick<ComposerDirectoryEntry, "id">,
 ) {
-  return `/?composer=${encodeURIComponent(composer.nameKo || composer.name)}`;
+  return `/composers/${encodeURIComponent(composer.id)}`;
 }
 
 export function composerIdentityKey(name: string) {
