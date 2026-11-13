@@ -1,0 +1,522 @@
+{
+  "Aaron Copland": {
+    "description": "미국의 작곡가 (1900-1990)",
+    "id": "Q192185"
+  },
+  "Alban Berg": {
+    "description": "오스트리아의 작곡가 (1885–1935)",
+    "id": "Q78475"
+  },
+  "Albert Roussel": {
+    "description": "프랑스의 작곡가 (1869–1937)",
+    "id": "Q313376"
+  },
+  "Alessandro Scarlatti": {
+    "description": "이탈리아의 작곡가 (1660-1725)",
+    "id": "Q183087"
+  },
+  "Alexander Borodin": {
+    "description": "러시아의 작곡가, 화학자 (1833–1887)",
+    "id": "Q164004"
+  },
+  "Alexander Glazunov": {
+    "description": "러시아의 작곡가 (1865–1936)",
+    "id": "Q25872"
+  },
+  "Alexander Scriabin": {
+    "description": "러시아의 20세기 음악가 (1872–1915)",
+    "id": "Q185647"
+  },
+  "Alexander von Zemlinsky": {
+    "description": "오스트리아의 작곡가",
+    "id": "Q78524"
+  },
+  "Anton Bruckner": {
+    "description": "오스트리아의 작곡가 (1824-1896)",
+    "id": "Q81752"
+  },
+  "Anton Webern": {
+    "description": "오스트리아의 작곡가, 지휘자 (1883-1945)",
+    "id": "Q190933"
+  },
+  "Antonín Dvořák": {
+    "description": "체코의 작곡가 (1841–1904)",
+    "id": "Q7298"
+  },
+  "Antonio Salieri": {
+    "description": "이탈리아의 서양 고전 음악 작곡가",
+    "id": "Q51088"
+  },
+  "Antonio Vivaldi": {
+    "description": "이탈리아의 작곡가이자 바이올린 연주자 (1678-1741)",
+    "id": "Q1340"
+  },
+  "Aram Khachaturian": {
+    "description": "아르메니아 태생 소련의 작곡가 (1903–1978)",
+    "id": "Q152293"
+  },
+  "Arnold Bax": {
+    "description": "영국 작곡가",
+    "id": "Q143198"
+  },
+  "Arnold Schoenberg": {
+    "description": "오스트리아계 미국인의 작곡가 (1874–1951)",
+    "id": "Q154770"
+  },
+  "Bedrich Smetana": {
+    "description": "체코의 청각장애인 음악가 (1824–1884)",
+    "id": "Q48173"
+  },
+  "Béla Bartók": {
+    "description": "헝가리의 작곡가이자 피아니스트",
+    "id": "Q83326"
+  },
+  "Benedetto Marcello": {
+    "description": "이탈리아의 작곡가, 음악 평론가 (1686-1739)",
+    "id": "Q312784"
+  },
+  "Bohuslav Martinů": {
+    "description": "체코 작곡가",
+    "id": "Q223258"
+  },
+  "Camille Saint-Saëns": {
+    "description": "프랑스의 작곡가, 오르가니스트, 지휘자, 피아니스트 (1835–1921)",
+    "id": "Q150445"
+  },
+  "Carl Maria von Weber": {
+    "description": "독일 낭만주의 작곡가",
+    "id": "Q154812"
+  },
+  "Carl Nielsen": {
+    "description": "덴마크의 작곡가 (1865–1931)",
+    "id": "Q205139"
+  },
+  "Carl Orff": {
+    "description": "독일의 작곡가",
+    "id": "Q44086"
+  },
+  "Carlos Chávez": {
+    "description": "멕시코의 작곡가, 지휘자, 교육자",
+    "id": "Q357326"
+  },
+  "César Cui": {
+    "description": "러시아의 작곡가, 음악 비평가 (1835–1918)",
+    "id": "Q208546"
+  },
+  "César Franck": {
+    "description": "벨기에계 프랑스인의 작곡가 (1822–1890)",
+    "id": "Q50187"
+  },
+  "Charles Gounod": {
+    "description": "프랑스의 작곡가 (1818–1893)",
+    "id": "Q180278"
+  },
+  "Charles Ives": {
+    "description": "미국의 작곡가",
+    "id": "Q309648"
+  },
+  "Charles-Marie Widor": {
+    "description": "프랑스의 오르간 연주자 (1844–1937)",
+    "id": "Q215161"
+  },
+  "Christoph Willibald von Gluck": {
+    "description": "독일의 고전주의 작곡가",
+    "id": "Q130759"
+  },
+  "Claude Debussy": {
+    "description": "프랑스의 작곡가 (1862-1918)",
+    "id": "Q4700"
+  },
+  "Clément Janequin": {
+    "description": "프랑스 작곡가",
+    "id": "Q71526"
+  },
+  "Dmitri Shostakovich": {
+    "description": "소련의 작곡가 (1906–1975)",
+    "id": "Q80135"
+  },
+  "Edgard Varèse": {
+    "description": "프랑스의 작곡가",
+    "id": "Q57247"
+  },
+  "Edouard Lalo": {
+    "description": "프랑스의 작곡가",
+    "id": "Q224002"
+  },
+  "Edvard Grieg": {
+    "description": "노르웨이의 음악가",
+    "id": "Q80621"
+  },
+  "Edward Elgar": {
+    "description": "영국의 낭만주의 작곡가 (1857–1934)",
+    "id": "Q179631"
+  },
+  "Elliott Carter": {
+    "description": "미국의 작곡가 (1908–2012)",
+    "id": "Q318835"
+  },
+  "Engelbert Humperdinck": {
+    "description": "독일 작곡가",
+    "id": "Q55010"
+  },
+  "Erich Wolfgang Korngold": {
+    "description": "오스트리아의 작곡가 (1897-1957)",
+    "id": "Q313371"
+  },
+  "Erik Satie": {
+    "description": "프랑스의 작곡가, 피아노 연주자 (1866-1925)",
+    "id": "Q187192"
+  },
+  "Felix Mendelssohn": {
+    "description": "독일의 음악가 (1809-1847)",
+    "id": "Q46096"
+  },
+  "Francis Poulenc": {
+    "description": "프랑스의 작곡가이자 피아니스트",
+    "id": "Q191408"
+  },
+  "Franz Joseph Haydn": {
+    "description": "오스트리아의 작곡가 (1732–1809)",
+    "id": "Q7349"
+  },
+  "Franz Liszt": {
+    "description": "헝가리 출생의 피아니스트이자 작곡가 (1811-1886)",
+    "id": "Q41309"
+  },
+  "Franz Schmidt": {
+    "description": "오스트리아의 작곡가 (1874–1939)",
+    "id": "Q434601"
+  },
+  "Franz Schubert": {
+    "description": "오스트리아의 작곡가 (1797-1828)",
+    "id": "Q7312"
+  },
+  "Frédéric Chopin": {
+    "description": "폴란드의 작곡가, 피아니스트 (1810–1849)",
+    "id": "Q1268"
+  },
+  "Frederick Delius": {
+    "description": "영국의 작곡가 (1862-1934)",
+    "id": "Q312698"
+  },
+  "Gabriel Fauré": {
+    "description": "프랑스의 작곡가, 오르가니스트, 피아니스트, 교사",
+    "id": "Q104919"
+  },
+  "Georg Philipp Telemann": {
+    "description": "독일의 바로크 음악 작곡가",
+    "id": "Q75854"
+  },
+  "George Crumb": {
+    "description": "미국의 작곡가 (1929–2022)",
+    "id": "Q356804"
+  },
+  "George Enescu": {
+    "description": "루마니아의 작곡가,  연주자, 지휘자 (1881–1955)",
+    "id": "Q77177"
+  },
+  "George Frideric Handel": {
+    "description": "독일에서 태어나 영국에서 활동한 바로크 시대의 작곡가",
+    "id": "Q7302"
+  },
+  "George Gershwin": {
+    "description": "미국의 작곡가 (1898–1937)",
+    "id": "Q123829"
+  },
+  "Georges Bizet": {
+    "description": "프랑스의 음악가 (1838–1875)",
+    "id": "Q56158"
+  },
+  "Giacomo Puccini": {
+    "description": "이탈리아의 작곡가 (1858~1924)",
+    "id": "Q7311"
+  },
+  "Gioachino Rossini": {
+    "description": "이탈리아의 오페라 작곡가",
+    "id": "Q9726"
+  },
+  "Giovanni Pierluigi da Palestrina": {
+    "description": "이탈리아의 작곡가",
+    "id": "Q179277"
+  },
+  "Giuseppe Tartini": {
+    "description": "이탈리아의 작곡가, 바이올린 연주자 (1692-1770)",
+    "id": "Q108555"
+  },
+  "Giuseppe Verdi": {
+    "description": "이탈리아의 작곡가 (1813–1901)",
+    "id": "Q7317"
+  },
+  "Guillaume Dufay": {
+    "description": "프랑스의 음악가 (1397-1474)",
+    "id": "Q207717"
+  },
+  "Gustav Mahler": {
+    "description": "오스트리아 보헤미안 작곡가이자 지휘자 (1860–1911)",
+    "id": "Q7304"
+  },
+  "György Ligeti": {
+    "description": "헝가리계 오스트리아인 작곡가",
+    "id": "Q154331"
+  },
+  "Hans Werner Henze": {
+    "description": "독일의 작곡가",
+    "id": "Q76915"
+  },
+  "Harrison Birtwistle": {
+    "description": "영국 작곡가(1934~2022)",
+    "id": "Q354335"
+  },
+  "Heinrich Franz von Biber": {
+    "description": "오스트리아의 작곡가, 바이올린 연주자 (1644-1704)",
+    "id": "Q153455"
+  },
+  "Heinrich Schütz": {
+    "description": "독일의 작곡가, 오르간 연주자 (1585-1672)",
+    "id": "Q153643"
+  },
+  "Howard Hanson": {
+    "description": "미국 작곡가, 지휘자, 음악학자",
+    "id": "Q382748"
+  },
+  "Hugo Wolf": {
+    "description": "오스트리아의 작곡가",
+    "id": "Q215747"
+  },
+  "Igor Stravinsky": {
+    "description": "20세기 러시아의 작곡가 (1882–1971)",
+    "id": "Q7314"
+  },
+  "Jacob Obrecht": {
+    "description": "플랑드르 작곡가",
+    "id": "Q311629"
+  },
+  "Jacques Ibert": {
+    "description": "프랑스의 서양 고전 음악 작곡가 (1890–1962)",
+    "id": "Q296828"
+  },
+  "Jacques Offenbach": {
+    "description": "독일, 프랑스의 고전 음악가 (1819–1880)",
+    "id": "Q41555"
+  },
+  "Jean Sibelius": {
+    "description": "핀란드의 클래식 작곡가 (1865–1957)",
+    "id": "Q45682"
+  },
+  "Jean-Baptiste Lully": {
+    "description": "이탈리아 태생 프랑스의 작곡가 (1632–1687)",
+    "id": "Q1192"
+  },
+  "Johann Pachelbel": {
+    "description": "독일의 작곡가이자 오르가니스트",
+    "id": "Q76485"
+  },
+  "Johann Sebastian Bach": {
+    "description": "독일의 작곡가 (1685~1750)",
+    "id": "Q1339"
+  },
+  "Johann Strauss Jr": {
+    "description": "오스트리아의 작곡가",
+    "id": "Q83309"
+  },
+  "Johannes Brahms": {
+    "description": "독일의 서양 고전 음악 작곡가 (1833–1897)",
+    "id": "Q7294"
+  },
+  "John Adams": {
+    "description": "미국의 작곡가",
+    "id": "Q84114"
+  },
+  "John Cage": {
+    "description": "미국의 아방가르드 작곡가(1912–1992)",
+    "id": "Q180727"
+  },
+  "John Corigliano": {
+    "description": "미국의 현대 클래식 음악 작곡가",
+    "id": "Q450620"
+  },
+  "Josef Suk": {
+    "description": "체코의 바이올린 연주자 (1929–2011)",
+    "id": "Q707845"
+  },
+  "Josquin Des Prez": {
+    "description": "플랑드르의 작곡가",
+    "id": "Q143100"
+  },
+  "Karl Ditters von Dittersdorf": {
+    "description": "오스트리아 작곡가, 바이올리니스트",
+    "id": "Q78522"
+  },
+  "Karlheinz Stockhausen": {
+    "description": "독일의 작곡가 (1928–2007)",
+    "id": "Q154556"
+  },
+  "Karol Szymanowski": {
+    "description": "폴란드의 작곡가 (1882-1937)",
+    "id": "Q295400"
+  },
+  "Krzysztof Penderecki": {
+    "description": "폴란드의 작곡가 (1933-2020)",
+    "id": "Q153469"
+  },
+  "Léo Delibes": {
+    "description": "프랑스의 작곡가",
+    "id": "Q207951"
+  },
+  "Leonard Bernstein": {
+    "description": "미국의 지휘자 겸 작곡가",
+    "id": "Q152505"
+  },
+  "Leoš Janáček": {
+    "description": "체코의 작곡가, 민속학자 (1854-1928)",
+    "id": "Q184933"
+  },
+  "Luciano Berio": {
+    "description": "이탈리아의 작곡가 (1925-2003)",
+    "id": "Q221450"
+  },
+  "Ludwig van Beethoven": {
+    "description": "독일의 작곡가 (1770–1827)",
+    "id": "Q255"
+  },
+  "Luigi Boccherini": {
+    "description": "이탈리아 출신의 첼리스트이자 작곡가",
+    "id": "Q189766"
+  },
+  "Malcolm Arnold": {
+    "description": "영국의 작곡가 (1921–2006)",
+    "id": "Q313554"
+  },
+  "Maurice Ravel": {
+    "description": "프랑스의 작곡가 (1875–1937)",
+    "id": "Q1178"
+  },
+  "Max Bruch": {
+    "description": "독일의 낭만주의 작곡가이자 지휘자",
+    "id": "Q106434"
+  },
+  "Max Reger": {
+    "description": "독일의 작곡가, 피아니스트 (1873~1916)",
+    "id": "Q57139"
+  },
+  "Mikhail Ivanovich Glinka": {
+    "description": "러시아의 작곡가 (1804–1857)",
+    "id": "Q181885"
+  },
+  "Mily Balakirev": {
+    "description": "러시아의 작곡가, 피아노 연주자 (1837~1910)",
+    "id": "Q185040"
+  },
+  "Modest Mussorgsky": {
+    "description": "러시아의 작곡가 (1839~1881)",
+    "id": "Q132682"
+  },
+  "Niccolò Paganini": {
+    "description": "이탈리아의 바이올린 연주자, 작곡가 (1782–1840)",
+    "id": "Q66075"
+  },
+  "Nikolai Rimsky-Korsakov": {
+    "description": "러시아의 작곡가 (1844~1908)",
+    "id": "Q93227"
+  },
+  "Orlando Gibbons": {
+    "description": "영국의 작곡가, 오르가니스트",
+    "id": "Q311913"
+  },
+  "Ottorino Respighi": {
+    "description": "이탈리아의 작곡가",
+    "id": "Q243837"
+  },
+  "Paul Dukas": {
+    "description": "프랑스의 작곡가",
+    "id": "Q215556"
+  },
+  "Paul Hindemith": {
+    "description": "독일의 클래식 음악가 (1895–1963)",
+    "id": "Q57244"
+  },
+  "Percy Grainger": {
+    "description": "오스트레일리아의 작곡가, 피아노 연주자 (1882-1961)",
+    "id": "Q318354"
+  },
+  "Philip Glass": {
+    "description": "미국의 작곡가",
+    "id": "Q189729"
+  },
+  "Pierre Boulez": {
+    "description": "프랑스의 작곡가, 지휘자, 음악이론가 (1925–2016)",
+    "id": "Q156193"
+  },
+  "Pyotr Ilyich Tchaikovsky": {
+    "description": "러시아의 작곡가, 지휘자 (1840~1893)",
+    "id": "Q7315"
+  },
+  "Reinhold Glière": {
+    "description": "우크라이나의 작곡가 (1875-1956)",
+    "id": "Q316795"
+  },
+  "Richard Strauss": {
+    "description": "독일의 작곡가, 지휘자 (1864–1949)",
+    "id": "Q13894"
+  },
+  "Richard Wagner": {
+    "description": "독일의 작곡가, 극작가 (1813-1883)",
+    "id": "Q1511"
+  },
+  "Robert Schumann": {
+    "description": "19세기 독일의 작곡가, 피아니스트 (1810–1856)",
+    "id": "Q7351"
+  },
+  "Sergei Prokofiev": {
+    "description": "소련의 작곡가 (1891–1953)",
+    "id": "Q49481"
+  },
+  "Sergei Rachmaninoff": {
+    "description": "러시아 제국 태생 미국의 작곡가, 피아노 연주자 (1873–1943)",
+    "id": "Q131861"
+  },
+  "Sofia Gubaidulina": {
+    "description": "러시아 작곡가",
+    "id": "Q165668"
+  },
+  "Steve Reich": {
+    "description": "미국의 작곡가 (1936-)",
+    "id": "Q262791"
+  },
+  "Thomas Tallis": {
+    "description": "영국의 작곡가 (1505?-1585)",
+    "id": "Q207789"
+  },
+  "Tomás Luis de Victoria": {
+    "description": "스페인의 작곡가 (1548-1611)",
+    "id": "Q215128"
+  },
+  "Toru Takemitsu": {
+    "description": "일본의 작곡가 (1930-1996)",
+    "id": "Q155467"
+  },
+  "Wilhelm Stenhammar": {
+    "description": "스웨덴 작곡가, 피아니스트",
+    "id": "Q435688"
+  },
+  "William Schuman": {
+    "description": "미국의 작곡가",
+    "id": "Q503225"
+  },
+  "Witold Lutoslawski": {
+    "description": "폴란드의 작곡가, 지휘자 (1913-1994)",
+    "id": "Q156472"
+  },
+  "Wolfgang Amadeus Mozart": {
+    "description": "오스트리아의 서양 고전 음악 작곡가 (1756–1791)",
+    "id": "Q254"
+  },
+  "Wolfgang Rihm": {
+    "description": "독일의 작곡가 (1952–2024)",
+    "id": "Q77031"
+  },
+  "Zoltán Kodály": {
+    "description": "헝가리의 작곡가, 민속음악학자",
+    "id": "Q153008"
+  }
+}
