@@ -9,7 +9,13 @@ import { getComposerProfile, PROFILE_PAGE_SIZE } from "@/lib/composer-profile";
 type Props = { params: Promise<{ id: string }>; searchParams: Promise<{ page?: string | string[] }> };
 
 export default async function ComposerPage({ params, searchParams }: Props) {
-  const { id } = await params;
+  const { id: segment } = await params;
+  let id: string;
+  try {
+    id = decodeURIComponent(segment);
+  } catch {
+    notFound();
+  }
   const { page: requested } = await searchParams;
   const page = requested === undefined ? 1 : typeof requested === "string" && /^[1-9]\d{0,4}$/.test(requested) ? Number(requested) : 0;
   if (!page) notFound();
