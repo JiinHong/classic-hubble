@@ -15,6 +15,7 @@ export function ComposerListItem({
       <Link
         className="group block min-h-16 min-w-0 py-3 outline-none focus-visible:ring-2 focus-visible:ring-emerald-700 focus-visible:ring-offset-2"
         href={composerDiscoveryHref(composer)}
+        prefetch={false}
       >
         <span className="block text-sm font-bold leading-5 break-words text-stone-950">
           {composer.nameKo}

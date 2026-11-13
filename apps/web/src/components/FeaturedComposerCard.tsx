@@ -20,6 +20,7 @@ export function FeaturedComposerCard({
       <Link
         className="group flex h-28 min-w-0 items-center gap-2 rounded-md border border-stone-200 bg-white p-2.5 outline-none transition hover:border-stone-400 hover:shadow-sm focus-visible:ring-2 focus-visible:ring-emerald-700 focus-visible:ring-offset-2 sm:gap-3 sm:p-3"
         href={composerDiscoveryHref(composer)}
+        prefetch={false}
       >
         <span className="relative size-12 shrink-0 overflow-hidden rounded-full bg-stone-200 sm:size-16">
           <Image
