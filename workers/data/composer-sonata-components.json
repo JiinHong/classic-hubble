@@ -1,0 +1,61 @@
+{
+  "source": {
+    "url": "https://www.chopin.pl/katalog_part_09.en.html",
+    "sha256": "3e92868bb14c03566b714a64f7094ff7313432c2d6631db36964fd7c39669d6a"
+  },
+  "composer": "Frédéric Chopin",
+  "parents": [
+    {
+      "slug": "wikidata-q1746036",
+      "title": "Piano Sonata No. 1 in C minor, Op. 4",
+      "parts": [
+        {
+          "position": 1,
+          "title": "Allegro maestoso",
+          "title_ko": "피아노 소나타 1번 1악장: 알레그로 마에스토소"
+        },
+        {
+          "position": 2,
+          "title": "Minuetto",
+          "title_ko": "피아노 소나타 1번 2악장: 미뉴에트"
+        },
+        {
+          "position": 3,
+          "title": "Larghetto",
+          "title_ko": "피아노 소나타 1번 3악장: 라르게토"
+        },
+        {
+          "position": 4,
+          "title": "Finale. Presto",
+          "title_ko": "피아노 소나타 1번 4악장: 피날레"
+        }
+      ]
+    },
+    {
+      "slug": "wikidata-q1746043",
+      "title": "Piano Sonata No. 3 in B minor, Op. 58",
+      "parts": [
+        {
+          "position": 1,
+          "title": "Allegro maestoso",
+          "title_ko": "피아노 소나타 3번 1악장: 알레그로 마에스토소"
+        },
+        {
+          "position": 2,
+          "title": "Scherzo",
+          "title_ko": "피아노 소나타 3번 2악장: 스케르초"
+        },
+        {
+          "position": 3,
+          "title": "Largo",
+          "title_ko": "피아노 소나타 3번 3악장: 라르고"
+        },
+        {
+          "position": 4,
+          "title": "Finale. Presto non tanto - Agitato",
+          "title_ko": "피아노 소나타 3번 4악장: 피날레"
+        }
+      ]
+    }
+  ]
+}
