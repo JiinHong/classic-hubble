@@ -3,16 +3,13 @@ import { CalendarDays, MapPin, Ticket } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
-import { compactArtists, formatPerformanceDate, performedScopeLabel, statusLabel, statusTone } from "@/lib/format";
+import { compactArtists, formatPerformanceDate, performedScopeLabel, performanceBadge } from "@/lib/format";
 import { posterImage } from "@/lib/poster";
-
-import { ConfidenceBadge } from "./ConfidenceBadge";
 
 type PerformanceCardProps = {
   compact?: boolean;
   eager?: boolean;
   showYear?: boolean;
-  past?: boolean;
   workSlug?: string;
   metadataMatch?: boolean;
   performance: Performance;
@@ -22,11 +19,11 @@ export function PerformanceCard({
   compact = false,
   eager = false,
   showYear = false,
-  past = false,
   workSlug,
   metadataMatch = false,
   performance,
 }: PerformanceCardProps) {
+  const badge = performanceBadge(performance);
   const primaryProgram = metadataMatch ? undefined : workSlug === undefined
     ? performance.program[0]
     : performance.program.find((item) => item.workSlug === workSlug);
@@ -50,14 +47,10 @@ export function PerformanceCard({
       <div className="flex min-w-0 flex-col gap-3">
         <div className="flex flex-wrap items-center gap-2">
           <span
-            className={`inline-flex h-7 items-center rounded-md border px-2 text-xs font-bold ${statusTone(
-              past ? "closed" : performance.status,
-            )}`}
+            className={`inline-flex items-center rounded border px-2 py-0.5 text-xs font-medium ${badge.tone}`}
           >
-            {past && performance.status !== "closed" ? "지난 공연" : statusLabel(performance.status)}
+            {badge.label}
           </span>
-          {primaryProgram ? <ConfidenceBadge source={primaryProgram.source} /> : null}
-          {metadataMatch ? <span className="text-xs text-neutral-500">공연 정보 일치</span> : null}
         </div>
 
         <div className="min-w-0">

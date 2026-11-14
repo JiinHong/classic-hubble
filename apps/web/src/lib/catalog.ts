@@ -1,5 +1,7 @@
 import {
   getUpcomingPerformancesFromList,
+  performancePeriod,
+  seoulDate,
   type ConfidenceLevel,
   type Performance,
   type PerformedScope,
@@ -59,6 +61,7 @@ export type WorkRow = {
 };
 
 export type PerformanceRow = {
+  kopis_state?: string | null;
   artists: string[] | null;
   booking_url: string | null;
   kopis_performance_id: string | null;
@@ -140,7 +143,7 @@ const COMPOSER_PAGE_SIZE = 1000;
 export const WORK_COLUMNS = `slug, title, title_ko, catalogue, instrumentation,
   popularity_rank, composers(id, name, name_ko, period), work_aliases(alias)`;
 export const PERFORMANCE_COLUMNS = `kopis_performance_id, title, starts_at, ends_on,
-  status, artists, price_range, booking_url, poster_url, source_label,
+  status, kopis_state:raw_payload->detail->>prfstate, artists, price_range, booking_url, poster_url, source_label,
   program_status, program_source_url, program_image_urls, venues(name, city),
   program_items(display_title, composer_name, source_type, confidence,
     position, source_provider, performed_scope, scope_details, works(slug))`;
@@ -284,6 +287,7 @@ export function mapPerformances(rows: PerformanceRow[]): Performance[] {
           ((row.program_items?.length ?? 0) > 0 ? "confirmed" : "unknown"),
         sourceLabel: row.source_label ?? "",
         status: row.status,
+        cancelled: row.status === "closed" && row.kopis_state?.trim() === "공연취소",
         time: parts.time,
         title: row.title,
         venue: venue?.name ?? "",
@@ -453,10 +457,11 @@ async function readCatalogSnapshot(): Promise<CatalogSnapshot> {
 
 export async function getCatalogWorkBySlug(slug: string) {
   const selection = await getCatalogSelection([slug], { includePast: true });
-  const performances = getUpcomingPerformancesFromList(selection.performances);
-  const upcomingIds = new Set(performances.map((performance) => performance.id));
-  const pastPerformances = selection.performances
-    .filter((performance) => !upcomingIds.has(performance.id))
+  const now = new Date();
+  const today = seoulDate(now);
+  const performances = getUpcomingPerformancesFromList(selection.performances, now);
+  const history = (period: "past" | "cancelled" | "unavailable") => selection.performances
+    .filter((performance) => performancePeriod(performance, today) === period)
     .sort(
       (a, b) =>
         (b.endDate ?? b.date).localeCompare(a.endDate ?? a.date) ||
@@ -464,7 +469,9 @@ export async function getCatalogWorkBySlug(slug: string) {
     );
   return {
     performances,
-    pastPerformances,
+    pastPerformances: history("past"),
+    cancelledPerformances: history("cancelled"),
+    unavailablePerformances: history("unavailable"),
     work: selection.works[0] ?? null,
   };
 }

@@ -74,6 +74,7 @@ export type Performance = {
   bookingUrl: string;
   posterUrl: string;
   status: "open" | "upcoming" | "soldout" | "closed";
+  cancelled?: boolean;
   endDate?: string;
   sourceLabel: string;
   program: ProgramItem[];
@@ -497,20 +498,31 @@ export const getPerformancesForWorkFromList = (
 export const getPerformancesForWork = (slug: string) =>
   getPerformancesForWorkFromList(performances, slug);
 
-export const getUpcomingPerformancesFromList = (
-  items: Performance[],
-  now = new Date(),
-) => {
-  const today = new Intl.DateTimeFormat("en-CA", {
+const seoulDateFormatter = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Seoul",
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
-  }).format(now);
+});
+
+export const seoulDate = (now = new Date()) => seoulDateFormatter.format(now);
+
+export function performancePeriod(item: Performance, today = seoulDate()) {
+  if (item.cancelled) return "cancelled";
+  if ((item.endDate ?? item.date) < today) return "past";
+  if (item.status === "closed") return "unavailable";
+  return "upcoming";
+}
+
+export const getUpcomingPerformancesFromList = (
+  items: Performance[],
+  now = new Date(),
+) => {
+  const today = seoulDate(now);
   return items
     .filter(
       (item) =>
-        item.status !== "closed" && (item.endDate ?? item.date) >= today,
+        performancePeriod(item, today) === "upcoming",
     )
     .sort(
       (a, b) =>

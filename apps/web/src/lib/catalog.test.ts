@@ -718,13 +718,17 @@ describe("targeted detail queries", () => {
       { ...template, kopis_performance_id: "ongoing", starts_at: "2024-01-01T10:00:00Z", ends_on: "2026-10-24", status: "open" },
       { ...template, kopis_performance_id: "today", starts_at: "2026-10-23T15:00:00Z" },
       { ...template, kopis_performance_id: "tomorrow", starts_at: "2026-10-25T10:00:00Z" },
-      { ...template, kopis_performance_id: "cancelled", starts_at: "2026-11-01T10:00:00Z", status: "closed" },
+      { ...template, kopis_performance_id: "cancelled", starts_at: "2026-11-01T10:00:00Z", status: "closed", kopis_state: "공연취소" },
+      { ...template, kopis_performance_id: "cancelled-past", starts_at: "2026-01-01T10:00:00Z", status: "closed", kopis_state: "공연취소" },
+      { ...template, kopis_performance_id: "closed-future", starts_at: "2026-12-01T10:00:00Z", status: "closed" },
       { ...template, kopis_performance_id: "ended-series", starts_at: "2023-01-01T10:00:00Z", ends_on: "2026-10-22", status: "closed" },
     ];
     const { getCatalogWorkBySlug, getCatalogSelection } = await import("./catalog");
     const detail = await getCatalogWorkBySlug("component-wikidata-q3565331-3");
     expect(detail.performances.map((p) => p.id)).toEqual(["today", "tomorrow", "ongoing"]);
-    expect(detail.pastPerformances.map((p) => p.id)).toEqual(["cancelled", "yesterday", "ended-series", "old"]);
+    expect(detail.pastPerformances.map((p) => p.id)).toEqual(["yesterday", "ended-series", "old"]);
+    expect(detail.cancelledPerformances.map((p) => p.id)).toEqual(["cancelled", "cancelled-past"]);
+    expect(detail.unavailablePerformances.map((p) => p.id)).toEqual(["closed-future"]);
     expect(detail.pastPerformances.at(-1)?.program).toHaveLength(2);
     expect(detail.work?.upcomingPerformanceIds).toEqual(["today", "tomorrow", "ongoing"]);
     const watchlist = await getCatalogSelection(["component-wikidata-q3565331-3"]);
@@ -756,7 +760,7 @@ describe("targeted detail queries", () => {
       performances: [], pastPerformances: [], work: { slug: "component-wikidata-q3565331-3" },
     });
     expect(await getCatalogWorkBySlug("missing")).toEqual({
-      performances: [], pastPerformances: [], work: null,
+      performances: [], pastPerformances: [], cancelledPerformances: [], unavailablePerformances: [], work: null,
     });
     database(true);
     await expect(getCatalogWorkBySlug("component-wikidata-q3565331-3")).rejects.toThrow();
