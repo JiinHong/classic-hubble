@@ -15,6 +15,18 @@ const upcoming = { ...performances[0], id: "future", title: "Upcoming recital", 
 const historical = { ...performances[0], id: "PF253175", title: "노준탁 피아노 리사이틀 [전주]", date: "2024-11-24", endDate: undefined, status: "closed" as const };
 const page = () => WorkPage({ params: Promise.resolve({ slug: works[0].slug }) });
 
+describe("work composer credit", () => {
+  it.each([
+    ["에드워드 엘가", "Edward Elgar", "에드워드 엘가"],
+    ["", "Edward Elgar", "Edward Elgar"],
+  ])("links the displayed composer name to the profile (%s)", async (nameKo, name, label) => {
+    const work = { ...works[0], composer: { id: "openopus:elgar", nameKo, name } };
+    mocks.getCatalogWorkBySlug.mockResolvedValue({ work, performances: [], pastPerformances: [], cancelledPerformances: [], unavailablePerformances: [] });
+    render(await page());
+    expect(screen.getByRole("link", { name: label }).getAttribute("href")).toBe("/composers/openopus%3Aelgar");
+  });
+});
+
 describe("work performance history", () => {
   it.each(["performances", "pastPerformances"] as const)("shows the selected work instead of the opening piece in %s", async (group) => {
     const selected = {
