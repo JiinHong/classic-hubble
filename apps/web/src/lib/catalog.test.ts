@@ -603,6 +603,17 @@ describe("targeted detail queries", () => {
     });
   });
 
+  it.each([["sac", "예술의전당"], ["sejong", "세종문화회관"], ["bucheon", "부천필"], ["seoulphil", "서울시향"]])(
+    "labels verified venue programmes with the public source: %s", async (provider, name) => {
+      database(false, provider);
+      const { getCatalogPerformanceById } = await import("./catalog");
+      const result = await getCatalogPerformanceById("PF123456");
+      expect(result.performance?.program[1].source).toEqual({
+        type: "official", label: name + " 공식 프로그램", confidence: null,
+      });
+    },
+  );
+
   it("shows the organizer as the source of a corroborated programme, without an OCR score", async () => {
     database(false, "organizer_program");
     const { getCatalogPerformanceById } = await import("./catalog");

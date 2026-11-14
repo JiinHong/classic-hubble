@@ -155,6 +155,10 @@ const sourceLabels: Record<ConfidenceLevel, string> = {
 
 // These sources certify provenance, not a measured recognition accuracy.
 const unscoredSources = new Map([
+  ["sac", "예술의전당 공식 프로그램"],
+  ["sejong", "세종문화회관 공식 프로그램"],
+  ["seoulphil", "서울시향 공식 프로그램"],
+  ["bucheon", "부천필 공식 프로그램"],
   ["codex_vision", "이미지 판독"],
   ["paddleocr", "OCR 근거 확인"],
   ["kumho_official_correction", "주최 측 정정"],

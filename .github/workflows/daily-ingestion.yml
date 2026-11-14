@@ -18,11 +18,6 @@ on:
         description: Optional performance limit for a smoke run
         required: false
         type: string
-      enrich_nol:
-        description: Refresh near-term NOL program data
-        required: true
-        default: true
-        type: boolean
 
 permissions:
   contents: read
@@ -33,7 +28,7 @@ concurrency:
 
 jobs:
   sync:
-    name: Sync KOPIS and NOL
+    name: Sync KOPIS and official programs
     runs-on: ubuntu-latest
     timeout-minutes: 90
     env:
@@ -42,8 +37,6 @@ jobs:
       SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
       KOPIS_MAX_RETRIES: "3"
       KOPIS_RETRY_BACKOFF_SECONDS: "0.5"
-      NOL_MAX_RETRIES: "3"
-      NOL_RETRY_BACKOFF_SECONDS: "0.5"
       PYTHONUNBUFFERED: "1"
     steps:
       - name: Check out repository
@@ -77,12 +70,12 @@ jobs:
           today="$(TZ=Asia/Seoul date +%F)"
           catalog_start="${INPUT_START_DATE:-$(date -u -d "$today - 7 days" +%F)}"
           catalog_end="${INPUT_END_DATE:-$(date -u -d "$today + 180 days" +%F)}"
-          nol_end="$(date -u -d "$today + 31 days" +%F)"
+          official_end="$(date -u -d "$today + 31 days" +%F)"
 
           echo "today=$today" >> "$GITHUB_OUTPUT"
           echo "catalog_start=$catalog_start" >> "$GITHUB_OUTPUT"
           echo "catalog_end=$catalog_end" >> "$GITHUB_OUTPUT"
-          echo "nol_end=$nol_end" >> "$GITHUB_OUTPUT"
+          echo "official_end=$official_end" >> "$GITHUB_OUTPUT"
 
       - name: Sync KOPIS catalog
         id: catalog
@@ -102,25 +95,21 @@ jobs:
           fi
           classic-hubble-pipeline "${args[@]}"
 
-      - name: Refresh near-term NOL programs
-        id: nol
-        if: ${{ github.event_name == 'schedule' || inputs.enrich_nol }}
+      - name: Refresh near-term official programs
+        id: official
         shell: bash
         env:
           SYNC_LIMIT: ${{ inputs.limit }}
         run: |
           args=(
-            kopis-sync
             --start "${{ steps.window.outputs.today }}"
-            --end "${{ steps.window.outputs.nol_end }}"
-            --rows 100
-            --recover-source-errors
-            --enrich-nol
+            --end "${{ steps.window.outputs.official_end }}"
+            --apply
           )
           if [[ -n "$SYNC_LIMIT" ]]; then
             args+=(--limit "$SYNC_LIMIT")
           fi
-          classic-hubble-pipeline "${args[@]}"
+          python -m classic_hubble_pipeline.official_program_sync "${args[@]}"
 
       - name: Summarize run
         if: ${{ always() }}
@@ -130,7 +119,8 @@ jobs:
             echo "- Schedule: daily at 16:27 Asia/Seoul"
             echo "- KOPIS: ${{ steps.window.outputs.catalog_start }} through ${{ steps.window.outputs.catalog_end }}"
             echo "- KOPIS result: ${{ steps.catalog.outcome }}"
-            echo "- NOL: ${{ steps.window.outputs.today }} through ${{ steps.window.outputs.nol_end }}"
-            echo "- NOL result: ${{ steps.nol.outcome }}"
+            echo "- Official programs: ${{ steps.window.outputs.today }} through ${{ steps.window.outputs.official_end }}"
+            echo "- Official result: ${{ steps.official.outcome }} (see per-source counts and holds in the step log)"
+            echo "- NOL paused; no requests."
             echo "- Source access failures remain failures; existing public programs are preserved."
           } >> "$GITHUB_STEP_SUMMARY"

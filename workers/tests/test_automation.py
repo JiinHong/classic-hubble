@@ -67,12 +67,13 @@ def test_daily_ingestion_uses_repository_secrets_without_loading_env_files() -> 
     assert "source .env" not in workflow
 
 
-def test_daily_ingestion_limits_nol_enrichment_to_near_term_performances() -> None:
+def test_daily_ingestion_limits_official_enrichment_to_near_term_performances() -> None:
     workflow = _workflow("daily-ingestion.yml")
 
     assert "180 days" in workflow
     assert "31 days" in workflow
-    assert "--enrich-nol" in workflow
+    assert "--enrich-nol" not in workflow
+    assert "official_program_sync" in workflow
     assert "--limit" in workflow
 
 
