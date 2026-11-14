@@ -23,6 +23,15 @@ def test_program_labels_scope_and_composer_reset():
     ) == [("베토벤", "교향곡 제5번 Op.67")]
 
 
+def test_schubert_deutsch_number_is_not_a_key_or_a_movement():
+    work = dict(title="Rastlose Liebe", title_ko=None, catalogue="D. 138",
+                composers={"name": "Franz Schubert", "name_ko": "프란츠 슈베르트"}, work_aliases=[])
+    assert sync.identify("F. Schubert", "Rastlose Liebe, D.138", [work]) == work
+    assert sync.identify("F. Schubert", "Rastlose Liebe, D.139", [work]) is None
+    assert sync.identify("F. Schubert", "Rastlose Liebe, D major", [work]) is None
+    assert sync.identify("F. Schubert", "Rastlose Liebe, D.138 No. 2", [work]) is None
+
+
 def test_title_and_catalogue_must_agree_not_just_number():
     work = dict(
         id="w",
