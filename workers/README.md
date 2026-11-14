@@ -15,7 +15,7 @@ Python workers cover the ingestion path that should stay outside the Next.js req
 - `program_matching.py`: previews or applies matches for existing unlinked NOL program rows.
 - `ocr.py`: placeholder only. The planned image reader is OCR, not a vision LLM; image recognition is not operational yet.
 - `normalizer.py`: legacy prototype with a small hardcoded catalogue; it is not used by the ingestion matcher.
-- `notifications.py`: prototype matching helpers; production email and web-push delivery are not implemented here.
+- `notifications.py`: legacy prototype. Production watchlist email uses the database outbox and the web app's Resend dispatcher, not this Python helper. See [watchlist email operations](../docs/watchlist-email.md).
 
 ## Local Commands
 

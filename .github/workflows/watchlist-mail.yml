@@ -1,0 +1,30 @@
+name: Deliver watchlist concert emails
+on:
+  schedule:
+    - cron: "8,23,38,53 * * * *"
+  workflow_run:
+    workflows: ["Daily catalog ingestion"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+permissions: {}
+concurrency:
+  group: watchlist-mail-dispatch
+  cancel-in-progress: false
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Deliver pending concert alerts
+        env:
+          TOKEN: ${{ secrets.WATCHLIST_MAIL_TOKEN }}
+        run: |
+          test -n "$TOKEN"
+          for batch in 1 2 3; do
+            result=$(curl --fail --silent --show-error --max-time 65 -X POST \
+              -H "Authorization: Bearer $TOKEN" https://classichubble.com/api/internal/watchlist-email)
+            sent=$(jq -er '.sent | numbers' <<<"$result")
+            echo "Accepted: $sent"
+            if [ "$sent" -lt 10 ]; then break; fi
+          done
