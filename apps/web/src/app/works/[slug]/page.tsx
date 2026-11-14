@@ -6,6 +6,7 @@ import { PerformanceCard } from "@/components/PerformanceCard";
 import { WatchlistButton } from "@/components/WatchlistButton";
 import { WorkRelations } from "@/components/WorkRelations";
 import { getCatalogWorkBySlug } from "@/lib/catalog";
+import { workDisplay } from "@/lib/work-display";
 
 export const dynamic = "force-dynamic";
 
@@ -20,6 +21,7 @@ export default async function WorkPage({ params }: WorkPageProps) {
   if (!work) {
     notFound();
   }
+  const { heading, subtitle } = workDisplay(work.title, work.titleKo, work.catalogue);
 
   return (
     <main className="mx-auto max-w-4xl px-4 pb-16 pt-6 sm:px-8">
@@ -37,11 +39,9 @@ export default async function WorkPage({ params }: WorkPageProps) {
             <div className="min-w-0">
               <p className="text-sm text-neutral-500">{work.composer.nameKo}</p>
               <h1 className="mt-3 break-words text-2xl font-medium leading-snug text-neutral-900 sm:text-3xl">
-                {work.titleKo}
+                {heading}
               </h1>
-              <p className="mt-3 break-words text-base leading-7 text-neutral-500">
-                {work.title} {work.catalogue}
-              </p>
+              {subtitle && <p className="mt-3 break-words text-base leading-7 text-neutral-500">{subtitle}</p>}
             </div>
           </div>
 

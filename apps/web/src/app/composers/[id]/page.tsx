@@ -7,6 +7,7 @@ import { composerDiscoveryHref, PERIOD_LABELS } from "@/lib/composer-directory";
 import { getComposerProfile, PROFILE_PAGE_SIZE } from "@/lib/composer-profile";
 import { formLabels, type Form } from "@/lib/work-forms";
 import type { WorkNode } from "@/lib/composer-repertoire";
+import { workDisplay } from "@/lib/work-display";
 
 type Props = { params: Promise<{ id: string }>; searchParams: Promise<{ page?: string | string[]; genre?: string | string[] }> };
 
@@ -18,16 +19,14 @@ function browseHref(base: string, genre?: Form, page = 1) {
 }
 
 function WorkItem({ work: w }: { work: WorkNode }) {
-  const normalizeCatalogue = (s: string) => s.toLowerCase().replace(/[\s.,]/g, "");
-  const subtitle = [w.title_ko && w.title !== w.title_ko ? w.title : "",
-    w.catalogue && !normalizeCatalogue(w.title).includes(normalizeCatalogue(w.catalogue)) ? w.catalogue : ""].filter(Boolean).join(" · ");
+  const { heading, subtitle } = workDisplay(w.title, w.title_ko, w.catalogue);
   return <li className="py-1">
     <Link prefetch={false} href={"/works/" + encodeURIComponent(w.slug)} className="group flex min-h-14 items-center justify-between gap-4 py-2">
-      <div className="min-w-0"><p className="break-words font-medium group-hover:text-emerald-800">{w.title_ko || w.title}</p>
+      <div className="min-w-0"><p className="break-words font-medium group-hover:text-emerald-800">{heading}</p>
         {subtitle && <p className="mt-0.5 break-words text-sm text-neutral-500">{subtitle}</p>}</div>
       <ChevronRight className="size-4 shrink-0 text-neutral-400" aria-hidden="true" />
     </Link>
-    {w.alternate && <Link prefetch={false} href={"/works/" + encodeURIComponent(w.alternate.slug)} className="mb-2 inline-block text-xs text-neutral-600 underline">같은 악장의 다른 등록명: {w.alternate.title_ko || w.alternate.title}</Link>}
+    {w.alternate && <Link prefetch={false} href={"/works/" + encodeURIComponent(w.alternate.slug)} className="mb-2 inline-block text-xs text-neutral-600 underline">같은 악장의 다른 등록명: {workDisplay(w.alternate.title, w.alternate.title_ko, w.alternate.catalogue).heading}</Link>}
     {w.parts.length > 0 && <details className="mb-2">
       <summary className="inline-flex min-h-9 cursor-pointer list-none items-center gap-1 text-sm text-emerald-800 [&::-webkit-details-marker]:hidden [[open]>&>svg]:rotate-180">
         악장 · 구성곡 {w.parts.length}<ChevronDown aria-hidden="true" className="size-4" />
