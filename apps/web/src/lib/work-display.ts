@@ -56,6 +56,7 @@ function notation(value: string) {
     .replace(/\b([a-g])(?:[- ]?(flat|sharp)|([♭♯#]))?\s+(major|minor)\b/gi,
       (_, note: string, word: string, symbol: string, mode: string) =>
         note.toUpperCase() + (word ? "-" + word.toLowerCase() : symbol ? symbol === "♭" ? "-flat" : "-sharp" : "") + " " + mode.toLowerCase())
+    .replace(/\bin ([a-g](?:-flat|-sharp)?) in \1 (major|minor)\b/gi, "in $1 $2")
     .replace(/\b(major|minor)\s+(?=Op\. \d)/g, "$1, ")
     .replace(/(\bOp\. \d+),(\d+)(?=$|[ ,;:)])/g, "$1 No. $2")
     .replace(/(\bOp\. (?:posth\.? )?\d+[a-z]?),\s*(?=No\. \d)/gi, "$1 ")
@@ -148,8 +149,8 @@ function koreanHeading(value: string) {
     .replace(/플룻(?=$|[\s,·])/g, "플루트")
     .replace(/(?<!\d)([2-9])중주/g, (_, n: string) => "이삼사오육칠팔구"[Number(n) - 2] + "중주")
     .replace(/ +제\s*(\d+)\s*번/g, " $1번")
-    .replace(/(?:^|(?<=\s))([a-g])([♭♯#]?)(장조|단조)/gi,
-      (_, n, a, mode) => pitch(n, a === "♭" ? "flat" : a ? "sharp" : "", mode === "단조"));
+    .replace(/(?:^|(?<=\s))([a-g])(?:[- ]?(flat|sharp)|([♭♯#]))?\s*(장조|단조)/gi,
+      (_, n, word, symbol, mode) => pitch(n, word?.toLowerCase() || (symbol === "♭" ? "flat" : symbol ? "sharp" : ""), mode === "단조"));
 }
 function withoutAttribution(title: string, composer?: string | null) {
   if (!composer || !title.includes("(")) return title;
