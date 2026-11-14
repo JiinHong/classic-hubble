@@ -15,6 +15,7 @@ import { useAuth } from "./AuthProvider";
 import { PerformanceCard } from "./PerformanceCard";
 import { useUserLibrary } from "./UserLibraryProvider";
 import { WorkCard } from "./WorkCard";
+import { workDisplay } from "@/lib/work-display";
 
 export function WatchlistExperience() {
   const { loading: authLoading, signIn, user } = useAuth();
@@ -146,7 +147,7 @@ export function WatchlistExperience() {
                 <WorkCard
                   action={
                     <button
-                      aria-label={`${work.titleKo} 관심곡 해제`}
+                      aria-label={`${workDisplay(work.title, work.titleKo, work.catalogue).heading} 관심곡 해제`}
                       className="grid size-9 place-items-center rounded-md text-stone-500 transition hover:bg-rose-50 hover:text-rose-700 disabled:opacity-45"
                       disabled={isPending(work.slug)}
                       onClick={() => void toggleWork(work.slug)}

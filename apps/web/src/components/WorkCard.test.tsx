@@ -5,6 +5,12 @@ import { describe, expect, it } from "vitest";
 import { WorkCard } from "./WorkCard";
 
 describe("imported work metadata", () => {
+  it("uses the repertoire label when search falls back to the English title", () => {
+    const title = "Scherzo No. 3 in C-sharp minor, Op. 39";
+    render(<WorkCard work={{ ...works[0], title, titleKo: title, catalogue: "Op. 39", slug: "scherzo-3" }} />);
+    expect(screen.getByRole("link", { name: /스케르초 3번/ }).getAttribute("href")).toBe("/works/scherzo-3");
+    expect(screen.getByText(title)).toBeTruthy();
+  });
   it("does not invent a popularity rank for imported works", () => {
     render(<WorkCard work={{ ...works[0], popularityRank: null }} />);
     expect(screen.queryByText(/^#/)).toBeNull();
