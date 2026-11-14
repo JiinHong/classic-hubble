@@ -1,5 +1,6 @@
 import { getWorkSearchAnchor } from "@classic-hubble/shared";
 import { unstable_cache } from "next/cache";
+import { orderForWorkDiscovery } from "./work-discovery-order";
 import { createSupabaseClient } from "./supabase/client";
 import { expandWorkFamilies, readRankedWorkCandidates, type WorkCandidateRow } from "./work-candidates";
 import {
@@ -40,7 +41,7 @@ async function readWorkSearchPage(query: string, offset: number): Promise<Catalo
   } else {
     const candidates = await readRankedWorkCandidates(db, query);
     rows = candidates.rows;
-    ranked = candidates.works;
+    ranked = orderForWorkDiscovery(candidates.works, query);
     total = ranked.length;
   }
   const rowBySlug = new Map(rows.map(row => [row.slug, row]));
@@ -71,7 +72,7 @@ async function readWorkSearchPage(query: string, offset: number): Promise<Catalo
 }
 
 const cachedWorkSearchPage = unstable_cache(
-  readWorkSearchPage, ["targeted-work-search-v1"], { revalidate: 60 },
+  readWorkSearchPage, ["targeted-work-search-v2"], { revalidate: 60 },
 );
 export function getWorkSearchPage(query = "", offset = 0) {
   return cachedWorkSearchPage(query.trim(), offset);

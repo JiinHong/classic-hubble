@@ -4,6 +4,7 @@ import {
   type Performance,
   type Work,
 } from "@classic-hubble/shared";
+import { orderForWorkDiscovery } from "./work-discovery-order";
 
 export const SEARCH_PAGE_SIZE = 24;
 export type SearchMode = "works" | "performances";
@@ -44,7 +45,7 @@ export function searchCatalog(
     : catalog.works;
   if (mode === "works")
     return {
-      works: works.slice(offset, offset + SEARCH_PAGE_SIZE).map(workForCard),
+      works: orderForWorkDiscovery(works, trimmed).slice(offset, offset + SEARCH_PAGE_SIZE).map(workForCard),
       performances: [],
       total: works.length,
       hasMore: offset + SEARCH_PAGE_SIZE < works.length,
