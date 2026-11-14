@@ -1,0 +1,29 @@
+{
+  "version": "debussy-clair-de-lune-ko-v1",
+  "sources": {
+    "sac": {
+      "kind": "official-program",
+      "url": "https://www.sac.or.kr/site/main/show/show_view?SN=76848",
+      "title": "클로드 드뷔시 | 베르가마스크 모음곡 중 제3곡 달빛"
+    },
+    "henle": {
+      "kind": "urtext-edition",
+      "url": "https://www.henle.de/en/Suite-bergamasque/HN-381",
+      "title": "Claude Debussy: Suite bergamasque"
+    }
+  },
+  "works": [
+    {
+      "qid": "Q29117946",
+      "composer": "Claude Debussy",
+      "expected_title": "Clair de lune",
+      "previous_title_ko": null,
+      "title_ko": "달빛",
+      "sources": ["sac", "henle"],
+      "aliases": [
+        { "text": "드뷔시 달빛", "kind": "shorthand", "sources": ["sac"] },
+        { "text": "베르가마스크 모음곡 중 제3곡 달빛", "kind": "title", "sources": ["sac"] }
+      ]
+    }
+  ]
+}

@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { normalizeWorkSearchText } from "@classic-hubble/shared";
 import { createSupabaseClient } from "./supabase/client";
 import { getHomeOverview, getWorkSearchPage } from "./work-search";
+import { getWorkSuggestions } from "./work-suggestions";
 
 vi.mock("next/cache", () => ({ unstable_cache: (fn: unknown) => fn }));
 
@@ -38,6 +39,27 @@ describe.skipIf(process.env.WORK_SEARCH_INTEGRATION !== "1")("work search SQL co
     expect(result.total).toBeGreaterThan(0);
     expect(result.works.every(work => work.composer.nameKo.includes("모차르트"))).toBe(true);
     expect((await getWorkSearchPage("%_")).total).toBe(0);
+  }, 30000);
+
+  it.each([
+    ["달빛", "wikidata-q29117946"],
+    ["드뷔시 달빛", "wikidata-q29117946"],
+    ["드뷔시달빛", "wikidata-q29117946"],
+    ["Clair de lune", "wikidata-q29117946"],
+    ["포레 달빛", "wikidata-q730599"],
+  ])("finds the intended Clair de lune in results and suggestions: %s", async (query, slug) => {
+    const result = await getWorkSearchPage(query);
+    const suggestions = await getWorkSuggestions(query);
+    expect(result.works[0]?.slug).toBe(slug);
+    expect(suggestions[0]?.slug).toBe(slug);
+    if (query === "달빛") {
+      expect(result.works[0].partOf).toContainEqual(expect.objectContaining({
+        slug: "wikidata-q1367599", position: 3,
+      }));
+      for (const rows of [result.works, suggestions]) {
+        expect(rows.map(row => row.slug)).toContain("wikidata-q730599");
+      }
+    }
   }, 30000);
 
   it("serves anonymous overview and a bounded first page", async () => {
