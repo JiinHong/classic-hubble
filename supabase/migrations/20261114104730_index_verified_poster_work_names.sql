@@ -9,4 +9,3 @@ from (values
 join public.works w on w.slug = v.slug
 join public.composers c on c.id = w.composer_id and c.name = v.composer
 on conflict (work_id, alias) do nothing;
-
