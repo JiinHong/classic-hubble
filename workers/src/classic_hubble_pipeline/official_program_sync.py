@@ -29,7 +29,7 @@ BAC = "/front/M0000012/event/"
 NOTES = "/front/M0000133/article/"
 SEJ = "/portal/performance/performance/performTicket.do"
 SAC = "/site/main/show/show_view"
-CODE = re.compile(r"\b(Op|K|BWV|FP|M)\.?\s*(\d+[a-z]?)\b", re.I)
+CODE = re.compile(r"\b(Op|K|BWV|FP|M|D)\.?\s*(\d+[a-z]?)\b", re.I)
 SCOPE = re.compile(
     r"\b(from|excerpts?|selections?|movement|arranged|arr\.|suite from)\b|악장|발췌|편곡|모음곡 중| 중(?:\s|$)|[:：]\s*[IVX]+\.",
     re.I,
