@@ -6,6 +6,7 @@ import { PerformanceCard } from "@/components/PerformanceCard";
 import { WatchlistButton } from "@/components/WatchlistButton";
 import { WorkRelations } from "@/components/WorkRelations";
 import { getCatalogWorkBySlug } from "@/lib/catalog";
+import { composerDiscoveryHref } from "@/lib/composer-directory";
 import { workDisplay } from "@/lib/work-display";
 
 export const dynamic = "force-dynamic";
@@ -22,6 +23,7 @@ export default async function WorkPage({ params }: WorkPageProps) {
     notFound();
   }
   const { heading, subtitle } = workDisplay(work.title, work.titleKo, work.catalogue, work.composer.nameKo, work.composer.name);
+  const composerName = work.composer.nameKo || work.composer.name;
 
   return (
     <main className="mx-auto max-w-4xl px-4 pb-16 pt-6 sm:px-8">
@@ -34,7 +36,16 @@ export default async function WorkPage({ params }: WorkPageProps) {
       </Link>
 
       <section className="mt-8 border-b border-neutral-200 pb-8">
-        <p className="text-sm text-neutral-500">{work.composer.nameKo}</p>
+        {composerName && (
+          <p className="text-sm text-neutral-500">
+            <Link
+              href={composerDiscoveryHref(work.composer)}
+              className="rounded-sm no-underline hover:text-neutral-700 focus-visible:outline-offset-2"
+            >
+              {composerName}
+            </Link>
+          </p>
+        )}
         <h1 className="mt-2 break-words text-2xl font-medium leading-snug text-neutral-900 sm:text-3xl">
           {heading}
         </h1>
