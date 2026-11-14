@@ -147,7 +147,7 @@ export function WatchlistExperience() {
                 <WorkCard
                   action={
                     <button
-                      aria-label={`${workDisplay(work.title, work.titleKo, work.catalogue).heading} 관심곡 해제`}
+                      aria-label={`${workDisplay(work.title, work.titleKo, work.catalogue, work.composer.nameKo, work.composer.name).heading} 관심곡 해제`}
                       className="grid size-9 place-items-center rounded-md text-stone-500 transition hover:bg-rose-50 hover:text-rose-700 disabled:opacity-45"
                       disabled={isPending(work.slug)}
                       onClick={() => void toggleWork(work.slug)}

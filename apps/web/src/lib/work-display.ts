@@ -15,20 +15,29 @@ const forms: Record<string, string> = {
   mass: "미사곡", requiem: "레퀴엠", cantata: "칸타타", intermezzo: "인터메초",
   bourree: "부레", ecossaise: "에코세즈", barcarolle: "뱃노래", berceuse: "자장가",
   mazurkas: "마주르카집", nocturnes: "녹턴집", polonaises: "폴로네즈집", waltzes: "왈츠집",
-  etudes: "에튀드집", preludes: "프렐류드집",
+  etudes: "에튀드집", preludes: "프렐류드집", bagatelles: "바가텔집", ballades: "발라드집",
+  impromptus: "즉흥곡집", scherzos: "스케르초집", valses: "왈츠집", songs: "가곡집",
+  fantasias: "환상곡집", duets: "이중주곡집", duet: "이중주", duo: "이중주",
+  sextet: "육중주", septet: "칠중주", octet: "팔중주", nonet: "구중주",
+  capriccio: "카프리치오", courante: "쿠랑트", gigue: "지그", allemande: "알르망드",
   "marche funebre": "장송 행진곡", "grande polonaise brillante": "화려한 대폴로네즈",
   "andante spianato": "안단테 스피아나토", dumka: "둠카", bolero: "볼레로",
   bourrees: "부레집", contredanse: "콩트르당스", "rondo a la mazur": "마주르카풍 론도",
   andantino: "안단티노", cantabile: "칸타빌레", song: "가곡", polka: "폴카",
   "symphonic poem": "교향시", elegy: "엘레지", invention: "인벤션", oratorio: "오라토리오",
   motet: "모테트", aria: "아리아", gavotte: "가보트", sarabande: "사라방드",
+  sinfonietta: "신포니에타", concertino: "소협주곡", chaconne: "샤콘", passacaglia: "파사칼리아",
+  "double concerto": "이중 협주곡", "missa brevis": "미사 브레비스", "little symphony": "소교향곡",
+  "sonata for piano four-hands": "네 손을 위한 피아노 소나타", "prussian sonata": "프로이센 소나타",
+  "wurttemberg sonata": "뷔르템베르크 소나타",
 };
 const instruments: Record<string, string> = {
   piano: "피아노", keyboard: "건반", violin: "바이올린", cello: "첼로", flute: "플루트",
   viola: "비올라", clarinet: "클라리넷", bassoon: "바순", oboe: "오보에", horn: "호른",
-  harp: "하프", organ: "오르간", trumpet: "트럼펫", string: "현악", strings: "현악",
+  harp: "하프", lute: "류트", organ: "오르간", trumpet: "트럼펫", string: "현악", strings: "현악",
   harpsichord: "하프시코드", continuo: "통주저음", orchestra: "관현악", recorder: "리코더",
   cornet: "코넷", "alto saxophone": "알토 색소폰", "double bass": "콘트라베이스",
+  "viola d'amore": "비올라 다모레", "viola da gamba": "비올라 다 감바", "glass harmonica": "글라스 하모니카",
   "string orchestra": "현악 합주", "low strings": "저음 현악기", winds: "관악기",
 };
 const fold = (s: string) => s.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
@@ -40,6 +49,7 @@ function pitch(note: string, acc: string | undefined, minor: boolean) {
 
 function notation(value: string) {
   return value.trim().replace(/\s+/g, " ")
+    .replace(/\bHob\.\s*([IVX]+[a-z]?)[/:](\d+)/g, "Hob. $1:$2")
     .replace(/^prelude(?= (?:no\.?|in |op\.)|,)/i, "Prélude").replace(/^etude(?= (?:no\.?|in |op\.)|,)/i, "Étude")
     .replace(/\b(?:no|nr)\.?\s*(?=\d)/gi, "No. ").replace(/\bop(?:us)?\.?\s*(?=\d|posth\b)/gi, "Op. ")
     .replace(/\b([KDSBLMH])\.\s*(?=\d)/g, "$1. ").replace(/\b(BWV|HWV|RV|WoO|WWV|WAB)\s*(?=\d)/g, "$1 ")
@@ -47,6 +57,7 @@ function notation(value: string) {
       (_, note: string, word: string, symbol: string, mode: string) =>
         note.toUpperCase() + (word ? "-" + word.toLowerCase() : symbol ? symbol === "♭" ? "-flat" : "-sharp" : "") + " " + mode.toLowerCase())
     .replace(/\b(major|minor)\s+(?=Op\. \d)/g, "$1, ")
+    .replace(/(\bOp\. \d+),(\d+)(?=$|[ ,;:)])/g, "$1 No. $2")
     .replace(/(\bOp\. (?:posth\.? )?\d+[a-z]?),\s*(?=No\. \d)/gi, "$1 ")
     .replace(/(\d),$/, "$1");
 }
@@ -90,9 +101,8 @@ function translateForm(name: string): string | undefined {
   if (exact) return exact;
   const counted = /^(\d+) (.+)$/.exec(n);
   if (counted && get(forms, counted[2])?.endsWith("집")) return counted[1] + "개의 " + forms[counted[2]].slice(0, -1);
-  const [instrument, kind] = n.split(" ");
-  if (n === instrument + " " + kind && get(instruments, instrument) && /^(sonata|sonatina|concerto|trio|quartet|quintet)$/.test(kind))
-    return instruments[instrument] + " " + forms[kind];
+  const compound = /^(.+) (sonata|sonatina|concerto|duet|duo|trio|quartet|quintet|sextet|septet|octet|nonet|suite)$/.exec(n);
+  if (compound && get(instruments, compound[1])) return instruments[compound[1]] + " " + forms[compound[2]];
   const [form, soloist] = n.split(" for ");
   const soloistKo = soloist && scoring(soloist);
   if (soloistKo && n === form + " for " + soloist && get(forms, form)) {
@@ -113,7 +123,10 @@ function parseFormal(title: string) {
   if (cycle) return { form: "세 개의 새로운 에튀드 중", number: cycle[1], tonalKey: "", cat: "", nickname: "" };
   const quoted = /,? ["“]([^"“”]+)["”](?= in [A-G]|$)/.exec(title);
   const plain = (quoted ? title.replace(quoted[0], "") : title).replace(parenthesizedCatalogue, ", $1");
-  const [, name, suffix] = formalTitle.exec(plain) ?? [];
+  // Source catalogues place instrumentation on either side of the key.
+  const reordered = plain.replace(/^(.+?) (in [A-G](?:-(?:flat|sharp))? (?:minor|major)) for ([^,]+)(?=,|$)/i,
+    (whole, name: string, key: string, players: string) => scoring(fold(players)) ? name + " for " + players + " " + key : whole);
+  const [, name, suffix] = formalTitle.exec(reordered) ?? [];
   const form = name && translateForm(name);
   if (!form) return;
   let rest = suffix, number = "", tonalKey = "", cat = "";
@@ -138,13 +151,44 @@ function koreanHeading(value: string) {
     .replace(/(?:^|(?<=\s))([a-g])([♭♯#]?)(장조|단조)/gi,
       (_, n, a, mode) => pitch(n, a === "♭" ? "flat" : a ? "sharp" : "", mode === "단조"));
 }
-export function workDisplay(title: string, titleKo?: string | null, catalogue?: string | null) {
-  const original = notation(title), cat = notation(catalogue ?? "");
+function withoutAttribution(title: string, composer?: string | null) {
+  if (!composer || !title.includes("(")) return title;
+  const name = fold(composer.trim()), surname = name.split(/\s+/).at(-1);
+  return title.replace(/\s*\(([^()]+)\)(?=$| in [A-G]\b|, (?:Op|K)\.)/gi, (tag, text: string) => {
+    const who = fold(text.trim());
+    return who.length > 1 && (who === name || who === surname) ? "" : tag;
+  }).trim();
+}
+
+export function formalSeries(title: string, composerName?: string) {
+  const parsed = parseFormal(notation(withoutAttribution(title, composerName)));
+  return {
+    collection: !!parsed && (parsed.form.endsWith("집") || /^\d+개의 /.test(parsed.form)),
+    ordinal: parsed?.number ? parseInt(parsed.number, 10) : null,
+  };
+}
+
+export function workDisplay(title: string, titleKo?: string | null, catalogue?: string | null, composerKo?: string | null, composerName?: string | null) {
+  const original = notation(withoutAttribution(title, composerName)), cat = notation(catalogue ?? "");
   const full = withCatalogue(original, cat);
   const parsed = parseFormal(original);
-  let heading = titleKo && /[가-힣]/.test(titleKo) ? koreanHeading(titleKo) : "";
+  let heading = titleKo && /[가-힣]/.test(titleKo) ? koreanHeading(withoutAttribution(titleKo, composerKo)) : "";
   if (parsed) {
     const { form, number, tonalKey, cat: embedded } = parsed;
+    if (number && composerKo) {
+      const standard = `${form} ${number}번`;
+      const surname = composerKo.trim().split(/\s+/).at(-1);
+      if ([composerKo, surname].some(name => name && heading === `${name} ${standard}`)) heading = standard;
+    }
+    if (form.endsWith("집")) {
+      const singular = form.slice(0, -1);
+      for (const label of [singular, form]) {
+        if (heading === label || [cat, embedded].some(id => id && [label + ", " + id, label + " " + id].includes(heading))) {
+          heading = [form, embedded || cat].filter(Boolean).join(" ");
+          break;
+        }
+      }
+    }
     // Shorten existing numbered labels only when the omitted details also
     // appear in the original line. Preserve nicknames, editions and scoring.
     if (heading.startsWith(form + " ") || heading.startsWith(form + ", ")) {
@@ -155,7 +199,11 @@ export function workDisplay(title: string, titleKo?: string | null, catalogue?: 
         if (tonalKey && details.startsWith(tonalKey)) details = details.slice(tonalKey.length).trim();
         details = details.replace(/^,\s*/, "");
         if (!details || details === cat || details === embedded) heading = form + " " + numbered[1] + "번";
-      } else if (number && cat && tail.replace(/,\s*(\d+)번$/, " No. $1") === cat) heading = form + " " + number + "번";
+      } else if (number && !parsed.nickname) {
+        const stripped = tonalKey && tail.startsWith(tonalKey) ? tail.slice(tonalKey.length).replace(/^,?\s*/, "") : tail;
+        const detail = stripped.replace(/,\s*(\d+)번$/, " No. $1").replace(/posth$/, "posth.");
+        if ((!detail && !!tonalKey) || [cat, embedded].some(id => id && id === detail)) heading = form + " " + number + "번";
+      }
     }
     if (!heading) heading = [form, number ? number + "번" : tonalKey || (/^\d+개의 /.test(form) ? "" : embedded || cat),
       parsed.nickname && "‘" + parsed.nickname + "’"].filter(Boolean).join(" ");

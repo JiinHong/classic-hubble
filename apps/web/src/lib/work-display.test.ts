@@ -1,7 +1,19 @@
 import { describe, expect, it } from "vitest";
-import { workDisplay } from "./work-display";
+import { formalSeries, workDisplay } from "./work-display";
 
 describe("bilingual work labels", () => {
+  it("removes only the identified composer's disambiguator and keeps variants", () => {
+    expect(workDisplay("Concerto for Piano and Orchestra No. 1 in E minor", "피아노 협주곡 1번 (쇼팽)", "Op. 11", "프레데리크 쇼팽").heading).toBe("피아노 협주곡 1번");
+    expect(workDisplay("Petite suite", "작은 모음곡(드뷔시)", null, "클로드 드뷔시").heading).toBe("작은 모음곡");
+    expect(formalSeries("Church Sonata No. 3 (Mozart) in D major", "Wolfgang Amadeus Mozart").ordinal).toBe(3);
+    expect(workDisplay("Violin Sonata No. 5", "베토벤 바이올린 소나타 5번", "", "루트비히 판 베토벤").heading).toBe("바이올린 소나타 5번");
+    expect(workDisplay("Sonata", "소나타 (초판)", null, "쇼팽").heading).toBe("소나타 (초판)");
+    expect(workDisplay("Variations", "변주곡 (바흐)", null, "쇼팽").heading).toBe("변주곡 (바흐)");
+  });
+  it("distinguishes an opus set from a numbered piece using its original title", () => {
+    expect(workDisplay("Nocturnes, Op. 15", "녹턴, Op. 15", "Op. 15").heading).toBe("녹턴집 Op. 15");
+    expect(workDisplay("Nocturne No. 20 in C-sharp minor, Op. posth.", "녹턴 올림다단조, Op. posth (쇼팽)", "", "프레데리크 쇼팽").heading).toBe("녹턴 20번");
+  });
   it.each([
     [1, "Scherzo No. 1 in B Minor, Op. 20", "스케르초 1번", "B minor", 20],
     [2, "Scherzo no. 2 in B-flat minor, op. 31", "스케르초 2번", "B-flat minor", 31],
@@ -18,6 +30,13 @@ describe("bilingual work labels", () => {
     ["Mazurka in F minor, Op. 68, No. 4", null, "Op. 68 No. 4", "마주르카 바단조", "Mazurka in F minor, Op. 68 No. 4"],
     ["Mazurkas, Op. 24", null, "Op. 24", "마주르카집 Op. 24", "Mazurkas, Op. 24"],
     ["Keyboard Sonata in E flat Major", null, "", "건반 소나타 내림마장조", "Keyboard Sonata in E-flat major"],
+    ["Keyboard Sonata in E major, op. 5,5", null, null, "건반 소나타 마장조", "Keyboard Sonata in E major, Op. 5 No. 5"],
+    ["Double Bass Concerto No. 2", null, null, "콘트라베이스 협주곡 2번", "Double Bass Concerto No. 2"],
+    ["Piano Sonata Hob. XVI/20 in C minor", null, null, "피아노 소나타 다단조", "Piano Sonata Hob. XVI:20 in C minor"],
+    ["Sonata for Piano four-hands", null, null, "네 손을 위한 피아노 소나타", "Sonata for Piano four-hands"],
+    ["Viola d'amore concerto in D minor (RV 393)", null, null, "비올라 다모레 협주곡 라단조", "Viola d'amore concerto in D minor (RV 393)"],
+    ["Sonata in G major for two keyboards, op. 15,5", null, null, "두 대의 건반을 위한 소나타 사장조", "Sonata in G major for two keyboards, Op. 15 No. 5"],
+    ["Sinfonietta", null, null, "신포니에타", "Sinfonietta"],
     ["Symphony No. 2 in E minor", "교향곡 제2번", "Op. 27", "교향곡 2번", "Symphony No. 2 in E minor, Op. 27"],
     ["String Quartet no.3 in C♯ minor", null, null, "현악 사중주 3번", "String Quartet No. 3 in C-sharp minor"],
     ["Waltz No. 6 in D-flat major", "강아지 왈츠", "Op. 64 No. 1", "강아지 왈츠", "Waltz No. 6 in D-flat major, Op. 64 No. 1"],

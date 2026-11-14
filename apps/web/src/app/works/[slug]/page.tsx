@@ -21,7 +21,7 @@ export default async function WorkPage({ params }: WorkPageProps) {
   if (!work) {
     notFound();
   }
-  const { heading, subtitle } = workDisplay(work.title, work.titleKo, work.catalogue);
+  const { heading, subtitle } = workDisplay(work.title, work.titleKo, work.catalogue, work.composer.nameKo, work.composer.name);
 
   return (
     <main className="mx-auto max-w-4xl px-4 pb-16 pt-6 sm:px-8">

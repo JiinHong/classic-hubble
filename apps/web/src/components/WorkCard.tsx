@@ -11,7 +11,7 @@ type WorkCardProps = {
 
 export function WorkCard({ action, work }: WorkCardProps) {
   const performanceCount = work.upcomingPerformanceIds.length;
-  const { heading, subtitle } = workDisplay(work.title, work.titleKo, work.catalogue);
+  const { heading, subtitle } = workDisplay(work.title, work.titleKo, work.catalogue, work.composer.nameKo, work.composer.name);
 
   return (
     <article className="flex flex-col gap-3 py-6 sm:flex-row sm:items-start sm:justify-between sm:gap-6">

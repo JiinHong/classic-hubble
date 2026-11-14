@@ -1,8 +1,9 @@
+import { formalSeries } from "./work-display";
 import { classify, formLabels, type Form } from "./work-forms";
 import { validComponentEdges, type WorkComponent } from "./work-components";
 export { classify } from "./work-forms";
 export type WorkRow = { slug: string; title: string; title_ko: string | null; catalogue: string | null; instrumentation?: string | null };
-export type WorkNode = WorkRow & { parts: WorkNode[]; alternate?: WorkRow };
+export type WorkNode = WorkRow & { parts: WorkNode[]; alternate?: WorkRow; collection?: boolean };
 const collator = new Intl.Collator("ko", { numeric: true, sensitivity: "base" });
 const compareTitle = (a: WorkRow,b: WorkRow) => collator.compare(a.title_ko || a.title, b.title_ko || b.title) || a.slug.localeCompare(b.slug);
 const highlights: Record<string, Form[]> = {
@@ -11,7 +12,8 @@ const highlights: Record<string, Form[]> = {
 };
 
 export function repertoire(rows: WorkRow[], relations: WorkComponent[], genre: Form | undefined, page: number, size: number, composerName = "") {
-  const index = new Map(rows.map(row => [row.slug, { ...row, parts: [] } as WorkNode]));
+  const series = new Map(rows.map(row => [row.slug, formalSeries(row.title, composerName)]));
+  const index = new Map(rows.map(row => [row.slug, { ...row, collection: series.get(row.slug)?.collection, parts: [] } as WorkNode]));
   const position = (edge: WorkComponent) => edge.position ?? (classify(index.get(edge.child_slug)!) === "overture" ? 0 : Infinity);
   const edges = validComponentEdges(relations, (p,c) => index.has(p) && index.has(c))
     .sort((a,b) => position(a) - position(b) || compareTitle(index.get(a.child_slug)!, index.get(b.child_slug)!));
@@ -32,18 +34,26 @@ export function repertoire(rows: WorkRow[], relations: WorkComponent[], genre: F
   }
   const roots = [...index.values()].filter(row => !children.has(row.slug));
   const groups = new Map<Form,WorkNode[]>();
+  const seen = new Set<string>();
   for (const root of roots) {
     const form = classify(root);
     const group = groups.get(form) ?? [];
-    group.push(root);
+    for (const row of [root, ...(root.collection ? root.parts.filter(part =>
+      series.get(part.slug)?.ordinal != null && classify(part) === form) : [])]) {
+      if (!seen.has(row.slug)) group.push(row);
+      seen.add(row.slug);
+    }
     groups.set(form, group);
   }
   const priority = new Map((highlights[composerName] ?? []).map((id,i) => [id,i]));
   const facets = [...groups].map(([id,group]) => ({ id, label: formLabels.get(id)!, count: group.length }))
     .sort((a,b) => (priority.get(a.id) ?? Infinity) - (priority.get(b.id) ?? Infinity)
       || Number(a.id === "other") - Number(b.id === "other") || b.count - a.count || collator.compare(a.label,b.label));
-  const selected = genre ? (groups.get(genre) ?? []).sort((a,b) =>
-    a.catalogue && b.catalogue ? collator.compare(a.catalogue,b.catalogue) || compareTitle(a,b)
-    : Number(!a.catalogue) - Number(!b.catalogue) || compareTitle(a,b)) : roots;
+  const selected = genre ? (groups.get(genre) ?? []).sort((a,b) => {
+    const order = Number(a.collection) - Number(b.collection) ||
+      (series.get(a.slug)?.ordinal ?? Infinity) - (series.get(b.slug)?.ordinal ?? Infinity);
+    return order || (a.catalogue && b.catalogue ? collator.compare(a.catalogue,b.catalogue)
+      : Number(!a.catalogue) - Number(!b.catalogue)) || compareTitle(a,b);
+  }) : roots;
   return { count: roots.length, componentCount: children.size - Number(!!march && !!alternate), selectedCount: selected.length, facets, works: selected.slice((page-1)*size,page*size) };
 }
