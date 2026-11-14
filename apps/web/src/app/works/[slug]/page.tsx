@@ -16,7 +16,7 @@ type WorkPageProps = {
 
 export default async function WorkPage({ params }: WorkPageProps) {
   const { slug } = await params;
-  const { performances, pastPerformances, work } = await getCatalogWorkBySlug(slug);
+  const { performances, pastPerformances, cancelledPerformances, unavailablePerformances, work } = await getCatalogWorkBySlug(slug);
 
   if (!work) {
     notFound();
@@ -34,55 +34,24 @@ export default async function WorkPage({ params }: WorkPageProps) {
       </Link>
 
       <section className="mt-8 border-b border-neutral-200 pb-8">
-        <div>
-          <div className="flex items-start gap-4">
-            <div className="min-w-0">
-              <p className="text-sm text-neutral-500">{work.composer.nameKo}</p>
-              <h1 className="mt-3 break-words text-2xl font-medium leading-snug text-neutral-900 sm:text-3xl">
-                {heading}
-              </h1>
-              {subtitle && <p className="mt-3 break-words text-base leading-7 text-neutral-500">{subtitle}</p>}
-            </div>
-          </div>
-
-          <dl className="mt-6 flex flex-wrap gap-x-10 gap-y-4">
-            <div>
-              <dt className="text-xs font-black text-stone-500">편성</dt>
-              <dd className="mt-1 text-sm font-bold text-stone-950">{work.instrumentation || "미확인"}</dd>
-            </div>
-            <div>
-              <dt className="text-xs font-black text-stone-500">작품 정보 출처</dt>
-              <dd className="mt-1 text-sm font-bold text-stone-950">
-                {work.referenceUrl ? <a className="underline" href={work.referenceUrl} target="_blank" rel="noreferrer">{work.referenceUrl.startsWith("https://www.wikidata.org/") ? "Wikidata" : "원문 보기"}</a> : "자체 정리"}
-              </dd>
-            </div>
-          </dl>
-        </div>
-
-        <aside className="mt-6">
+        <p className="text-sm text-neutral-500">{work.composer.nameKo}</p>
+        <h1 className="mt-2 break-words text-2xl font-medium leading-snug text-neutral-900 sm:text-3xl">
+          {heading}
+        </h1>
+        {subtitle && <p className="mt-2 break-words text-base leading-7 text-neutral-500">{subtitle}</p>}
+        <div className="mt-5">
           <WatchlistButton workSlug={work.slug} />
-          <details className="mt-5 text-sm text-neutral-500">
-          <summary className="w-fit py-1">검색 별칭</summary>
-          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-2">
-            {work.aliases.map((alias) => (
-              <span
-                key={alias}
-                className="text-xs text-neutral-500"
-              >
-                {alias}
-              </span>
-            ))}
-          </div>
-          </details>
-        </aside>
+        </div>
       </section>
 
       <WorkRelations work={work} />
 
       {[
         { id: "upcoming", title: "예정 공연", items: performances, empty: "현재 확인된 예정 공연이 없습니다." },
-        { id: "past", title: "과거·종료 공연", items: pastPerformances, empty: "연결된 과거·종료 공연이 없습니다." },
-      ].map((group) => (
+        { id: "past", title: "지난 공연", items: pastPerformances, empty: "아직 지난 공연이 없습니다." },
+        { id: "cancelled", title: "취소된 공연", items: cancelledPerformances },
+        { id: "unavailable", title: "일정 확인 필요", items: unavailablePerformances },
+      ].filter(group => group.empty || group.items.length).map((group) => (
         <section aria-labelledby={`${group.id}-heading`} className="mt-8" key={group.id}>
           <div className="mb-4">
             <div className="flex flex-wrap items-baseline gap-2">

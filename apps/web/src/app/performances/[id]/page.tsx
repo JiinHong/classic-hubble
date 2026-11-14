@@ -3,13 +3,11 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { ConfidenceBadge } from "@/components/ConfidenceBadge";
 import {
   formatPerformanceDate,
   programPublicationMessage,
   performedScopeLabel,
-  statusLabel,
-  statusTone,
+  performanceBadge,
 } from "@/lib/format";
 import { getCatalogPerformanceById } from "@/lib/catalog";
 import { posterImage } from "@/lib/poster";
@@ -28,6 +26,7 @@ export default async function PerformancePage({ params }: PerformancePageProps) 
     notFound();
   }
 
+  const badge = performanceBadge(performance);
   const programStatus =
     performance.programStatus ??
     (performance.program.length > 0 ? "confirmed" : "unknown");
@@ -57,14 +56,9 @@ export default async function PerformancePage({ params }: PerformancePageProps) 
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <span
-              className={`inline-flex h-7 items-center rounded-md border px-2 text-xs font-bold ${statusTone(
-                performance.status,
-              )}`}
+              className={`inline-flex items-center rounded border px-2 py-0.5 text-xs font-medium ${badge.tone}`}
             >
-              {statusLabel(performance.status)}
-            </span>
-            <span className="rounded-md bg-stone-100 px-2 py-1 text-xs font-bold text-stone-600">
-              {performance.sourceLabel}
+              {badge.label}
             </span>
           </div>
 
@@ -108,15 +102,14 @@ export default async function PerformancePage({ params }: PerformancePageProps) 
 
           <div className="mt-6">
             <h2 className="text-base font-black text-stone-950">프로그램</h2>
-            <p className="mt-2 text-sm font-semibold text-stone-500">
+            {programStatus !== "confirmed" && <p className="mt-2 text-sm text-stone-500">
               {programPublicationMessage(programStatus)}
-            </p>
+            </p>}
             <div className="mt-3 divide-y divide-neutral-100">
               {performance.program.map((item, index) => {
                 const content = (
                   <>
                   <div className="flex flex-wrap items-center gap-2">
-                    <ConfidenceBadge source={item.source} />
                     {item.performedScope ? (
                       <span className="text-sm font-semibold text-stone-600">
                         {performedScopeLabel(item.performedScope)}
@@ -164,22 +157,22 @@ export default async function PerformancePage({ params }: PerformancePageProps) 
                   rel="noreferrer"
                   className="inline-flex items-center gap-2 text-sm font-bold text-emerald-800 hover:text-emerald-950"
                 >
-                  {performance.programSourceLabel ?? "NOL 상세 정보 보기"}
+                  {performance.programSourceLabel ?? "프로그램 안내 보기"}
                   <ExternalLink aria-hidden="true" className="size-4" />
                 </a>
               ) : null}
             </div>
           </div>
 
-          <a
+          {performance.bookingUrl !== "#" && <a
             href={performance.bookingUrl}
             target="_blank"
             rel="noreferrer"
             className="mt-7 inline-flex h-12 items-center justify-center gap-2 rounded-md bg-stone-950 px-5 text-sm font-black text-white transition hover:bg-emerald-800"
           >
-            예매처로 이동
+            {badge.period === "upcoming" ? "예매처로 이동" : "공연 안내 보기"}
             <ExternalLink aria-hidden="true" className="size-4" />
-          </a>
+          </a>}
         </div>
       </section>
     </main>

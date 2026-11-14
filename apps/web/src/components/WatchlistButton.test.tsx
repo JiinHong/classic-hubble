@@ -68,9 +68,9 @@ describe("WatchlistButton", () => {
       </AuthProvider>,
     );
 
-    fireEvent.click(
-      await screen.findByRole("button", { name: "이 곡 알림 받기" }),
-    );
+    const button = await screen.findByRole("button", { name: "공연 알림 받기" });
+    await vi.waitFor(() => expect(button.hasAttribute("disabled")).toBe(false));
+    fireEvent.click(button);
 
     expect(await screen.findByRole("button", { name: "알림 받는 중" })).toBeTruthy();
     expect(
@@ -93,9 +93,9 @@ describe("WatchlistButton", () => {
       </AuthProvider>,
     );
 
-    fireEvent.click(
-      await screen.findByRole("button", { name: "이 곡 알림 받기" }),
-    );
+    const button = await screen.findByRole("button", { name: "공연 알림 받기" });
+    await vi.waitFor(() => expect(button.hasAttribute("disabled")).toBe(false));
+    fireEvent.click(button);
 
     expect(screen.getByRole("dialog")).toBeTruthy();
     expect(client.auth.signInWithOAuth).not.toHaveBeenCalled();

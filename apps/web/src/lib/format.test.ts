@@ -38,13 +38,13 @@ describe("performance presentation", () => {
 
   it("explains each deterministic program publication state", () => {
     expect(programPublicationMessage("partially_confirmed")).toBe(
-      "프로그램 일부 확인: 근거가 확인된 작품만 표시합니다.",
+      "일부 곡목만 안내되어 있어요.",
     );
     expect(programPublicationMessage("confirmed")).toBe(
-      "공연 원문에서 확인한 프로그램입니다.",
+      "",
     );
     expect(programPublicationMessage("image_only")).toBe(
-      "상세 정보가 이미지로만 제공되어 곡명을 아직 구조화하지 못했습니다.",
+      "자세한 곡목은 공연 안내에서 확인해 주세요.",
     );
     expect(programPublicationMessage("not_published")).toBe(
       "예매처에 프로그램 정보가 아직 공개되지 않았습니다.",

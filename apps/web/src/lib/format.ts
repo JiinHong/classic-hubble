@@ -4,6 +4,7 @@ import type {
   PerformedScope,
   ProgramPublicationStatus,
 } from "@classic-hubble/shared";
+import { performancePeriod } from "@classic-hubble/shared";
 
 export const performedScopeLabel = (scope?: PerformedScope | null) => scope ? ({
   full_work: "전곡",
@@ -37,8 +38,15 @@ export const statusLabel = (status: Performance["status"]) =>
     open: "공연 중",
     upcoming: "공연 예정",
     soldout: "매진",
-    closed: "종료·취소",
+    closed: "일정 확인 필요",
   })[status];
+
+export function performanceBadge(performance: Performance) {
+  const period = performancePeriod(performance);
+  if (period === "cancelled") return { period, label: "공연 취소", tone: "border-rose-200 bg-rose-50 text-rose-800" };
+  if (period === "past") return { period, label: "지난 공연", tone: statusTone("closed") };
+  return { period, label: statusLabel(performance.status), tone: statusTone(performance.status) };
+}
 
 export const statusTone = (status: Performance["status"]) =>
   ({
@@ -62,10 +70,10 @@ export const confidenceLabel = (confidence: number) =>
 
 export const programPublicationMessage = (status: ProgramPublicationStatus) =>
   ({
-    confirmed: "공연 원문에서 확인한 프로그램입니다.",
-    partially_confirmed: "프로그램 일부 확인: 근거가 확인된 작품만 표시합니다.",
+    confirmed: "",
+    partially_confirmed: "일부 곡목만 안내되어 있어요.",
     image_only:
-      "상세 정보가 이미지로만 제공되어 곡명을 아직 구조화하지 못했습니다.",
+      "자세한 곡목은 공연 안내에서 확인해 주세요.",
     not_published: "예매처에 프로그램 정보가 아직 공개되지 않았습니다.",
     selected_on_day: "프로그램은 공연 당일 공개될 예정입니다.",
     announced_later: "프로그램은 추후 공개될 예정입니다.",

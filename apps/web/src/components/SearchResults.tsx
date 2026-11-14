@@ -96,7 +96,7 @@ export function SearchResults({ search, offset, onMore, onMode, onCity, onPeriod
             return <section key={group} className="mb-7" aria-labelledby={`concert-heading-${group}`}>
               <h2 id={`concert-heading-${group}`} className="text-base font-medium">{group === "past" ? "과거 공연" : "예정 공연"} <span className="text-sm text-neutral-500">{counts[group]}개</span></h2>
               <div className="divide-y divide-neutral-100">{items.map((p,i) => <PerformanceCard key={p.id} performance={p} eager={i === 0}
-                showYear past={group === "past"} workSlug={work || result.matchedWorkSlugs?.[p.id]}
+                showYear workSlug={work || result.matchedWorkSlugs?.[p.id]}
                 metadataMatch={!!query && !work && !result.matchedWorkSlugs?.[p.id]} />)}</div>
             </section>;
           }) : <div className="divide-y divide-neutral-100">{result.works.map(w => <WorkCard key={w.slug} work={w} />)}</div>}
