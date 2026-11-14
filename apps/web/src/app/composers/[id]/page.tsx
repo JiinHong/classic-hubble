@@ -18,8 +18,8 @@ function browseHref(base: string, genre?: Form, page = 1) {
   return base + (q.size ? "?" + q : "");
 }
 
-function WorkItem({ work: w }: { work: WorkNode }) {
-  const { heading, subtitle } = workDisplay(w.title, w.title_ko, w.catalogue);
+function WorkItem({ work: w, composer }: { work: WorkNode; composer: {name: string; nameKo: string} }) {
+  const { heading, subtitle } = workDisplay(w.title, w.title_ko, w.catalogue, composer.nameKo, composer.name);
   return <li className="py-1">
     <Link prefetch={false} href={"/works/" + encodeURIComponent(w.slug)} className="group flex min-h-14 items-center justify-between gap-4 py-2">
       <div className="min-w-0"><p className="break-words font-medium group-hover:text-emerald-800">{heading}</p>
@@ -31,7 +31,7 @@ function WorkItem({ work: w }: { work: WorkNode }) {
       <summary className="inline-flex min-h-9 cursor-pointer list-none items-center gap-1 text-sm text-emerald-800 [&::-webkit-details-marker]:hidden [[open]>&>svg]:rotate-180">
         악장 · 구성곡 {w.parts.length}<ChevronDown aria-hidden="true" className="size-4" />
       </summary>
-      <ul className="ml-1 divide-y divide-neutral-100 border-l-2 border-neutral-200 pl-4">{w.parts.map(part => <WorkItem key={part.slug} work={part} />)}</ul>
+      <ul className="ml-1 divide-y divide-neutral-100 border-l-2 border-neutral-200 pl-4">{w.parts.map(part => <WorkItem key={part.slug} work={part} composer={composer} />)}</ul>
     </details>}
   </li>;
 }
@@ -55,6 +55,9 @@ export default async function ComposerPage({ params, searchParams }: Props) {
   const bio = composerBiography(composer, count);
   const base = composerDiscoveryHref(composer);
   const pages = Math.ceil(selectedCount / PROFILE_PAGE_SIZE);
+  const sections = genre
+    ? [{label: formLabels.get(genre)!, items: works.filter(w => !w.collection)}, {label: "작품집", items: works.filter(w => w.collection)}]
+    : [{label: "전체 작품", items: works}];
   const options = [{id: undefined, label: "전체", count}, ...facets];
   const visible = options.filter((f,i) => i < 8 || f.id === genre);
   const more = options.filter(f => !visible.includes(f));
@@ -95,7 +98,10 @@ export default async function ComposerPage({ params, searchParams }: Props) {
           <div className="mt-2 flex flex-wrap gap-2">{more.map(chip)}</div>
         </details>}
       </nav>}
-      {works.length ? <ul aria-label={genre ? formLabels.get(genre) : "전체 작품"} className="divide-y divide-neutral-100">{works.map(w => <WorkItem key={w.slug} work={w} />)}</ul>
+      {works.length ? sections.filter(s => s.items.length).map(section => <div key={section.label}>
+        {section.label === "작품집" && <h3 className="mt-6 border-b border-neutral-200 pb-2 text-sm font-semibold">작품집</h3>}
+        <ul aria-label={section.label} className="divide-y divide-neutral-100">{section.items.map(w => <WorkItem key={w.slug} work={w} composer={composer} />)}</ul>
+      </div>)
         : <p className="mt-5 text-sm text-neutral-500">아직 연결된 작품이 없습니다.</p>}
       {pages > 1 && <nav aria-label="작품 페이지" className="mt-4 flex items-center justify-center gap-5 text-sm">
         {page > 1 && <Link href={browseHref(base, genre, page - 1)} aria-label="이전 작품 페이지" className="icon-button"><ChevronLeft className="size-4" /></Link>}

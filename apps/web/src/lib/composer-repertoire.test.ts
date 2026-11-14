@@ -5,6 +5,15 @@ const work = (slug: string, title: string, ko: string | null = null): WorkRow =>
   ({ slug, title, title_ko: ko, catalogue: null });
 
 describe("composer repertoire", () => {
+  it("lists numbered pieces before collections across pages, but not a sonata's movements", () => {
+    const rows = [work("set", "Nocturnes, Op. 15"), work("5", "Nocturne No. 5"), work("4", "Nocturne No. 4"), work("sonata", "Piano Sonata"), work("movement", "Nocturne No. 1")];
+    const edges = [{parent_slug:"set",child_slug:"4",position:1},{parent_slug:"sonata",child_slug:"movement",position:1}];
+    const list = (genre: "nocturne" | undefined, page: number, size: number) => repertoire(rows, edges, genre, page, size);
+    expect(list("nocturne",1,2).works.map(w => w.slug)).toEqual(["4","5"]);
+    expect(list("nocturne",2,2).works.map(w => w.slug)).toEqual(["set"]);
+    expect(list("nocturne",1,2).selectedCount).toBe(3);
+    expect(list(undefined,1,10).works.find(w => w.slug === "set")?.parts.map(w => w.slug)).toEqual(["4"]);
+  });
   it.each([
     ["Étude Op. 10", "etude"], ["24 Préludes", "prelude"], ["Scherzo No. 4", "scherzo"],
     ["Fantaisie-impromptu", "impromptu"], ["Ballade No. 3", "ballade"],
