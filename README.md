@@ -35,20 +35,19 @@ pnpm --filter web build
 
 GitHub Actions runs the full web and worker verification suite on pushes and pull
 requests. The catalog ingestion workflow runs every day at 16:27 Asia/Seoul,
-after the documented 15:00 KOPIS refresh and before NOL's common evening ticket
-opening window.
+after the documented 15:00 KOPIS refresh.
 
 The scheduled run refreshes the KOPIS catalog from seven days in the past through
-180 days in the future. NOL enrichment is intentionally limited to performances
-in the next 31 days while the deterministic adapter's production request volume
-is being established. The workflow requires `KOPIS_API_KEY`, `SUPABASE_URL`, and
+180 days in the future. Official venue enrichment then checks today through 31 days ahead.
+NOL requests are paused; existing NOL evidence remains intact. The workflow requires `KOPIS_API_KEY`, `SUPABASE_URL`, and
 `SUPABASE_SECRET_KEY` as GitHub Actions repository secrets.
 
 ## Architecture Notes
 
 - Supabase Auth is the default login layer. Anonymous browsing can stay open, while watchlists and notifications require a user.
 - The web app uses Supabase Google sign-in and per-user watchlists. The watchlist does not change existing email preferences.
-- KOPIS supplies the baseline performance/facility records. The optional deterministic NOL adapter enriches KOPIS-linked goods with text programs or an explicit image-only/not-published state; venue adapters and OCR remain later stages.
+- KOPIS supplies nationwide classical performance/facility records. Official enrichment binds a single event date, time and hall to a published programme: SAC calendar and detail, Sejong's KOPIS-linked detail, or Bucheon Philharmonic's event and separately numbered programme notes. Seoul Philharmonic discovery observes its robots restrictions and reports a policy hold when disallowed. No OCR or paid model is called here.
+- Only unambiguous printed composer, title and catalogue matches create public links. A partial list is not the entire concert programme. Conflicting existing sources and changed programmes are preserved for reconciliation. Run `python -m classic_hubble_pipeline.official_program_sync --start YYYY-MM-DD --end YYYY-MM-DD` to preview; add `--apply` to publish, or repeat `--kopis PF...` for selected events.
 - The `kopis-sync` worker stores raw KOPIS and NOL records first, then idempotently upserts facilities, halls, performances, NOL-owned program rows, and detail images.
 - KOPIS list requests are split into at most 31-day windows and 100-row pages; provider failures are retried and API result codes remain distinguishable from transport errors.
 - OCR/LLM matches below the confidence threshold should be routed to the admin review queue.
